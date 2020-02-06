@@ -77,7 +77,12 @@ $ %s query staking validator fetchvaloper1gghjut3ccd8ay0zduzj64hwre2fxs9ldgd4m53
 				return fmt.Errorf("no validator found with address %s", addr)
 			}
 
-			return cliCtx.PrintOutput(types.MustUnmarshalValidator(cdc, res))
+			validator, err := types.UnmarshalValidator(types.ModuleCdc, res)
+			if err != nil {
+				return err
+			}
+
+			return cliCtx.PrintOutput(validator)
 		},
 	}
 }
@@ -107,7 +112,12 @@ $ %s query staking validators
 
 			var validators types.Validators
 			for _, kv := range resKVs {
-				validators = append(validators, types.MustUnmarshalValidator(cdc, kv.Value))
+				validator, err := types.UnmarshalValidator(types.ModuleCdc, kv.Value)
+				if err != nil {
+					return err
+				}
+
+				validators = append(validators, validator)
 			}
 
 			return cliCtx.PrintOutput(validators)
@@ -380,7 +390,12 @@ $ %s query staking unbonding-delegation fetch1gghjut3ccd8ay0zduzj64hwre2fxs9lddf
 				return err
 			}
 
-			return cliCtx.PrintOutput(types.MustUnmarshalUBD(cdc, res))
+			ubd, err := types.UnmarshalUBD(types.ModuleCdc, res)
+			if err != nil {
+				return err
+			}
+
+			return cliCtx.PrintOutput(ubd)
 		},
 	}
 }
