@@ -92,7 +92,7 @@ func TestParseHTTPArgs(t *testing.T) {
 		{"error limit 0", reqE2, httptest.NewRecorder(), []string{}, DefaultPage, DefaultLimit, true},
 
 		{"tags", req4, httptest.NewRecorder(), []string{"foo='faa'"}, DefaultPage, DefaultLimit, false},
-		{"tags", reqTxH, httptest.NewRecorder(), []string{"tx.height<=14", "tx.height>=12"}, DefaultPage, DefaultLimit, false},
+		{"tags", reqTxH, httptest.NewRecorder(), []string{"tx.height>=12", "tx.height<=14"}, DefaultPage, DefaultLimit, false},
 	}
 	for _, tt := range tests {
 		tt := tt
