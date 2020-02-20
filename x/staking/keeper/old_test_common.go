@@ -87,9 +87,10 @@ func CreateTestInput(t *testing.T, isCheckTx bool, initPower int64) (sdk.Context
 	keyStaking := sdk.NewKVStoreKey(types.StoreKey)
 	keyAcc := sdk.NewKVStoreKey(auth.StoreKey)
 	bankKey := sdk.NewKVStoreKey(bank.StoreKey)
-	keyParams := sdk.NewKVStoreKey(paramtypes.StoreKey)
-	tkeyParams := sdk.NewTransientStoreKey(paramtypes.TStoreKey)
+	keyParams := sdk.NewKVStoreKey(params.StoreKey)
 	keySupply := sdk.NewKVStoreKey(supply.StoreKey)
+
+	tkeyParams := sdk.NewTransientStoreKey(params.TStoreKey)
 
 	db := dbm.NewMemDB()
 	ms := store.NewCommitMultiStore(db)
