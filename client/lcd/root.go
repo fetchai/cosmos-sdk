@@ -73,13 +73,10 @@ func (rs *RestServer) Start(listenAddr string, maxOpen int, readTimeout, writeTi
 
 	var h http.Handler = rs.Mux
 	if cors {
-		h = handlers.CORS(
-			handlers.AllowedHeaders([]string{"Content-Type"}),
-			handlers.AllowedOrigins([]string{"*"}),
-		)(h)
+		return rpcserver.StartHTTPServer(rs.listener, handlers.CORS()(h), rs.log, cfg)
 	}
 
-	return rpcserver.Serve(rs.listener, h, rs.log, cfg)
+	return rpcserver.StartHTTPServer(rs.listener, rs.Mux, rs.log, cfg)
 }
 
 // ServeCommand will start the application REST service as a blocking process. It
@@ -101,7 +98,7 @@ func ServeCommand(cdc *codec.Codec, registerRoutesFn func(*RestServer)) *cobra.C
 				viper.GetInt(flags.FlagMaxOpenConnections),
 				uint(viper.GetInt(flags.FlagRPCReadTimeout)),
 				uint(viper.GetInt(flags.FlagRPCWriteTimeout)),
-				viper.GetBool(FlagAllowCORS),
+				viper.GetBool(flags.FlagUnsafeCORS),
 			)
 
 			return err
