@@ -69,6 +69,7 @@ const (
 	FlagPage               = "page"
 	FlagLimit              = "limit"
 	FlagUnsafeCORS         = "unsafe-cors"
+	FlagGenesisEntropy     = "entropy"
 )
 
 // LineBreak can be included in a command list to provide a blank line
@@ -92,6 +93,7 @@ func GetCommands(cmds ...*cobra.Command) []*cobra.Command {
 		viper.BindPFlag(FlagNode, c.Flags().Lookup(FlagNode))
 
 		c.MarkFlagRequired(FlagChainID)
+		c.MarkFlagRequired(FlagGenesisEntropy)
 
 		c.SetErr(c.ErrOrStderr())
 	}
@@ -129,6 +131,7 @@ func PostCommands(cmds ...*cobra.Command) []*cobra.Command {
 		viper.BindPFlag(FlagKeyringBackend, c.Flags().Lookup(FlagKeyringBackend))
 
 		c.MarkFlagRequired(FlagChainID)
+		c.MarkFlagRequired(FlagGenesisEntropy)
 
 		c.SetErr(c.ErrOrStderr())
 	}

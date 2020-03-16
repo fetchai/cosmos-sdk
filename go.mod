@@ -1,5 +1,12 @@
 module github.com/cosmos/cosmos-sdk
 
+go 1.14
+
+replace (
+	github.com/gogo/protobuf => github.com/regen-network/protobuf v1.3.2-alpha.regen.1
+	github.com/tendermint/tendermint => github.com/jinmannwong/research-cosmos-drb-experimental v0.0.0-20200316100958-a7c86a6dae90
+)
+
 require (
 	github.com/99designs/keyring v1.1.4
 	github.com/bartekn/go-bip39 v0.0.0-20171116152956-a05967ea095d
@@ -28,11 +35,7 @@ require (
 	github.com/tendermint/crypto v0.0.0-20191022145703-50d29ede1e15
 	github.com/tendermint/go-amino v0.15.1
 	github.com/tendermint/iavl v0.13.0
-	github.com/tendermint/tendermint v0.33.1
+	github.com/tendermint/tendermint v0.33.0
 	github.com/tendermint/tm-db v0.4.1
 	gopkg.in/yaml.v2 v2.2.8
 )
-
-replace github.com/gogo/protobuf => github.com/regen-network/protobuf v1.3.2-alpha.regen.1
-
-go 1.14

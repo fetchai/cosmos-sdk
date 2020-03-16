@@ -34,10 +34,11 @@ type printInfo struct {
 	NodeID     string          `json:"node_id" yaml:"node_id"`
 	GenTxsDir  string          `json:"gentxs_dir" yaml:"gentxs_dir"`
 	AppMessage json.RawMessage `json:"app_message" yaml:"app_message"`
+	Entropy    string          `json:"entropy" yaml:"entropy"`
 }
 
 func newPrintInfo(moniker, chainID, nodeID, genTxsDir string,
-	appMessage json.RawMessage) printInfo {
+	appMessage json.RawMessage, entropy string) printInfo {
 
 	return printInfo{
 		Moniker:    moniker,
@@ -45,6 +46,7 @@ func newPrintInfo(moniker, chainID, nodeID, genTxsDir string,
 		NodeID:     nodeID,
 		GenTxsDir:  genTxsDir,
 		AppMessage: appMessage,
+		Entropy: entropy,
 	}
 }
 
@@ -74,6 +76,11 @@ func InitCmd(ctx *server.Context, cdc codec.JSONMarshaler, mbm module.BasicManag
 			chainID := viper.GetString(flags.FlagChainID)
 			if chainID == "" {
 				chainID = fmt.Sprintf("test-chain-%v", tmrand.Str(6))
+			}
+
+			entropy := viper.GetString(flags.FlagGenesisEntropy)
+			if entropy == "" {
+				panic("no entropy provided")
 			}
 
 			nodeID, _, err := genutil.InitializeNodeValidatorFiles(config)
@@ -107,11 +114,12 @@ func InitCmd(ctx *server.Context, cdc codec.JSONMarshaler, mbm module.BasicManag
 			genDoc.ChainID = chainID
 			genDoc.Validators = nil
 			genDoc.AppState = appState
+			genDoc.Entropy = entropy
 			if err = genutil.ExportGenesisFile(genDoc, genFile); err != nil {
 				return errors.Wrap(err, "Failed to export gensis file")
 			}
 
-			toPrint := newPrintInfo(config.Moniker, chainID, nodeID, "", appState)
+			toPrint := newPrintInfo(config.Moniker, chainID, nodeID, "", appState, entropy)
 
 			cfg.WriteConfigFile(filepath.Join(config.RootDir, "config", "config.toml"), config)
 			return displayInfo(cdc, toPrint)

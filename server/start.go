@@ -27,6 +27,7 @@ const (
 	flagPruningKeepEvery     = "pruning-keep-every"
 	flagPruningSnapshotEvery = "pruning-snapshot-every"
 	flagCPUProfile           = "cpu-profile"
+	flagAeonKeysFile         = "aeon-keys"
 	FlagMinGasPrices         = "minimum-gas-prices"
 	FlagHaltHeight           = "halt-height"
 	FlagHaltTime             = "halt-time"
@@ -103,6 +104,7 @@ which accepts a path for the resulting pprof file.
 	cmd.Flags().Uint64(FlagHaltTime, 0, "Minimum block time (in Unix seconds) at which to gracefully halt the chain and shutdown the node")
 	cmd.Flags().Bool(FlagInterBlockCache, true, "Enable inter-block caching")
 	cmd.Flags().String(flagCPUProfile, "", "Enable CPU profiling and write to the provided file")
+	cmd.Flags().String(flagAeonKeysFile, "", "Key file for DRB")
 
 	// add support for all Tendermint-specific command line options
 	tcmd.AddNodeFlags(cmd)
@@ -203,6 +205,7 @@ func startInProcess(ctx *Context, appCreator AppCreator) (*node.Node, error) {
 		node.DefaultGenesisDocProviderFunc(cfg),
 		node.DefaultDBProvider,
 		node.DefaultMetricsProvider(cfg.Instrumentation),
+		viper.GetString(flagAeonKeysFile),
 		ctx.Logger.With("module", "node"),
 	)
 	if err != nil {

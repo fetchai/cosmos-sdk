@@ -32,6 +32,8 @@ func TestInitCmd(t *testing.T) {
 	home, cleanup := tests.NewTestCaseDir(t)
 	t.Cleanup(cleanup)
 
+	viper.Set(flags.FlagGenesisEntropy, "Fetch.ai Test Genesis Entropy")
+
 	logger := log.NewNopLogger()
 	cfg, err := tcmd.ParseConfig()
 	require.Nil(t, err)
@@ -90,6 +92,7 @@ func TestEmptyState(t *testing.T) {
 	require.Contains(t, out, "consensus_params")
 	require.Contains(t, out, "app_hash")
 	require.Contains(t, out, "app_state")
+	require.Contains(t, out, "entropy")
 }
 
 func TestStartStandAlone(t *testing.T) {

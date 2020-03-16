@@ -29,7 +29,7 @@ func ExportGenesisFile(genDoc *tmtypes.GenesisDoc, genFile string) error {
 // An error is returned if building or writing the configuration to file fails.
 func ExportGenesisFileWithTime(
 	genFile, chainID string, validators []tmtypes.GenesisValidator,
-	appState json.RawMessage, genTime time.Time,
+	appState json.RawMessage, genTime time.Time, entropy string,
 ) error {
 
 	genDoc := tmtypes.GenesisDoc{
@@ -37,6 +37,7 @@ func ExportGenesisFileWithTime(
 		ChainID:     chainID,
 		Validators:  validators,
 		AppState:    appState,
+		Entropy:     entropy,
 	}
 
 	if err := genDoc.ValidateAndComplete(); err != nil {
