@@ -44,6 +44,7 @@ type CLIContext struct {
 	UseLedger     bool
 	Simulate      bool
 	GenerateOnly  bool
+	Offline       bool
 	Indent        bool
 	SkipConfirm   bool
 
@@ -68,7 +69,8 @@ func NewCLIContextWithInputAndFrom(input io.Reader, from string) CLIContext {
 		os.Exit(1)
 	}
 
-	if !genOnly {
+	offline := viper.GetBool(flags.FlagOffline)
+	if !offline {
 		nodeURI = viper.GetString(flags.FlagNode)
 		if nodeURI != "" {
 			rpc, err = rpcclienthttp.New(nodeURI, "/websocket")
@@ -94,6 +96,7 @@ func NewCLIContextWithInputAndFrom(input io.Reader, from string) CLIContext {
 		BroadcastMode: viper.GetString(flags.FlagBroadcastMode),
 		Simulate:      viper.GetBool(flags.FlagDryRun),
 		GenerateOnly:  genOnly,
+		Offline:       offline,
 		FromAddress:   fromAddress,
 		FromName:      fromName,
 		Indent:        viper.GetBool(flags.FlagIndentResponse),
@@ -287,7 +290,7 @@ func GetFromFields(input io.Reader, from string, genOnly bool) (sdk.AccAddress, 
 	if genOnly {
 		addr, err := sdk.AccAddressFromBech32(from)
 		if err != nil {
-			return nil, "", errors.Wrap(err, "must provide a valid Bech32 address for generate-only")
+			return nil, "", errors.Wrap(err, "must provide a valid Bech32 address in generate-only mode")
 		}
 
 		return addr, "", nil
