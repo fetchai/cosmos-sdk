@@ -41,7 +41,7 @@ func TestWithdrawValidatorCommission(t *testing.T) {
 
 	valCommission := sdk.DecCoins{
 		sdk.NewDecCoinFromDec("mytoken", sdk.NewDec(5).Quo(sdk.NewDec(4))),
-		sdk.NewDecCoinFromDec("stake", sdk.NewDec(3).Quo(sdk.NewDec(2))),
+		sdk.NewDecCoinFromDec(sdk.DefaultBondDenom, sdk.NewDec(3).Quo(sdk.NewDec(2))),
 	}
 
 	addr := simapp.AddTestAddrs(app, ctx, 1, sdk.NewInt(1000000000))
@@ -51,14 +51,14 @@ func TestWithdrawValidatorCommission(t *testing.T) {
 	distrAcc := app.DistrKeeper.GetDistributionAccount(ctx)
 	app.BankKeeper.SetBalances(ctx, distrAcc.GetAddress(), sdk.NewCoins(
 		sdk.NewCoin("mytoken", sdk.NewInt(2)),
-		sdk.NewCoin("stake", sdk.NewInt(2)),
+		sdk.NewCoin(sdk.DefaultBondDenom, sdk.NewInt(2)),
 	))
 	app.SupplyKeeper.SetModuleAccount(ctx, distrAcc)
 
 	// check initial balance
 	balance := app.BankKeeper.GetAllBalances(ctx, sdk.AccAddress(valAddrs[0]))
 	expTokens := sdk.TokensFromConsensusPower(1000)
-	expCoins := sdk.NewCoins(sdk.NewCoin("stake", expTokens))
+	expCoins := sdk.NewCoins(sdk.NewCoin(sdk.DefaultBondDenom, expTokens))
 	require.Equal(t, expCoins, balance)
 
 	// set outstanding rewards
@@ -74,14 +74,14 @@ func TestWithdrawValidatorCommission(t *testing.T) {
 	balance = app.BankKeeper.GetAllBalances(ctx, sdk.AccAddress(valAddrs[0]))
 	require.Equal(t, sdk.NewCoins(
 		sdk.NewCoin("mytoken", sdk.NewInt(1)),
-		sdk.NewCoin("stake", expTokens.AddRaw(1)),
+		sdk.NewCoin(sdk.DefaultBondDenom, expTokens.AddRaw(1)),
 	), balance)
 
 	// check remainder
 	remainder := app.DistrKeeper.GetValidatorAccumulatedCommission(ctx, valAddrs[0]).Commission
 	require.Equal(t, sdk.DecCoins{
 		sdk.NewDecCoinFromDec("mytoken", sdk.NewDec(1).Quo(sdk.NewDec(4))),
-		sdk.NewDecCoinFromDec("stake", sdk.NewDec(1).Quo(sdk.NewDec(2))),
+		sdk.NewDecCoinFromDec(sdk.DefaultBondDenom, sdk.NewDec(1).Quo(sdk.NewDec(2))),
 	}, remainder)
 
 	require.True(t, true)
@@ -93,7 +93,7 @@ func TestGetTotalRewards(t *testing.T) {
 
 	valCommission := sdk.DecCoins{
 		sdk.NewDecCoinFromDec("mytoken", sdk.NewDec(5).Quo(sdk.NewDec(4))),
-		sdk.NewDecCoinFromDec("stake", sdk.NewDec(3).Quo(sdk.NewDec(2))),
+		sdk.NewDecCoinFromDec(sdk.DefaultBondDenom, sdk.NewDec(3).Quo(sdk.NewDec(2))),
 	}
 
 	addr := simapp.AddTestAddrs(app, ctx, 2, sdk.NewInt(1000000000))
@@ -114,7 +114,7 @@ func TestFundCommunityPool(t *testing.T) {
 
 	addr := simapp.AddTestAddrs(app, ctx, 2, sdk.NewInt(1000000000))
 
-	amount := sdk.NewCoins(sdk.NewInt64Coin("stake", 100))
+	amount := sdk.NewCoins(sdk.NewInt64Coin(sdk.DefaultBondDenom, 100))
 	require.NoError(t, app.BankKeeper.SetBalances(ctx, addr[0], amount))
 
 	initPool := app.DistrKeeper.GetFeePool(ctx)
