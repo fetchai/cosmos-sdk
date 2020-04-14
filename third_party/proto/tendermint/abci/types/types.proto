@@ -5,8 +5,8 @@ option  go_package = "github.com/tendermint/tendermint/abci/types";
 // For more information on gogo.proto, see:
 // https://github.com/gogo/protobuf/blob/master/extensions.md
 import "third_party/proto/gogoproto/gogo.proto";
-import "third_party/proto/tendermint/crypto/merkle/merkle.proto";
-import "third_party/proto/tendermint/libs/kv/types.proto";
+import "crypto/merkle/merkle.proto";
+import "libs/kv/types.proto";
 import "google/protobuf/timestamp.proto";
 import "google/protobuf/duration.proto";
 
@@ -39,6 +39,7 @@ message Request {
     RequestDeliverTx  deliver_tx  = 19;
     RequestEndBlock   end_block   = 11;
     RequestCommit     commit      = 12;
+    RequestBlockValidation block_validation = 13;
   }
 }
 
@@ -92,6 +93,12 @@ message RequestCheckTx {
   CheckTxType type = 2;
 }
 
+message RequestBlockValidation {
+  RequestBeginBlock begin_block = 1;
+  repeated bytes    txs         = 2;
+  RequestEndBlock   end_block   = 3;
+}
+
 message RequestDeliverTx {
   bytes tx = 1;
 }
@@ -119,6 +126,7 @@ message Response {
     ResponseDeliverTx  deliver_tx  = 10;
     ResponseEndBlock   end_block   = 11;
     ResponseCommit     commit      = 12;
+    ResponseBlockValidation block_validation = 13;
   }
 }
 
@@ -184,6 +192,13 @@ message ResponseCheckTx {
   repeated Event events     = 7
       [(gogoproto.nullable) = false, (gogoproto.jsontag) = "events,omitempty"];
   string codespace = 8;
+}
+
+message ResponseBlockValidation {
+  uint32 code = 1;
+  bytes  data = 2;
+  string log  = 3; //nondeterministic
+  string info = 4; //nondeterministic
 }
 
 message ResponseDeliverTx {
@@ -343,4 +358,5 @@ service ABCIApplication {
   rpc InitChain(RequestInitChain) returns (ResponseInitChain);
   rpc BeginBlock(RequestBeginBlock) returns (ResponseBeginBlock);
   rpc EndBlock(RequestEndBlock) returns (ResponseEndBlock);
+  rpc ValidateBlock(RequestBlockValidation) returns (ResponseBlockValidation);
 }
