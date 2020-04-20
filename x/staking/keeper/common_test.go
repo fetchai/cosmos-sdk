@@ -29,7 +29,6 @@ func createTestInput() (*codec.Codec, *simapp.SimApp, sdk.Context) {
 		simapp.NewAppCodec().Staking,
 		app.GetKey(staking.StoreKey),
 		app.BankKeeper,
-		app.SupplyKeeper,
 		app.GetSubspace(staking.ModuleName),
 	)
 
