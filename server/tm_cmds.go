@@ -44,10 +44,10 @@ func ShowValidatorCmd(ctx *Context) *cobra.Command {
 		Use:   "show-validator",
 		Short: "Show this node's tendermint validator info",
 		RunE: func(cmd *cobra.Command, args []string) error {
-
 			cfg := ctx.Config
-			privValidator := pvm.LoadOrGenFilePV(
-				cfg.PrivValidatorKeyFile(), cfg.PrivValidatorStateFile())
+			UpgradeOldPrivValFile(cfg)
+
+			privValidator := pvm.LoadOrGenFilePV(cfg.PrivValidatorKeyFile(), cfg.PrivValidatorStateFile())
 			valPubKey, err := privValidator.GetPubKey()
 			if err != nil {
 				return err
