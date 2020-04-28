@@ -286,7 +286,7 @@ func (app *BaseApp) MempoolReapTxs(req abci.RequestMempoolReapTxs) abci.Response
 }
 
 func (app *BaseApp) ValidateBlock(req abci.RequestBlockValidation) abci.ResponseBlockValidation {
-	return abcitypes.ResponseBlockValidation{Code: 0}
+	return abci.ResponseBlockValidation{Code: 0}
 }
 
 // halt attempts to gracefully shutdown the node via SIGINT and SIGTERM falling

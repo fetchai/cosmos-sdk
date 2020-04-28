@@ -4,7 +4,7 @@ go 1.14
 
 replace (
 	github.com/gogo/protobuf => github.com/regen-network/protobuf v1.3.2-alpha.regen.1
-	github.com/tendermint/tendermint => github.com/fetchai/research-cosmos-drb-experimental v0.0.0-20200407104540-cdef8c5bd455
+	github.com/tendermint/tendermint => github.com/fetchai/research-cosmos-drb-experimental v0.0.0-20200414142934-959be5949c47
 )
 
 require (
