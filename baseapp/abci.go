@@ -267,6 +267,28 @@ func (app *BaseApp) Commit() (res abci.ResponseCommit) {
 	}
 }
 
+func (app *BaseApp) MempoolAddTx(req abci.RequestMempoolAddTx) abci.ResponseMempoolAddTx {
+	return abci.ResponseMempoolAddTx{
+		Code: 1,
+	}
+}
+
+func (app *BaseApp) MempoolRemoveTx(req abci.RequestMempoolRemoveTx) abci.ResponseMempoolRemoveTx {
+	return abci.ResponseMempoolRemoveTx{
+		Code: 1,
+	}
+}
+
+func (app *BaseApp) MempoolReapTxs(req abci.RequestMempoolReapTxs) abci.ResponseMempoolReapTxs {
+	return abci.ResponseMempoolReapTxs{
+		Code: 1,
+	}
+}
+
+func (app *BaseApp) ValidateBlock(req abci.RequestBlockValidation) abci.ResponseBlockValidation {
+	return abci.ResponseBlockValidation{Code: 0}
+}
+
 // halt attempts to gracefully shutdown the node via SIGINT and SIGTERM falling
 // back on os.Exit if both fail.
 func (app *BaseApp) halt() {
