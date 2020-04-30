@@ -1,8 +1,11 @@
 package keeper_test
 
 import (
-	"github.com/cosmos/cosmos-sdk/std"
 	"testing"
+
+	"github.com/cosmos/cosmos-sdk/std"
+
+	abci "github.com/tendermint/tendermint/abci/types"
 
 	"github.com/cosmos/cosmos-sdk/codec"
 	"github.com/cosmos/cosmos-sdk/simapp"
