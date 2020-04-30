@@ -29,3 +29,5 @@ require (
 	github.com/tendermint/tm-db v0.2.0
 	gopkg.in/yaml.v2 v2.2.7
 )
+
+replace github.com/tendermint/tendermint => ../cosmos-consensus
