@@ -29,7 +29,7 @@ func CreateTestInput(t *testing.T) (sdk.Context, crisis.Keeper, auth.AccountKeep
 
 	paramSpace := paramsKeeper.Subspace(crisis.DefaultParamspace)
 	crisisKeeper := crisis.NewKeeper(paramSpace, 1, supplyKeeper, auth.FeeCollectorName)
-	constantFee := sdk.NewInt64Coin("stake", 10000000)
+	constantFee := sdk.NewInt64Coin(sdk.DefaultBondDenom, 10000000)
 	crisisKeeper.SetConstantFee(ctx, constantFee)
 
 	crisisKeeper.RegisterRoute(testModuleName, dummyRouteWhichPasses.Route, dummyRouteWhichPasses.Invar)
