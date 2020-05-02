@@ -22,9 +22,11 @@ func TestingUpdateValidator(keeper Keeper, ctx sdk.Context, validator types.Vali
 
 	// Remove any existing power key for validator.
 	store := ctx.KVStore(keeper.storeKey)
+	deleted := false
+
 	iterator := sdk.KVStorePrefixIterator(store, types.ValidatorsByPowerIndexKey)
 	defer iterator.Close()
-	deleted := false
+
 	for ; iterator.Valid(); iterator.Next() {
 		valAddr := types.ParseValidatorPowerRankKey(iterator.Key())
 		if bytes.Equal(valAddr, validator.OperatorAddress) {
@@ -33,17 +35,21 @@ func TestingUpdateValidator(keeper Keeper, ctx sdk.Context, validator types.Vali
 			} else {
 				deleted = true
 			}
+
 			store.Delete(iterator.Key())
 		}
 	}
 
 	keeper.SetValidatorByPowerIndex(ctx, validator)
+
 	if apply {
 		keeper.ApplyAndReturnValidatorSetUpdates(ctx)
+
 		validator, found := keeper.GetValidator(ctx, validator.OperatorAddress)
 		if !found {
 			panic("validator expected but not found")
 		}
+
 		return validator
 	}
 
@@ -66,5 +72,6 @@ func RandomValidator(r *rand.Rand, keeper Keeper, ctx sdk.Context) (val types.Va
 	}
 
 	i := r.Intn(len(vals))
+
 	return vals[i], true
 }
