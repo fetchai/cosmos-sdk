@@ -30,4 +30,4 @@ require (
 	gopkg.in/yaml.v2 v2.2.7
 )
 
-replace github.com/tendermint/tendermint => ../cosmos-consensus
+replace github.com/tendermint/tendermint => github.com/fetchai/cosmos-consensus v0.0.0-20200501143606-e0dcc156d856
