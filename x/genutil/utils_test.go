@@ -17,6 +17,5 @@ func TestExportGenesisFileWithTime(t *testing.T) {
 	defer cleanup()
 
 	fname := filepath.Join(dir, "genesis.json")
-	entropy := "Fetch.ai Test Genesis Entropy"
-	require.NoError(t, ExportGenesisFileWithTime(fname, "test", nil, json.RawMessage(""), time.Now(), entropy))
+	require.NoError(t, ExportGenesisFileWithTime(fname, "test", nil, json.RawMessage(""), time.Now()))
 }
