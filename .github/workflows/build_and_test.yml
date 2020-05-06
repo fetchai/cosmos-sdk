@@ -33,7 +33,3 @@ jobs:
         run: |
           docker run --rm fetch_cosmos_sdk:$GITHUB_SHA \
             make test
-      - name: Run make test-ledger-mock
-        run: |
-          docker run --rm fetch_cosmos_sdk:$GITHUB_SHA \
-            make test-ledger-mock
