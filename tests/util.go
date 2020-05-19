@@ -232,7 +232,7 @@ func NewTestCaseDir(t NamedTestingT) (string, func()) {
 var cdc = codec.New()
 
 func init() {
-	ctypes.RegisterAmino(cdc)
+	ctypes.RegisterAmino(cdc.Amino)
 }
 
 //DONTCOVER
