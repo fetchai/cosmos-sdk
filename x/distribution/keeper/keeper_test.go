@@ -28,10 +28,10 @@ func TestSetWithdrawAddr(t *testing.T) {
 func TestWithdrawValidatorCommission(t *testing.T) {
 	ctx, ak, keeper, _, _ := CreateTestInputDefault(t, false, 1000)
 
-	valCommission := sdk.DecCoins{
+	valCommission := sdk.CollectDecCoins(
 		sdk.NewDecCoinFromDec("mytoken", sdk.NewDec(5).Quo(sdk.NewDec(4))),
 		sdk.NewDecCoinFromDec(sdk.DefaultBondDenom, sdk.NewDec(3).Quo(sdk.NewDec(2))),
-	}
+	)
 
 	// set module account coins
 	distrAcc := keeper.GetDistributionAccount(ctx)
@@ -65,10 +65,10 @@ func TestWithdrawValidatorCommission(t *testing.T) {
 
 	// check remainder
 	remainder := keeper.GetValidatorAccumulatedCommission(ctx, valOpAddr3)
-	require.Equal(t, sdk.DecCoins{
+	require.Equal(t, sdk.CollectDecCoins(
 		sdk.NewDecCoinFromDec("mytoken", sdk.NewDec(1).Quo(sdk.NewDec(4))),
 		sdk.NewDecCoinFromDec(sdk.DefaultBondDenom, sdk.NewDec(1).Quo(sdk.NewDec(2))),
-	}, remainder)
+	), remainder)
 
 	require.True(t, true)
 }

@@ -158,6 +158,14 @@ func (coin DecCoin) IsValid() bool {
 // DecCoins defines a slice of coins with decimal values
 type DecCoins []DecCoin
 
+func CollectDecCoins(coins ... DecCoin) (output DecCoins) {
+	for _, coin := range coins {
+		output = append(output, coin)
+	}
+	output.Sort()
+	return
+}
+
 // NewDecCoins constructs a new coin set with decimal values
 // from regular Coins.
 func NewDecCoins(coins Coins) DecCoins {
