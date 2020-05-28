@@ -12,6 +12,7 @@ import (
 	"github.com/cosmos/cosmos-sdk/codec"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/x/auth/types"
+	txext "github.com/tendermint/tendermint/tx_extensions"
 )
 
 // QueryTxsByEvents performs a search for transactions for a given set of events
@@ -160,6 +161,24 @@ func getBlocksForTxResults(cliCtx context.CLIContext, resTxs []*ctypes.ResultTx)
 }
 
 func formatTxResult(cdc *codec.Codec, resTx *ctypes.ResultTx, resBlock *ctypes.ResultBlock) (sdk.TxResponse, error) {
+	// in the case of an internal DKG messages we maintain some level of query capabilitity
+	if txext.IsDKGRelated(resTx.Tx) {
+		resp := sdk.TxResponse{
+			Height:    resBlock.Block.Height,
+			TxHash:    resTx.Hash.String(),
+			Code:      resTx.TxResult.Code,
+			Data:      strings.ToUpper(hex.EncodeToString(resTx.TxResult.Data)),
+			Info:      "DKG Internal Setup Message",
+			RawLog:    resTx.TxResult.Log,
+			GasWanted: resTx.TxResult.GasWanted,
+			GasUsed:   resTx.TxResult.GasUsed,
+			Timestamp: resBlock.Block.Time.Format(time.RFC3339),
+			Internal:  true,
+		}
+
+		return resp, nil
+	}
+
 	tx, err := parseTx(cdc, resTx.Tx)
 	if err != nil {
 		return sdk.TxResponse{}, err
