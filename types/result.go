@@ -94,6 +94,7 @@ type TxResponse struct {
 	Codespace string          `json:"codespace,omitempty"`
 	Tx        Tx              `json:"tx,omitempty"`
 	Timestamp string          `json:"timestamp,omitempty"`
+	Internal  bool            `json:"internal"`
 
 	// DEPRECATED: Remove in the next next major release in favor of using the
 	// ABCIMessageLog.Events field.
