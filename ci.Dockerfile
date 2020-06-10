@@ -31,5 +31,4 @@ WORKDIR /workspace/cosmos-sdk
 COPY . .
 RUN --mount=type=ssh \
   make go-mod-cache && \
-  make build && \
-  make tools
+  make build
