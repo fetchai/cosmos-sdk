@@ -190,8 +190,10 @@ $ %s query distribution slashes fetchvaloper1gghjut3ccd8ay0zduzj64hwre2fxs9ldgd4
 				return err
 			}
 
-			var slashes types.ValidatorSlashEvents
-			cdc.MustUnmarshalJSON(res, &slashes)
+			var slashes []types.ValidatorSlashEvent
+			if err = cdc.UnmarshalJSON(res, &slashes); err != nil {
+				return fmt.Errorf("failed to unmarshal response: %w", err)
+			}
 			return clientCtx.PrintOutput(slashes)
 		},
 	}
