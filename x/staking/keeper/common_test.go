@@ -8,7 +8,6 @@ import (
 	"github.com/cosmos/cosmos-sdk/codec"
 	"github.com/cosmos/cosmos-sdk/simapp"
 	sdk "github.com/cosmos/cosmos-sdk/types"
-	"github.com/cosmos/cosmos-sdk/x/staking"
 	"github.com/cosmos/cosmos-sdk/x/staking/keeper"
 	"github.com/cosmos/cosmos-sdk/x/staking/types"
 	abci "github.com/tendermint/tendermint/abci/types"
@@ -27,11 +26,11 @@ func createTestInput() (*codec.Codec, *simapp.SimApp, sdk.Context) {
 	appCodec := app.AppCodec()
 
 	app.StakingKeeper = keeper.NewKeeper(
-		simapp.NewAppCodec().Staking,
-		app.GetKey(staking.StoreKey),
+		appCodec,
+		app.GetKey(types.StoreKey),
 		app.AccountKeeper,
 		app.BankKeeper,
-		app.GetSubspace(staking.ModuleName),
+		app.GetSubspace(types.ModuleName),
 	)
 
 	return cdc, app, ctx
