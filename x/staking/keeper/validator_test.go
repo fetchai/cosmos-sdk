@@ -297,19 +297,21 @@ func TestGetValidatorSortingUnmixed(t *testing.T) {
 	ctx, _, keeper, _ := CreateTestInput(t, false, 1000)
 
 	// initialize some validators into the state
-	amts := []int64{
-		0,
-		100 * sdk.PowerReduction.Int64(),
-		1 * sdk.PowerReduction.Int64(),
-		400 * sdk.PowerReduction.Int64(),
-		200 * sdk.PowerReduction.Int64()}
+	amts := []sdk.Int{
+		sdk.NewInt(0),
+		sdk.NewInt(100).Mul(sdk.PowerReduction),
+		sdk.NewInt(1).Mul(sdk.PowerReduction),
+		sdk.NewInt(400).Mul(sdk.PowerReduction),
+		sdk.NewInt(200).Mul(sdk.PowerReduction),
+	}
+
 	n := len(amts)
 	var validators [5]types.Validator
 	for i, amt := range amts {
 		validators[i] = types.NewValidator(sdk.ValAddress(Addrs[i]), PKs[i], types.Description{})
 		validators[i].Status = sdk.Bonded
-		validators[i].Tokens = sdk.NewInt(amt)
-		validators[i].DelegatorShares = sdk.NewDec(amt)
+		validators[i].Tokens = sdk.NewIntFromBigInt(amt.BigInt())
+		validators[i].DelegatorShares = sdk.NewDecFromInt(amt)
 		TestingUpdateValidator(keeper, ctx, validators[i], true)
 	}
 
@@ -388,19 +390,20 @@ func TestGetValidatorSortingMixed(t *testing.T) {
 	keeper.SetParams(ctx, params)
 
 	// initialize some validators into the state
-	amts := []int64{
-		0,
-		100 * sdk.PowerReduction.Int64(),
-		1 * sdk.PowerReduction.Int64(),
-		400 * sdk.PowerReduction.Int64(),
-		200 * sdk.PowerReduction.Int64()}
+	amts := []sdk.Int{
+		sdk.NewInt(0),
+		sdk.NewInt(100).Mul(sdk.PowerReduction),
+		sdk.NewInt(1).Mul(sdk.PowerReduction),
+		sdk.NewInt(400).Mul(sdk.PowerReduction),
+		sdk.NewInt(200).Mul(sdk.PowerReduction),
+	}
 
 	var validators [5]types.Validator
 	for i, amt := range amts {
 		validators[i] = types.NewValidator(sdk.ValAddress(Addrs[i]), PKs[i], types.Description{})
-		validators[i].DelegatorShares = sdk.NewDec(amt)
+		validators[i].DelegatorShares = sdk.NewDecFromInt(amt)
 		validators[i].Status = sdk.Bonded
-		validators[i].Tokens = sdk.NewInt(amt)
+		validators[i].Tokens = sdk.NewIntFromBigInt(amt.BigInt())
 		TestingUpdateValidator(keeper, ctx, validators[i], true)
 	}
 
