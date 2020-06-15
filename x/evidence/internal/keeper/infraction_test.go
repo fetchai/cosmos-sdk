@@ -41,7 +41,7 @@ func (suite *KeeperTestSuite) TestHandleDoubleSign() {
 	suite.Equal(amt, suite.app.StakingKeeper.Validator(ctx, operatorAddr).GetBondedTokens())
 
 	// handle a signature to set signing info
-	suite.app.SlashingKeeper.HandleValidatorSignature(ctx, val.Address(), amt.Int64(), true)
+	suite.app.SlashingKeeper.HandleValidatorSignature(ctx, val.Address(), sdk.TokensToConsensusPower(amt), true)
 
 	// double sign less than max age
 	oldTokens := suite.app.StakingKeeper.Validator(ctx, operatorAddr).GetTokens()
