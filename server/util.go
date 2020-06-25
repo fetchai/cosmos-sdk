@@ -134,6 +134,7 @@ func AddCommands(
 		ShowValidatorCmd(ctx),
 		ShowAddressCmd(ctx),
 		VersionCmd(ctx),
+		AttestationCmd(ctx),
 	)
 
 	rootCmd.AddCommand(
