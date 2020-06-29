@@ -31,6 +31,8 @@ func Commands() *cobra.Command {
 		UpdateKeyCommand(),
 		ParseKeyStringCommand(),
 		MigrateCommand(),
+		flags.LineBreak,
+		AttestationCmd(),
 	)
 	cmd.PersistentFlags().String(flags.FlagKeyringBackend, flags.DefaultKeyringBackend, "Select keyring's backend (os|file|test)")
 	viper.BindPFlag(flags.FlagKeyringBackend, cmd.Flags().Lookup(flags.FlagKeyringBackend))
