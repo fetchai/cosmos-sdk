@@ -158,7 +158,6 @@ func AttestationCmd(ctx *Context) *cobra.Command {
 
 			cfg := ctx.Config
 			UpgradeOldPrivValFile(cfg)
-			UpgradeOldPrivValFile(cfg)
 			privValidator := pvm.LoadOrGenFilePV(
 				cfg.PrivValidatorKeyFile(), cfg.PrivValidatorStateFile())
 

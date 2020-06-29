@@ -46,24 +46,10 @@ func NewAttestationFromString(encoded string) (*Attestation, error) {
 	return att, nil
 }
 
-func (at *Attestation) signingPayload() []byte {
-	address := at.PublicKey.Address().Bytes()
-	publicKey := at.PublicKey.Bytes()
-
-	payload := make([]byte, len(address)+len(publicKey))
-
-	// populate the payload
-	copy(payload[0:len(address)], address)
-	copy(payload[len(address):], publicKey)
-
-	return payload
-}
-
 func (at *Attestation) sign(key crypto.PrivKey) error {
-	payload := at.signingPayload()
 
 	// sign the payload
-	signature, err := key.Sign(payload)
+	signature, err := key.Sign(at.PublicKey.Address().Bytes())
 	if err != nil {
 		return err
 	}
@@ -82,8 +68,7 @@ func (at *Attestation) Verify(address crypto.Address) bool {
 	}
 
 	// validate the signature present matches the public key
-	payload := at.signingPayload()
-	return at.PublicKey.VerifyBytes(payload, at.Signature)
+	return at.PublicKey.VerifyBytes(at.PublicKey.Address().Bytes(), at.Signature)
 }
 
 func (at *Attestation) Bytes() []byte {
