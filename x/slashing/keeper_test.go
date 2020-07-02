@@ -44,7 +44,7 @@ func TestHandleDoubleSign(t *testing.T) {
 	require.Equal(t, amt, sk.Validator(ctx, operatorAddr).GetBondedTokens())
 
 	// handle a signature to set signing info
-	keeper.HandleValidatorSignature(ctx, val.Address(), amt.Int64(), true)
+	keeper.HandleValidatorSignature(ctx, val.Address(), power, true)
 
 	oldTokens := sk.Validator(ctx, operatorAddr).GetTokens()
 
@@ -193,10 +193,10 @@ func TestHandleAbsentValidator(t *testing.T) {
 	validator, _ = sk.GetValidatorByConsAddr(ctx, sdk.GetConsAddress(val))
 	require.Equal(t, sdk.Unbonding, validator.GetStatus())
 
-	slashAmt := amt.ToDec().Mul(keeper.SlashFractionDowntime(ctx)).RoundInt64()
+	slashAmt := amt.ToDec().Mul(keeper.SlashFractionDowntime(ctx)).RoundInt()
 
 	// validator should have been slashed
-	require.Equal(t, amt.Int64()-slashAmt, validator.GetTokens().Int64())
+	require.Equal(t, amt.Sub(slashAmt), validator.GetTokens())
 
 	// 502nd block *also* missed (since the LastCommit would have still included the just-unbonded validator)
 	height++
@@ -212,7 +212,7 @@ func TestHandleAbsentValidator(t *testing.T) {
 
 	// validator should not have been slashed any more, since it was already jailed
 	validator, _ = sk.GetValidatorByConsAddr(ctx, sdk.GetConsAddress(val))
-	require.Equal(t, amt.Int64()-slashAmt, validator.GetTokens().Int64())
+	require.Equal(t, amt.Sub(slashAmt), validator.GetTokens())
 
 	// unrevocation should fail prior to jail expiration
 	got = slh(ctx, NewMsgUnjail(addr))
@@ -232,7 +232,7 @@ func TestHandleAbsentValidator(t *testing.T) {
 
 	// validator should have been slashed
 	bondPool = sk.GetBondedPool(ctx)
-	require.Equal(t, amt.Int64()-slashAmt, bondPool.GetCoins().AmountOf(sk.BondDenom(ctx)).Int64())
+	require.Equal(t, amt.Sub(slashAmt), bondPool.GetCoins().AmountOf(sk.BondDenom(ctx)))
 
 	// Validator start height should not have been changed
 	info, found = keeper.getValidatorSigningInfo(ctx, sdk.ConsAddress(val.Address()))
@@ -313,7 +313,7 @@ func TestHandleNewValidator(t *testing.T) {
 	require.Equal(t, sdk.Bonded, validator.GetStatus())
 	bondPool := sk.GetBondedPool(ctx)
 	expTokens := sdk.TokensFromConsensusPower(100)
-	require.Equal(t, expTokens.Int64(), bondPool.GetCoins().AmountOf(sk.BondDenom(ctx)).Int64())
+	require.Equal(t, expTokens, bondPool.GetCoins().AmountOf(sk.BondDenom(ctx)))
 }
 
 // Test a jailed validator being "down" twice

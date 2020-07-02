@@ -297,14 +297,21 @@ func GetValidatorSortingUnmixed(t *testing.T) {
 	ctx, _, keeper, _ := CreateTestInput(t, false, 1000)
 
 	// initialize some validators into the state
-	amts := []int64{0, 100, 1, 400, 200}
+	amts := []sdk.Int{
+		sdk.NewInt(0),
+		sdk.NewInt(100).Mul(sdk.PowerReduction),
+		sdk.NewInt(1).Mul(sdk.PowerReduction),
+		sdk.NewInt(400).Mul(sdk.PowerReduction),
+		sdk.NewInt(200).Mul(sdk.PowerReduction),
+	}
+
 	n := len(amts)
 	var validators [5]types.Validator
 	for i, amt := range amts {
 		validators[i] = types.NewValidator(sdk.ValAddress(Addrs[i]), PKs[i], types.Description{})
 		validators[i].Status = sdk.Bonded
-		validators[i].Tokens = sdk.NewInt(amt)
-		validators[i].DelegatorShares = sdk.NewDec(amt)
+		validators[i].Tokens = sdk.NewIntFromBigInt(amt.BigInt())
+		validators[i].DelegatorShares = sdk.NewDecFromInt(amt)
 		TestingUpdateValidator(keeper, ctx, validators[i], true)
 	}
 
@@ -377,26 +384,32 @@ func GetValidatorSortingMixed(t *testing.T) {
 	keeper.SetParams(ctx, params)
 
 	// initialize some validators into the state
-	amts := []int64{0, 100, 1, 400, 200}
+	amts := []sdk.Int{
+		sdk.NewInt(0),
+		sdk.NewInt(100).Mul(sdk.PowerReduction),
+		sdk.NewInt(1).Mul(sdk.PowerReduction),
+		sdk.NewInt(400).Mul(sdk.PowerReduction),
+		sdk.NewInt(200).Mul(sdk.PowerReduction),
+	}
 
 	n := len(amts)
 	var validators [5]types.Validator
 	for i, amt := range amts {
 		validators[i] = types.NewValidator(sdk.ValAddress(Addrs[i]), PKs[i], types.Description{})
-		validators[i].DelegatorShares = sdk.NewDec(amt)
+		validators[i].DelegatorShares = sdk.NewDecFromInt(amt)
 	}
 
 	validators[0].Status = sdk.Bonded
 	validators[1].Status = sdk.Bonded
 	validators[2].Status = sdk.Bonded
-	validators[0].Tokens = sdk.NewInt(amts[0])
-	validators[1].Tokens = sdk.NewInt(amts[1])
-	validators[2].Tokens = sdk.NewInt(amts[2])
+	validators[0].Tokens = amts[0]
+	validators[1].Tokens = amts[1]
+	validators[2].Tokens = amts[2]
 
 	validators[3].Status = sdk.Bonded
 	validators[4].Status = sdk.Bonded
-	validators[3].Tokens = sdk.NewInt(amts[3])
-	validators[4].Tokens = sdk.NewInt(amts[4])
+	validators[3].Tokens = amts[3]
+	validators[4].Tokens = amts[4]
 
 	for i := range amts {
 		TestingUpdateValidator(keeper, ctx, validators[i], true)
