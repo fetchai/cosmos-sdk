@@ -307,7 +307,7 @@ func TestIncrementsMsgDelegate(t *testing.T) {
 	require.Equal(t, bondAmount, bond.Shares.RoundInt())
 
 	bondedTokens := keeper.TotalBondedTokens(ctx)
-	require.Equal(t, bondAmount.Int64(), bondedTokens.Int64())
+	require.Equal(t, bondAmount, bondedTokens)
 
 	// just send the same msgbond multiple times
 	msgDelegate := NewTestMsgDelegate(delegatorAddr, validatorAddr, bondAmount)
@@ -469,13 +469,13 @@ func TestIncrementsMsgUnbond(t *testing.T) {
 		gotDelegatorShares := validator.DelegatorShares.RoundInt()
 		gotDelegatorAcc := accMapper.GetAccount(ctx, delegatorAddr).GetCoins().AmountOf(params.BondDenom)
 
-		require.Equal(t, expBond.Int64(), gotBond.Int64(),
+		require.Equal(t, expBond, gotBond,
 			"i: %v\nexpBond: %v\ngotBond: %v\nvalidator: %v\nbond: %v\n",
 			i, expBond, gotBond, validator, bond)
-		require.Equal(t, expDelegatorShares.Int64(), gotDelegatorShares.Int64(),
+		require.Equal(t, expDelegatorShares, gotDelegatorShares,
 			"i: %v\nexpDelegatorShares: %v\ngotDelegatorShares: %v\nvalidator: %v\nbond: %v\n",
 			i, expDelegatorShares, gotDelegatorShares, validator, bond)
-		require.Equal(t, expDelegatorAcc.Int64(), gotDelegatorAcc.Int64(),
+		require.Equal(t, expDelegatorAcc, gotDelegatorAcc,
 			"i: %v\nexpDelegatorAcc: %v\ngotDelegatorAcc: %v\nvalidator: %v\nbond: %v\n",
 			i, expDelegatorAcc, gotDelegatorAcc, validator, bond)
 	}
@@ -829,7 +829,7 @@ func TestRedelegationPeriod(t *testing.T) {
 
 	// balance should have been subtracted after creation
 	amt2 := AccMapper.GetAccount(ctx, sdk.AccAddress(validatorAddr)).GetCoins().AmountOf(denom)
-	require.Equal(t, amt1.Sub(sdk.NewInt(10)).Int64(), amt2.Int64(), "expected coins to be subtracted")
+	require.Equal(t, amt1.Sub(sdk.NewInt(10)), amt2, "expected coins to be subtracted")
 
 	msgCreateValidator = NewTestMsgCreateValidator(validatorAddr2, keep.PKs[1], sdk.NewInt(10))
 	got = handleMsgCreateValidator(ctx, msgCreateValidator, keeper)
