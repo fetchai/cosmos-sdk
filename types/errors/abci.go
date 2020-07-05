@@ -1,7 +1,6 @@
 package errors
 
 import (
-	"errors"
 	"fmt"
 	"reflect"
 
@@ -18,8 +17,6 @@ const (
 	// detailed error string.
 	internalABCICodespace        = UndefinedCodespace
 	internalABCICode      uint32 = 1
-	internalABCILog       string = "internal error"
-	// multiErrorABCICode uint32 = 1000
 )
 
 // ABCIInfo returns the ABCI error information as consumed by the tendermint
@@ -159,10 +156,11 @@ func errIsNil(err error) bool {
 // simply returned.
 func Redact(err error) error {
 	if ErrPanic.Is(err) {
-		return errors.New(internalABCILog)
+		return ErrPanic
 	}
 	if abciCode(err) == internalABCICode {
-		return errors.New(internalABCILog)
+		return errInternal
 	}
+
 	return err
 }

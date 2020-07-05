@@ -95,6 +95,9 @@ type BaseApp struct { // nolint: maligned
 
 	// recovery handler for app.runTx method
 	runTxRecoveryMiddleware recoveryMiddleware
+
+	// trace set will return full stack traces for errors in ABCI Log field
+	trace bool
 }
 
 // NewBaseApp returns a reference to an initialized BaseApp. It accepts a
@@ -276,8 +279,8 @@ func (app *BaseApp) setInterBlockCache(cache sdk.MultiStorePersistentCache) {
 	app.interBlockCache = cache
 }
 
-func (app *BaseApp) setDebug(debug bool) {
-	app.debug = debug
+func (app *BaseApp) setTrace(trace bool) {
+	app.trace = trace
 }
 
 // Router returns the router of the BaseApp.
