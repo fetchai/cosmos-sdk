@@ -76,7 +76,7 @@ for a validator and all their delegations.
 Example:
 $ %s query distribution validator-outstanding-rewards fetchvaloper1lwjmdnks33xwnmfayc64ycprww49n33mck8cw6
 `,
-				version.ClientName,
+				version.AppName,
 			),
 		),
 		RunE: func(cmd *cobra.Command, args []string) error {
@@ -123,7 +123,7 @@ func GetCmdQueryValidatorCommission(queryRoute string, cdc *codec.Codec) *cobra.
 Example:
 $ %s query distribution commission fetchvaloper1gghjut3ccd8ay0zduzj64hwre2fxs9ldgd4m53
 `,
-				version.ClientName,
+				version.AppName,
 			),
 		),
 		RunE: func(cmd *cobra.Command, args []string) error {
@@ -158,7 +158,7 @@ func GetCmdQueryValidatorSlashes(queryRoute string, cdc *codec.Codec) *cobra.Com
 Example:
 $ %s query distribution slashes fetchvaloper1gghjut3ccd8ay0zduzj64hwre2fxs9ldgd4m53 0 100
 `,
-				version.ClientName,
+				version.AppName,
 			),
 		),
 		RunE: func(cmd *cobra.Command, args []string) error {
@@ -212,7 +212,7 @@ Example:
 $ %s query distribution rewards fetch1gghjut3ccd8ay0zduzj64hwre2fxs9lddf2c8k
 $ %s query distribution rewards fetch1gghjut3ccd8ay0zduzj64hwre2fxs9lddf2c8k fetchvaloper1gghjut3ccd8ay0zduzj64hwre2fxs9ldgd4m53
 `,
-				version.ClientName, version.ClientName,
+				version.AppName, version.AppName,
 			),
 		),
 		RunE: func(cmd *cobra.Command, args []string) error {
@@ -273,7 +273,7 @@ func GetCmdQueryCommunityPool(queryRoute string, cdc *codec.Codec) *cobra.Comman
 Example:
 $ %s query distribution community-pool
 `,
-				version.ClientName,
+				version.AppName,
 			),
 		),
 		RunE: func(cmd *cobra.Command, args []string) error {
