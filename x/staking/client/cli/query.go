@@ -6,7 +6,6 @@ import (
 	"strings"
 
 	"github.com/spf13/cobra"
-	"github.com/spf13/viper"
 
 	"github.com/cosmos/cosmos-sdk/client"
 	"github.com/cosmos/cosmos-sdk/client/flags"
@@ -147,7 +146,9 @@ $ %s query staking unbonding-delegations-from fetchvaloper1gghjut3ccd8ay0zduzj64
 				return err
 			}
 
-			bz, err := cdc.MarshalJSON(types.NewQueryValidatorParams(valAddr, viper.GetInt(flags.FlagPage), viper.GetInt(flags.FlagLimit)))
+			page, _ := cmd.Flags().GetInt(flags.FlagPage)
+			limit, _ := cmd.Flags().GetInt(flags.FlagLimit)
+			bz, err := cdc.MarshalJSON(types.NewQueryValidatorParams(valAddr, page, limit))
 			if err != nil {
 				return err
 			}
@@ -333,7 +334,9 @@ $ %s query staking delegations-to fetchvaloper1gghjut3ccd8ay0zduzj64hwre2fxs9ldg
 				return err
 			}
 
-			bz, err := cdc.MarshalJSON(types.NewQueryValidatorParams(valAddr, viper.GetInt(flags.FlagPage), viper.GetInt(flags.FlagLimit)))
+			page, _ := cmd.Flags().GetInt(flags.FlagPage)
+			limit, _ := cmd.Flags().GetInt(flags.FlagLimit)
+			bz, err := cdc.MarshalJSON(types.NewQueryValidatorParams(valAddr, page, limit))
 			if err != nil {
 				return err
 			}
