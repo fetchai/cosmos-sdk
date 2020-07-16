@@ -20,7 +20,7 @@ require (
 	github.com/spf13/jwalterweatherman v1.1.0 // indirect
 	github.com/spf13/pflag v1.0.5
 	github.com/spf13/viper v1.6.1
-	github.com/stretchr/testify v1.4.0
+	github.com/stretchr/testify v1.5.1
 	github.com/tendermint/btcd v0.1.1
 	github.com/tendermint/crypto v0.0.0-20180820045704-3764759f34a5
 	github.com/tendermint/go-amino v0.15.0
@@ -30,4 +30,4 @@ require (
 	gopkg.in/yaml.v2 v2.2.7
 )
 
-replace github.com/tendermint/tendermint => github.com/fetchai/cosmos-consensus v0.4.5
+replace github.com/tendermint/tendermint => github.com/fetchai/cosmos-consensus v0.4.6
