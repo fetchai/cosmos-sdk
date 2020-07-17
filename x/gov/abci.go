@@ -2,6 +2,7 @@ package gov
 
 import (
 	"fmt"
+	"time"
 
 	"github.com/cosmos/cosmos-sdk/telemetry"
 	sdk "github.com/cosmos/cosmos-sdk/types"
@@ -10,7 +11,7 @@ import (
 
 // EndBlocker called every block, process inflation, update validator set.
 func EndBlocker(ctx sdk.Context, keeper Keeper) {
-	defer telemetry.ModuleMeasureSince(ModuleName, telemetry.MetricKeyEndBlocker)
+	defer telemetry.ModuleMeasureSince(ModuleName, time.Now().UTC(), telemetry.MetricKeyEndBlocker)
 
 	logger := keeper.Logger(ctx)
 
