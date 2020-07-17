@@ -1,6 +1,8 @@
 package staking
 
 import (
+	"time"
+
 	abci "github.com/tendermint/tendermint/abci/types"
 
 	"github.com/cosmos/cosmos-sdk/telemetry"
@@ -11,7 +13,7 @@ import (
 // BeginBlocker will persist the current header and validator set as a historical entry
 // and prune the oldest entry based on the HistoricalEntries parameter
 func BeginBlocker(ctx sdk.Context, req abci.RequestBeginBlock, k keeper.Keeper) {
-	defer telemetry.ModuleMeasureSince(ModuleName, telemetry.MetricKeyBeginBlocker)
+	defer telemetry.ModuleMeasureSince(ModuleName, time.Now().UTC(), telemetry.MetricKeyBeginBlocker)
 
 	k.TrackHistoricalInfo(ctx)
 	k.CheckValidatorUpdates(ctx, req.Header)
@@ -19,7 +21,7 @@ func BeginBlocker(ctx sdk.Context, req abci.RequestBeginBlock, k keeper.Keeper) 
 
 // Called every block, update validator set
 func EndBlocker(ctx sdk.Context, k keeper.Keeper) ([]abci.ValidatorUpdate, []abci.ValidatorUpdate) {
-	defer telemetry.ModuleMeasureSince(ModuleName, telemetry.MetricKeyEndBlocker)
+	defer telemetry.ModuleMeasureSince(ModuleName, time.Now().UTC(), telemetry.MetricKeyEndBlocker)
 
 	// If dkg and validator updates are triggered at the same time then dkg validator updates
 	// must be computed first
