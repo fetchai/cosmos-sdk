@@ -9,7 +9,7 @@ import (
 
 // check all registered invariants
 func EndBlocker(ctx sdk.Context, k Keeper) {
-	defer telemetry.ModuleMeasureSince(ModuleName, time.Now().UTC(), telemetry.MetricKeyEndBlocker)
+	defer telemetry.ModuleMeasureSince(ModuleName, time.Now(), telemetry.MetricKeyEndBlocker)
 
 	if k.InvCheckPeriod() == 0 || ctx.BlockHeight()%int64(k.InvCheckPeriod()) != 0 {
 		// skip running the invariant check
