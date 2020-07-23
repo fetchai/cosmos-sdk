@@ -7,7 +7,7 @@ parent:
 
 ![banner](docs/cosmos-sdk-image.jpg)
 
-This is a fork from the [Cosmos-SDK](https://github.com/cosmos/cosmos-sdk) repo. It contains Fetch.ai specific updates required for the test networks.
+This is a fork from the original [Cosmos-SDK](https://github.com/cosmos/cosmos-sdk) repo. It contains Fetch.ai specific updates required for the test networks. For this reason it is versioned independantly. Please refer to the [releases](https://github.com/fetchai/cosmos-sdk/releases) section for the compatiblity with upstream versions.
 
 The Cosmos-SDK is a framework for building blockchain applications in Golang.
 It is being used to build [`Gaia`](https://github.com/cosmos/gaia), the first implementation of the Cosmos Hub.
