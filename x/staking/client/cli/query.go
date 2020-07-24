@@ -164,7 +164,7 @@ $ %s query staking unbonding-delegations-from fetchvaloper1gghjut3ccd8ay0zduzj64
 				return err
 			}
 
-			pageReq := client.ReadPageRequest(cmd.Flags())
+			pageReq, err := client.ReadPageRequest(cmd.Flags())
 			if err != nil {
 				return err
 			}
@@ -219,7 +219,7 @@ $ %s query staking redelegations-from fetchvaloper1gghjut3ccd8ay0zduzj64hwre2fxs
 				return err
 			}
 
-			pageReq := client.ReadPageRequest(cmd.Flags())
+			pageReq, err := client.ReadPageRequest(cmd.Flags())
 			if err != nil {
 				return err
 			}
@@ -327,7 +327,7 @@ $ %s query staking delegations cosmos1gghjut3ccd8ay0zduzj64hwre2fxs9ld75ru9p
 				return err
 			}
 
-			pageReq := client.ReadPageRequest(cmd.Flags())
+			pageReq, err := client.ReadPageRequest(cmd.Flags())
 			if err != nil {
 				return err
 			}
@@ -382,7 +382,7 @@ $ %s query staking delegations-to fetchvaloper1gghjut3ccd8ay0zduzj64hwre2fxs9ldg
 				return err
 			}
 
-			pageReq := client.ReadPageRequest(cmd.Flags())
+			pageReq, err := client.ReadPageRequest(cmd.Flags())
 			if err != nil {
 				return err
 			}
@@ -491,7 +491,7 @@ $ %s query staking unbonding-delegations cosmos1gghjut3ccd8ay0zduzj64hwre2fxs9ld
 				return err
 			}
 
-			pageReq := client.ReadPageRequest(cmd.Flags())
+			pageReq, err := client.ReadPageRequest(cmd.Flags())
 			if err != nil {
 				return err
 			}
@@ -606,7 +606,7 @@ $ %s query staking redelegation fetch1gghjut3ccd8ay0zduzj64hwre2fxs9lddf2c8k
 				return err
 			}
 
-			pageReq := client.ReadPageRequest(cmd.Flags())
+			pageReq, err := client.ReadPageRequest(cmd.Flags())
 			if err != nil {
 				return err
 			}
