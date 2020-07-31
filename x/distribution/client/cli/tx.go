@@ -96,8 +96,8 @@ func GetCmdWithdrawRewards(cdc *codec.Codec) *cobra.Command {
 and optionally withdraw validator commission if the delegation address given is a validator operator.
 
 Example:
-$ %s tx distribution withdraw-rewards cosmosvaloper1gghjut3ccd8ay0zduzj64hwre2fxs9ldmqhffj --from mykey
-$ %s tx distribution withdraw-rewards cosmosvaloper1gghjut3ccd8ay0zduzj64hwre2fxs9ldmqhffj --from mykey --commission
+$ %s tx distribution withdraw-rewards fetchvaloper1gghjut3ccd8ay0zduzj64hwre2fxs9ldgd4m53 --from mykey
+$ %s tx distribution withdraw-rewards fetchvaloper1gghjut3ccd8ay0zduzj64hwre2fxs9ldgd4m53 --from mykey --commission
 `,
 				version.ClientName, version.ClientName,
 			),
@@ -177,7 +177,7 @@ func GetCmdSetWithdrawAddr(cdc *codec.Codec) *cobra.Command {
 			fmt.Sprintf(`Set the withdraw address for rewards associated with a delegator address.
 
 Example:
-$ %s tx distribution set-withdraw-addr cosmos1gghjut3ccd8ay0zduzj64hwre2fxs9ld75ru9p --from mykey
+$ %s tx distribution set-withdraw-addr fetch1gghjut3ccd8ay0zduzj64hwre2fxs9lddf2c8k --from mykey
 `,
 				version.ClientName,
 			),

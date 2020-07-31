@@ -76,7 +76,7 @@ func PubkeyCmd(cdc *codec.Codec) *cobra.Command {
 
 Example:
 $ %s debug pubkey TWFuIGlzIGRpc3Rpbmd1aXNoZWQsIG5vdCBvbmx5IGJ5IGhpcyByZWFzb24sIGJ1dCBieSB0aGlz
-$ %s debug pubkey cosmos1e0jnq2sun3dzjh8p2xq95kk0expwmd7shwjpfg
+$ %s debug pubkey fetch1e0jnq2sun3dzjh8p2xq95kk0expwmd7synm9tl
 			`, version.ClientName, version.ClientName),
 		Args: cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {

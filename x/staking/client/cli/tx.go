@@ -149,7 +149,7 @@ func GetCmdDelegate(cdc *codec.Codec) *cobra.Command {
 			fmt.Sprintf(`Delegate an amount of liquid coins to a validator from your wallet.
 
 Example:
-$ %s tx staking delegate cosmosvaloper1l2rsakp388kuv9k8qzq6lrm9taddae7fpx59wm 1000stake --from mykey
+$ %s tx staking delegate fetchvaloper1l2rsakp388kuv9k8qzq6lrm9taddae7fjtkhnc 1000stake --from mykey
 `,
 				version.ClientName,
 			),
@@ -186,7 +186,7 @@ func GetCmdRedelegate(storeName string, cdc *codec.Codec) *cobra.Command {
 			fmt.Sprintf(`Redelegate an amount of illiquid staking tokens from one validator to another.
 
 Example:
-$ %s tx staking redelegate cosmosvaloper1gghjut3ccd8ay0zduzj64hwre2fxs9ldmqhffj cosmosvaloper1l2rsakp388kuv9k8qzq6lrm9taddae7fpx59wm 100stake --from mykey
+$ %s tx staking redelegate fetchvaloper1gghjut3ccd8ay0zduzj64hwre2fxs9ldgd4m53 fetchvaloper1l2rsakp388kuv9k8qzq6lrm9taddae7fjtkhnc 100stake --from mykey
 `,
 				version.ClientName,
 			),

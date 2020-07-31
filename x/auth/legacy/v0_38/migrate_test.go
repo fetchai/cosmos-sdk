@@ -30,13 +30,13 @@ func TestMigrate(t *testing.T) {
 	}
 
 	acc1 := v036genaccounts.GenesisAccount{
-		Address:       accAddressFromBech32(t, "cosmos1f9xjhxm0plzrh9cskf4qee4pc2xwp0n0556gh0"),
+		Address:       accAddressFromBech32(t, "fetch1f9xjhxm0plzrh9cskf4qee4pc2xwp0n08fnv4c"),
 		Coins:         sdk.NewCoins(sdk.NewInt64Coin("stake", 400000)),
 		Sequence:      1,
 		AccountNumber: 1,
 	}
 	acc2 := v036genaccounts.GenesisAccount{
-		Address:           accAddressFromBech32(t, "cosmos1fl48vsnmsdzcv85q5d2q4z5ajdha8yu34mf0eh"),
+		Address:           accAddressFromBech32(t, "fetch1fl48vsnmsdzcv85q5d2q4z5ajdha8yu3xxqtmq"),
 		Coins:             sdk.NewCoins(sdk.NewInt64Coin("stake", 400000000)),
 		Sequence:          4,
 		AccountNumber:     2,
@@ -44,7 +44,7 @@ func TestMigrate(t *testing.T) {
 		ModulePermissions: []string{"burner", "staking"},
 	}
 	acc3 := v036genaccounts.GenesisAccount{
-		Address:         accAddressFromBech32(t, "cosmos17n9sztlhx32tfy0tg0zc2ttmkeeth50yyuv9he"),
+		Address:         accAddressFromBech32(t, "fetch17n9sztlhx32tfy0tg0zc2ttmkeeth50yhp9p4w"),
 		Coins:           sdk.NewCoins(sdk.NewInt64Coin("stake", 10000205)),
 		OriginalVesting: sdk.NewCoins(sdk.NewInt64Coin("stake", 10000205)),
 		StartTime:       time.Now().Unix(),
@@ -53,7 +53,7 @@ func TestMigrate(t *testing.T) {
 		AccountNumber:   3,
 	}
 	acc4 := v036genaccounts.GenesisAccount{
-		Address:         accAddressFromBech32(t, "cosmos1fmk5elg4r62mlexd36tqjcwyafs7mek0js5m4d"),
+		Address:         accAddressFromBech32(t, "fetch1fmk5elg4r62mlexd36tqjcwyafs7mek0pdalh6"),
 		Coins:           sdk.NewCoins(sdk.NewInt64Coin("stake", 10000205)),
 		OriginalVesting: sdk.NewCoins(sdk.NewInt64Coin("stake", 10000205)),
 		EndTime:         time.Now().Add(48 * time.Hour).Unix(),
@@ -105,7 +105,7 @@ func TestMigrateInvalid(t *testing.T) {
 		{
 			"vesting account with no base coins",
 			v036genaccounts.GenesisAccount{
-				Address:         accAddressFromBech32(t, "cosmos17n9sztlhx32tfy0tg0zc2ttmkeeth50yyuv9he"),
+				Address:         accAddressFromBech32(t, "fetch17n9sztlhx32tfy0tg0zc2ttmkeeth50yhp9p4w"),
 				Coins:           sdk.Coins{},
 				OriginalVesting: sdk.NewCoins(sdk.NewInt64Coin("stake", 10000205)),
 				StartTime:       time.Now().Unix(),
@@ -117,7 +117,7 @@ func TestMigrateInvalid(t *testing.T) {
 		{
 			"vesting account with base coins <= original vesting",
 			v036genaccounts.GenesisAccount{
-				Address:         accAddressFromBech32(t, "cosmos17n9sztlhx32tfy0tg0zc2ttmkeeth50yyuv9he"),
+				Address:         accAddressFromBech32(t, "fetch17n9sztlhx32tfy0tg0zc2ttmkeeth50yhp9p4w"),
 				Coins:           sdk.NewCoins(sdk.NewInt64Coin("stake", 10000205)),
 				OriginalVesting: sdk.NewCoins(sdk.NewInt64Coin("stake", 50000205)),
 				StartTime:       time.Now().Unix(),
@@ -129,7 +129,7 @@ func TestMigrateInvalid(t *testing.T) {
 		{
 			"module account with invalid name",
 			v036genaccounts.GenesisAccount{
-				Address:           accAddressFromBech32(t, "cosmos1fl48vsnmsdzcv85q5d2q4z5ajdha8yu34mf0eh"),
+				Address:           accAddressFromBech32(t, "fetch1fl48vsnmsdzcv85q5d2q4z5ajdha8yu3xxqtmq"),
 				Coins:             sdk.NewCoins(sdk.NewInt64Coin("stake", 400000000)),
 				Sequence:          4,
 				AccountNumber:     2,
@@ -140,7 +140,7 @@ func TestMigrateInvalid(t *testing.T) {
 		{
 			"module account with invalid permissions",
 			v036genaccounts.GenesisAccount{
-				Address:           accAddressFromBech32(t, "cosmos1fl48vsnmsdzcv85q5d2q4z5ajdha8yu34mf0eh"),
+				Address:           accAddressFromBech32(t, "fetch1fl48vsnmsdzcv85q5d2q4z5ajdha8yu3xxqtmq"),
 				Coins:             sdk.NewCoins(sdk.NewInt64Coin("stake", 400000000)),
 				Sequence:          4,
 				AccountNumber:     2,
@@ -151,7 +151,7 @@ func TestMigrateInvalid(t *testing.T) {
 		{
 			"module account with invalid address",
 			v036genaccounts.GenesisAccount{
-				Address:           accAddressFromBech32(t, "cosmos17n9sztlhx32tfy0tg0zc2ttmkeeth50yyuv9he"),
+				Address:           accAddressFromBech32(t, "fetch17n9sztlhx32tfy0tg0zc2ttmkeeth50yhp9p4w"),
 				Coins:             sdk.NewCoins(sdk.NewInt64Coin("stake", 400000000)),
 				Sequence:          4,
 				AccountNumber:     2,
