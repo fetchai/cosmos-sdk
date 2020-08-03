@@ -7,6 +7,7 @@ import (
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/x/staking"
+	abci "github.com/tendermint/tendermint/abci/types"
 )
 
 func TestCalculateRewardsBasic(t *testing.T) {
@@ -24,7 +25,9 @@ func TestCalculateRewardsBasic(t *testing.T) {
 	require.NotNil(t, res)
 
 	// end block to bond validator
-	staking.EndBlocker(ctx, sk)
+	header := abci.Header{Entropy: abci.BlockEntropy{Round: 1, AeonLength: 3}}
+	staking.BeginBlocker(ctx, abci.RequestBeginBlock{Header: header}, &sk)
+	staking.EndBlocker(ctx, &sk)
 
 	// next block
 	ctx = ctx.WithBlockHeight(ctx.BlockHeight() + 1)
@@ -82,7 +85,9 @@ func TestCalculateRewardsAfterSlash(t *testing.T) {
 	require.NotNil(t, res)
 
 	// end block to bond validator
-	staking.EndBlocker(ctx, sk)
+	header := abci.Header{Entropy: abci.BlockEntropy{Round: 1, AeonLength: 3}}
+	staking.BeginBlocker(ctx, abci.RequestBeginBlock{Header: header}, &sk)
+	staking.EndBlocker(ctx, &sk)
 
 	// next block
 	ctx = ctx.WithBlockHeight(ctx.BlockHeight() + 1)
@@ -147,7 +152,9 @@ func TestCalculateRewardsAfterManySlashes(t *testing.T) {
 	require.NotNil(t, res)
 
 	// end block to bond validator
-	staking.EndBlocker(ctx, sk)
+	header := abci.Header{Entropy: abci.BlockEntropy{Round: 1, AeonLength: 3}}
+	staking.BeginBlocker(ctx, abci.RequestBeginBlock{Header: header}, &sk)
+	staking.EndBlocker(ctx, &sk)
 
 	// next block
 	ctx = ctx.WithBlockHeight(ctx.BlockHeight() + 1)
@@ -222,7 +229,9 @@ func TestCalculateRewardsMultiDelegator(t *testing.T) {
 	require.NotNil(t, res)
 
 	// end block to bond validator
-	staking.EndBlocker(ctx, sk)
+	header := abci.Header{Entropy: abci.BlockEntropy{Round: 1, AeonLength: 3}}
+	staking.BeginBlocker(ctx, abci.RequestBeginBlock{Header: header}, &sk)
+	staking.EndBlocker(ctx, &sk)
 
 	// next block
 	ctx = ctx.WithBlockHeight(ctx.BlockHeight() + 1)
@@ -249,7 +258,8 @@ func TestCalculateRewardsMultiDelegator(t *testing.T) {
 	val = sk.Validator(ctx, valOpAddr1)
 
 	// end block
-	staking.EndBlocker(ctx, sk)
+	staking.BeginBlocker(ctx, abci.RequestBeginBlock{Header: header}, &sk)
+	staking.EndBlocker(ctx, &sk)
 
 	// next block
 	ctx = ctx.WithBlockHeight(ctx.BlockHeight() + 1)
@@ -309,7 +319,9 @@ func TestWithdrawDelegationRewardsBasic(t *testing.T) {
 	)
 
 	// end block to bond validator
-	staking.EndBlocker(ctx, sk)
+	header := abci.Header{Entropy: abci.BlockEntropy{Round: 1, AeonLength: 3}}
+	staking.BeginBlocker(ctx, abci.RequestBeginBlock{Header: header}, &sk)
+	staking.EndBlocker(ctx, &sk)
 
 	// next block
 	ctx = ctx.WithBlockHeight(ctx.BlockHeight() + 1)
@@ -368,7 +380,9 @@ func TestCalculateRewardsAfterManySlashesInSameBlock(t *testing.T) {
 	require.NotNil(t, res)
 
 	// end block to bond validator
-	staking.EndBlocker(ctx, sk)
+	header := abci.Header{Entropy: abci.BlockEntropy{Round: 1, AeonLength: 3}}
+	staking.BeginBlocker(ctx, abci.RequestBeginBlock{Header: header}, &sk)
+	staking.EndBlocker(ctx, &sk)
 
 	// next block
 	ctx = ctx.WithBlockHeight(ctx.BlockHeight() + 1)
@@ -438,7 +452,9 @@ func TestCalculateRewardsMultiDelegatorMultiSlash(t *testing.T) {
 	require.NotNil(t, res)
 
 	// end block to bond validator
-	staking.EndBlocker(ctx, sk)
+	header := abci.Header{Entropy: abci.BlockEntropy{Round: 1, AeonLength: 3}}
+	staking.BeginBlocker(ctx, abci.RequestBeginBlock{Header: header}, &sk)
+	staking.EndBlocker(ctx, &sk)
 
 	// next block
 	ctx = ctx.WithBlockHeight(ctx.BlockHeight() + 1)
@@ -469,7 +485,8 @@ func TestCalculateRewardsMultiDelegatorMultiSlash(t *testing.T) {
 	del2 := sk.Delegation(ctx, sdk.AccAddress(valOpAddr2), valOpAddr1)
 
 	// end block
-	staking.EndBlocker(ctx, sk)
+	staking.BeginBlocker(ctx, abci.RequestBeginBlock{Header: header}, &sk)
+	staking.EndBlocker(ctx, &sk)
 
 	// next block
 	ctx = ctx.WithBlockHeight(ctx.BlockHeight() + 1)
@@ -526,7 +543,9 @@ func TestCalculateRewardsMultiDelegatorMultWithdraw(t *testing.T) {
 	require.NotNil(t, res)
 
 	// end block to bond validator
-	staking.EndBlocker(ctx, sk)
+	header := abci.Header{Entropy: abci.BlockEntropy{Round: 1, AeonLength: 3}}
+	staking.BeginBlocker(ctx, abci.RequestBeginBlock{Header: header}, &sk)
+	staking.EndBlocker(ctx, &sk)
 
 	// next block
 	ctx = ctx.WithBlockHeight(ctx.BlockHeight() + 1)
@@ -555,7 +574,8 @@ func TestCalculateRewardsMultiDelegatorMultWithdraw(t *testing.T) {
 	del2 := sk.Delegation(ctx, sdk.AccAddress(valOpAddr2), valOpAddr1)
 
 	// end block
-	staking.EndBlocker(ctx, sk)
+	staking.BeginBlocker(ctx, abci.RequestBeginBlock{Header: header}, &sk)
+	staking.EndBlocker(ctx, &sk)
 
 	// next block
 	ctx = ctx.WithBlockHeight(ctx.BlockHeight() + 1)

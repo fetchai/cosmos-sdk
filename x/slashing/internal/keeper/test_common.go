@@ -156,3 +156,10 @@ func NewTestMsgDelegate(delAddr sdk.AccAddress, valAddr sdk.ValAddress, delAmoun
 	amount := sdk.NewCoin(sdk.DefaultBondDenom, delAmount)
 	return staking.NewMsgDelegate(delAddr, valAddr, amount)
 }
+
+func testBlockEntropy() abci.BlockEntropy {
+	return abci.BlockEntropy{
+		Round:      1,
+		AeonLength: 3,
+	}
+}

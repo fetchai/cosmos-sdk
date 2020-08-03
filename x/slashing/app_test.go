@@ -60,7 +60,8 @@ func getMockApp(t *testing.T) (*mock.App, staking.Keeper, Keeper) {
 	mapp.Router().AddRoute(staking.RouterKey, staking.NewHandler(stakingKeeper))
 	mapp.Router().AddRoute(RouterKey, NewHandler(keeper))
 
-	mapp.SetEndBlocker(getEndBlocker(stakingKeeper))
+	mapp.SetBeginBlocker(getBeginBlocker(&stakingKeeper))
+	mapp.SetEndBlocker(getEndBlocker(&stakingKeeper))
 	mapp.SetInitChainer(getInitChainer(mapp, stakingKeeper, mapp.AccountKeeper, supplyKeeper,
 		[]supplyexported.ModuleAccountI{feeCollector, notBondedPool, bondPool}))
 
@@ -70,7 +71,15 @@ func getMockApp(t *testing.T) (*mock.App, staking.Keeper, Keeper) {
 }
 
 // staking endblocker
-func getEndBlocker(keeper staking.Keeper) sdk.EndBlocker {
+func getBeginBlocker(keeper *staking.Keeper) sdk.BeginBlocker {
+	return func(ctx sdk.Context, req abci.RequestBeginBlock) abci.ResponseBeginBlock {
+		staking.BeginBlocker(ctx, req, keeper)
+		return abci.ResponseBeginBlock{}
+	}
+}
+
+// staking endblocker
+func getEndBlocker(keeper *staking.Keeper) sdk.EndBlocker {
 	return func(ctx sdk.Context, req abci.RequestEndBlock) abci.ResponseEndBlock {
 		validatorUpdates := staking.EndBlocker(ctx, keeper)
 		return abci.ResponseEndBlock{
@@ -135,11 +144,11 @@ func TestSlashingMsgs(t *testing.T) {
 		sdk.ValAddress(addr1), priv1.PubKey(), bondCoin, description, commission, sdk.OneInt(),
 	)
 
-	header := abci.Header{Height: mapp.LastBlockHeight() + 1}
+	header := abci.Header{Height: mapp.LastBlockHeight() + 1, Entropy: testBlockEntropy()}
 	mock.SignCheckDeliver(t, mapp.Cdc, mapp.BaseApp, header, []sdk.Msg{createValidatorMsg}, []uint64{0}, []uint64{0}, true, true, priv1)
 	mock.CheckBalance(t, mapp, addr1, sdk.Coins{genCoin.Sub(bondCoin)})
 
-	header = abci.Header{Height: mapp.LastBlockHeight() + 1}
+	header = abci.Header{Height: mapp.LastBlockHeight() + 1, Entropy: testBlockEntropy()}
 	mapp.BeginBlock(abci.RequestBeginBlock{Header: header})
 
 	validator := checkValidator(t, mapp, stakingKeeper, addr1, true)
@@ -157,4 +166,11 @@ func TestSlashingMsgs(t *testing.T) {
 	require.Error(t, err)
 	require.Nil(t, res)
 	require.True(t, errors.Is(ErrValidatorNotJailed, err))
+}
+
+func testBlockEntropy() abci.BlockEntropy {
+	return abci.BlockEntropy{
+		Round:      1,
+		AeonLength: 3,
+	}
 }

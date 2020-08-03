@@ -237,3 +237,10 @@ func createValidators(t *testing.T, stakingHandler sdk.Handler, ctx sdk.Context,
 		require.NotNil(t, res)
 	}
 }
+
+func testBlockEntropy() abci.BlockEntropy {
+	return abci.BlockEntropy{
+		Round:      1,
+		AeonLength: 3,
+	}
+}
