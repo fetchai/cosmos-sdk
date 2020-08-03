@@ -18,6 +18,10 @@ func BeginBlocker(ctx sdk.Context, req abci.RequestBeginBlock, k *keeper.Keeper)
 }
 
 // Called every block, update validator set
-func EndBlocker(ctx sdk.Context, k *keeper.Keeper) []abci.ValidatorUpdate {
-	return k.BlockValidatorUpdates(ctx)
+func EndBlocker(ctx sdk.Context, k *keeper.Keeper) ([]abci.ValidatorUpdate, []abci.ValidatorUpdate) {
+	if !k.ChangeoverValidators {
+		return []abci.ValidatorUpdate{}, []abci.ValidatorUpdate{}
+	}
+	k.ChangeoverValidators = false
+	return k.BlockValidatorUpdates(ctx), []abci.ValidatorUpdate{}
 }

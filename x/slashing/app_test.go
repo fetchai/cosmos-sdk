@@ -81,7 +81,7 @@ func getBeginBlocker(keeper *staking.Keeper) sdk.BeginBlocker {
 // staking endblocker
 func getEndBlocker(keeper *staking.Keeper) sdk.EndBlocker {
 	return func(ctx sdk.Context, req abci.RequestEndBlock) abci.ResponseEndBlock {
-		validatorUpdates := staking.EndBlocker(ctx, keeper)
+		validatorUpdates, _ := staking.EndBlocker(ctx, keeper)
 		return abci.ResponseEndBlock{
 			ValidatorUpdates: validatorUpdates,
 		}
