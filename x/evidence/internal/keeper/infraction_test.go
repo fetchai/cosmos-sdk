@@ -7,6 +7,7 @@ import (
 	"github.com/cosmos/cosmos-sdk/x/evidence/internal/types"
 	"github.com/cosmos/cosmos-sdk/x/staking"
 
+	abci "github.com/tendermint/tendermint/abci/types"
 	"github.com/tendermint/tendermint/crypto"
 )
 
@@ -33,7 +34,9 @@ func (suite *KeeperTestSuite) TestHandleDoubleSign() {
 	suite.NotNil(res)
 
 	// execute end-blocker and verify validator attributes
-	staking.EndBlocker(ctx, suite.app.StakingKeeper)
+	header := abci.Header{Entropy: testBlockEntropy()}
+	staking.BeginBlocker(ctx, abci.RequestBeginBlock{Header: header}, &suite.app.StakingKeeper)
+	staking.EndBlocker(ctx, &suite.app.StakingKeeper)
 	suite.Equal(
 		suite.app.BankKeeper.GetCoins(ctx, sdk.AccAddress(operatorAddr)),
 		sdk.NewCoins(sdk.NewCoin(stakingParams.BondDenom, initAmt.Sub(amt))),
@@ -99,7 +102,9 @@ func (suite *KeeperTestSuite) TestHandleDoubleSign_TooOld() {
 	suite.NotNil(res)
 
 	// execute end-blocker and verify validator attributes
-	staking.EndBlocker(ctx, suite.app.StakingKeeper)
+	header := abci.Header{Entropy: testBlockEntropy()}
+	staking.BeginBlocker(ctx, abci.RequestBeginBlock{Header: header}, &suite.app.StakingKeeper)
+	staking.EndBlocker(ctx, &suite.app.StakingKeeper)
 	suite.Equal(
 		suite.app.BankKeeper.GetCoins(ctx, sdk.AccAddress(operatorAddr)),
 		sdk.NewCoins(sdk.NewCoin(stakingParams.BondDenom, initAmt.Sub(amt))),
@@ -117,4 +122,11 @@ func (suite *KeeperTestSuite) TestHandleDoubleSign_TooOld() {
 
 	suite.False(suite.app.StakingKeeper.Validator(ctx, operatorAddr).IsJailed())
 	suite.False(suite.app.SlashingKeeper.IsTombstoned(ctx, sdk.ConsAddress(val.Address())))
+}
+
+func testBlockEntropy() abci.BlockEntropy {
+	return abci.BlockEntropy{
+		Round:      1,
+		AeonLength: 3,
+	}
 }

@@ -167,7 +167,9 @@ func TestQueries(t *testing.T) {
 	require.NoError(t, err)
 	require.NotNil(t, res)
 
-	staking.EndBlocker(ctx, sk)
+	header := abci.Header{Entropy: abci.BlockEntropy{Round: 1, AeonLength: 3}}
+	staking.BeginBlocker(ctx, abci.RequestBeginBlock{Header: header}, &sk)
+	staking.EndBlocker(ctx, &sk)
 
 	val := sk.Validator(ctx, valOpAddr1)
 	rewards := getQueriedDelegationRewards(t, ctx, cdc, querier, sdk.AccAddress(valOpAddr1), valOpAddr1)

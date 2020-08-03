@@ -27,7 +27,9 @@ func TestCannotUnjailUnlessJailed(t *testing.T) {
 	require.NoError(t, err)
 	require.NotNil(t, res)
 
-	staking.EndBlocker(ctx, sk)
+	header := abci.Header{Entropy: testBlockEntropy()}
+	staking.BeginBlocker(ctx, abci.RequestBeginBlock{Header: header}, &sk)
+	staking.EndBlocker(ctx, &sk)
 
 	require.Equal(
 		t, ck.GetCoins(ctx, sdk.AccAddress(addr)),
@@ -55,7 +57,7 @@ func TestCannotUnjailUnlessMeetMinSelfDelegation(t *testing.T) {
 	require.NoError(t, err)
 	require.NotNil(t, res)
 
-	staking.EndBlocker(ctx, sk)
+	staking.EndBlocker(ctx, &sk)
 
 	require.Equal(
 		t, ck.GetCoins(ctx, sdk.AccAddress(addr)),
@@ -94,7 +96,7 @@ func TestJailedValidatorDelegations(t *testing.T) {
 	require.NotNil(t, res)
 
 	// end block
-	staking.EndBlocker(ctx, stakingKeeper)
+	staking.EndBlocker(ctx, &stakingKeeper)
 
 	// set dummy signing info
 	newInfo := NewValidatorSigningInfo(consAddr, 0, 0, time.Unix(0, 0), false, 0)
@@ -166,7 +168,9 @@ func TestHandleAbsentValidator(t *testing.T) {
 	require.NoError(t, err)
 	require.NotNil(t, res)
 
-	staking.EndBlocker(ctx, sk)
+	header := abci.Header{Entropy: testBlockEntropy()}
+	staking.BeginBlocker(ctx, abci.RequestBeginBlock{Header: header}, &sk)
+	staking.EndBlocker(ctx, &sk)
 
 	require.Equal(
 		t, ck.GetCoins(ctx, sdk.AccAddress(addr)),
@@ -219,7 +223,8 @@ func TestHandleAbsentValidator(t *testing.T) {
 	require.Equal(t, int64(0), info.MissedBlocksCounter)
 
 	// end block
-	staking.EndBlocker(ctx, sk)
+	staking.BeginBlocker(ctx, abci.RequestBeginBlock{Header: header}, &sk)
+	staking.EndBlocker(ctx, &sk)
 
 	// validator should have been jailed
 	validator, _ = sk.GetValidatorByConsAddr(ctx, sdk.GetConsAddress(val))
@@ -240,7 +245,8 @@ func TestHandleAbsentValidator(t *testing.T) {
 	require.Equal(t, int64(1), info.MissedBlocksCounter)
 
 	// end block
-	staking.EndBlocker(ctx, sk)
+	staking.BeginBlocker(ctx, abci.RequestBeginBlock{Header: header}, &sk)
+	staking.EndBlocker(ctx, &sk)
 
 	// validator should not have been slashed any more, since it was already jailed
 	validator, _ = sk.GetValidatorByConsAddr(ctx, sdk.GetConsAddress(val))
@@ -258,7 +264,8 @@ func TestHandleAbsentValidator(t *testing.T) {
 	require.NotNil(t, res)
 
 	// end block
-	staking.EndBlocker(ctx, sk)
+	staking.BeginBlocker(ctx, abci.RequestBeginBlock{Header: header}, &sk)
+	staking.EndBlocker(ctx, &sk)
 
 	// validator should be rebonded now
 	validator, _ = sk.GetValidatorByConsAddr(ctx, sdk.GetConsAddress(val))
@@ -290,7 +297,8 @@ func TestHandleAbsentValidator(t *testing.T) {
 	}
 
 	// end block
-	staking.EndBlocker(ctx, sk)
+	staking.BeginBlocker(ctx, abci.RequestBeginBlock{Header: header}, &sk)
+	staking.EndBlocker(ctx, &sk)
 
 	// validator should be jailed again after 500 unsigned blocks
 	nextHeight = height + keeper.MinSignedPerWindow(ctx) + 1
@@ -300,7 +308,8 @@ func TestHandleAbsentValidator(t *testing.T) {
 	}
 
 	// end block
-	staking.EndBlocker(ctx, sk)
+	staking.BeginBlocker(ctx, abci.RequestBeginBlock{Header: header}, &sk)
+	staking.EndBlocker(ctx, &sk)
 
 	validator, _ = sk.GetValidatorByConsAddr(ctx, sdk.GetConsAddress(val))
 	require.Equal(t, sdk.Unbonding, validator.GetStatus())

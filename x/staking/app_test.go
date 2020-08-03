@@ -45,7 +45,8 @@ func getMockApp(t *testing.T) (*mock.App, Keeper) {
 	keeper := NewKeeper(mApp.Cdc, keyStaking, supplyKeeper, mApp.ParamsKeeper.Subspace(DefaultParamspace))
 
 	mApp.Router().AddRoute(RouterKey, NewHandler(keeper))
-	mApp.SetEndBlocker(getEndBlocker(keeper))
+	mApp.SetBeginBlocker(getBeginBlocker(&keeper))
+	mApp.SetEndBlocker(getEndBlocker(&keeper))
 	mApp.SetInitChainer(getInitChainer(mApp, keeper, mApp.AccountKeeper, supplyKeeper,
 		[]supplyexported.ModuleAccountI{feeCollector, notBondedPool, bondPool}))
 
@@ -53,8 +54,16 @@ func getMockApp(t *testing.T) (*mock.App, Keeper) {
 	return mApp, keeper
 }
 
+// getBeginBlocker returns a staking beginblocker.
+func getBeginBlocker(keeper *Keeper) sdk.BeginBlocker {
+	return func(ctx sdk.Context, req abci.RequestBeginBlock) abci.ResponseBeginBlock {
+		BeginBlocker(ctx, req, keeper)
+		return abci.ResponseBeginBlock{}
+	}
+}
+
 // getEndBlocker returns a staking endblocker.
-func getEndBlocker(keeper Keeper) sdk.EndBlocker {
+func getEndBlocker(keeper *Keeper) sdk.EndBlocker {
 	return func(ctx sdk.Context, req abci.RequestEndBlock) abci.ResponseEndBlock {
 		validatorUpdates := EndBlocker(ctx, keeper)
 
@@ -141,11 +150,11 @@ func TestStakingMsgs(t *testing.T) {
 		sdk.ValAddress(addr1), priv1.PubKey(), bondCoin, description, commissionRates, sdk.OneInt(),
 	)
 
-	header := abci.Header{Height: mApp.LastBlockHeight() + 1}
+	header := abci.Header{Height: mApp.LastBlockHeight() + 1, Entropy: testBlockEntropy()}
 	mock.SignCheckDeliver(t, mApp.Cdc, mApp.BaseApp, header, []sdk.Msg{createValidatorMsg}, []uint64{0}, []uint64{0}, true, true, priv1)
 	mock.CheckBalance(t, mApp, addr1, sdk.Coins{genCoin.Sub(bondCoin)})
 
-	header = abci.Header{Height: mApp.LastBlockHeight() + 1}
+	header = abci.Header{Height: mApp.LastBlockHeight() + 1, Entropy: testBlockEntropy()}
 	mApp.BeginBlock(abci.RequestBeginBlock{Header: header})
 
 	validator := checkValidator(t, mApp, keeper, sdk.ValAddress(addr1), true)
