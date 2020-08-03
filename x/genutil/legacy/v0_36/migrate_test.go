@@ -15,7 +15,7 @@ var basic034Gov = []byte(`
         {
           "proposal_id": "1",
           "deposit": {
-            "depositor": "cosmos1grgelyng2v6v3t8z87wu3sxgt9m5s03xvslewd",
+            "depositor": "fetch1grgelyng2v6v3t8z87wu3sxgt9m5s03xldkav6",
             "proposal_id": "1",
             "amount": [
               {
@@ -30,7 +30,7 @@ var basic034Gov = []byte(`
         {
           "proposal_id": "1",
           "vote": {
-            "voter": "cosmos1lktjhnzkpkz3ehrg8psvmwhafg56kfss5597tg",
+            "voter": "fetch1lktjhnzkpkz3ehrg8psvmwhafg56kfss8fv6fl",
             "proposal_id": "1",
             "option": "Yes"
           }

@@ -24,7 +24,7 @@ func Test_multiSigKey_Properties(t *testing.T) {
 	require.Equal(t, "myMultisig", tmp.GetName())
 	require.Equal(t, keys.TypeMulti, tmp.GetType())
 	require.Equal(t, "D3923267FA8A3DD367BB768FA8BDC8FF7F89DA3F", tmp.GetPubKey().Address().String())
-	require.Equal(t, "cosmos16wfryel63g7axeamw68630wglalcnk3l0zuadc", tmp.GetAddress().String())
+	require.Equal(t, "fetch16wfryel63g7axeamw68630wglalcnk3lul4e00", tmp.GetAddress().String())
 }
 
 func Test_showKeysCmd(t *testing.T) {

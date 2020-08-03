@@ -15,7 +15,7 @@ import (
 var genAccountsState = []byte(`[
 		{
 			"account_number": "0",
-			"address": "cosmos1q7380u26f7ntke3facjmynajs4umlr329vr4ja",
+			"address": "fetch1q7380u26f7ntke3facjmynajs4umlr32k323s2",
 			"coins": [
 				{
 					"amount": "1000000000",
@@ -37,7 +37,7 @@ var genAccountsState = []byte(`[
 		},
 		{
 			"account_number": "0",
-			"address": "cosmos1tygms3xhhs3yv487phx3dw4a95jn7t7lpm470r",
+			"address": "fetch1tygms3xhhs3yv487phx3dw4a95jn7t7ljxu6d5",
 			"coins": [],
 			"delegated_free": [],
 			"delegated_vesting": [],
@@ -53,7 +53,7 @@ var genAccountsState = []byte(`[
 		},
 		{
 			"account_number": "0",
-			"address": "cosmos1m3h30wlvsf8llruxtpukdvsy0km2kum8g38c8q",
+			"address": "fetch1m3h30wlvsf8llruxtpukdvsy0km2kum8mvwu9h",
 			"coins": [],
 			"delegated_free": [],
 			"delegated_vesting": [],
@@ -81,16 +81,16 @@ var genAuthState = []byte(`{
 var genStakingState = []byte(`{
   "delegations": [
     {
-      "delegator_address": "cosmos1q7380u26f7ntke3facjmynajs4umlr329vr4ja",
+      "delegator_address": "fetch1q7380u26f7ntke3facjmynajs4umlr32k323s2",
       "shares": "100000000.000000000000000000",
-      "validator_address": "cosmosvaloper1q7380u26f7ntke3facjmynajs4umlr32qchq7w"
+      "validator_address": "fetchvaloper1q7380u26f7ntke3facjmynajs4umlr32n44jrd"
     }
   ],
   "exported": true,
   "last_total_power": "400",
   "last_validator_powers": [
     {
-      "Address": "cosmosvaloper1q7380u26f7ntke3facjmynajs4umlr32qchq7w",
+      "Address": "fetchvaloper1q7380u26f7ntke3facjmynajs4umlr32n44jrd",
       "Power": "100"
     }
   ],
@@ -112,7 +112,7 @@ var genStakingState = []byte(`{
         },
         "update_time": "2019-09-24T23:11:22.9692177Z"
       },
-      "consensus_pubkey": "cosmosvalconspub1zcjduepqygqrt0saxf76lhsmp56rx52j0acdxyjvcdkq3tqvwrsmmm0ke28q36kh9h",
+      "consensus_pubkey": "fetchvalconspub1zcjduepqygqrt0saxf76lhsmp56rx52j0acdxyjvcdkq3tqvwrsmmm0ke28ql3chal",
       "delegator_shares": "100000000.000000000000000000",
       "description": {
         "details": "",
@@ -122,7 +122,7 @@ var genStakingState = []byte(`{
       },
       "jailed": false,
       "min_self_delegation": "1",
-      "operator_address": "cosmosvaloper1q7380u26f7ntke3facjmynajs4umlr32qchq7w",
+      "operator_address": "fetchvaloper1q7380u26f7ntke3facjmynajs4umlr32n44jrd",
       "status": 2,
       "tokens": "100000000",
       "unbonding_height": "0",
