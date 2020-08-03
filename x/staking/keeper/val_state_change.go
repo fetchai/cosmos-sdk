@@ -14,6 +14,7 @@ import (
 // Calculate the ValidatorUpdates for the current block
 // Called in each EndBlock
 func (k Keeper) BlockValidatorUpdates(ctx sdk.Context) []abci.ValidatorUpdate {
+	// Calculate validator set changes.
 	//
 	// NOTE: ApplyAndReturnValidatorSetUpdates has to come before
 	// UnbondAllMatureValidatorQueue.

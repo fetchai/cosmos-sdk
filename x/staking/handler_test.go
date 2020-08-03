@@ -560,9 +560,11 @@ func TestMultipleMsgCreateValidator(t *testing.T) {
 
 		require.Equal(t, i+1, len(validators), "expected %d validators got %d, validators: %v", i+1, len(validators), validators)
 		require.Equal(t, valTokens, val.DelegatorShares.RoundInt(), "expected %d shares, got %d", 10, val.DelegatorShares)
-		require.Equal(t, balanceExpd, balanceGot, "expected account to have %d, got %d", balanceExpd, balanceGot)
+		require.Equal(t, balanceExpd, balanceGot, "expected account %d to have %d, got %d", i, balanceExpd, balanceGot)
 	}
 
+	header := abci.Header{Entropy: testBlockEntropy()}
+	BeginBlocker(ctx, abci.RequestBeginBlock{Header: header}, &keeper)
 	EndBlocker(ctx, &keeper)
 
 	// unbond them all by removing delegation
@@ -580,11 +582,11 @@ func TestMultipleMsgCreateValidator(t *testing.T) {
 		types.ModuleCdc.MustUnmarshalBinaryLengthPrefixed(res.Data, &finishTime)
 
 		// adds validator into unbonding queue
-		header := abci.Header{Entropy: testBlockEntropy()}
 		BeginBlocker(ctx, abci.RequestBeginBlock{Header: header}, &keeper)
 		EndBlocker(ctx, &keeper)
 
 		// removes validator from queue and set
+		BeginBlocker(ctx, abci.RequestBeginBlock{Header: header}, &keeper)
 		EndBlocker(ctx.WithBlockTime(blockTime.Add(params.UnbondingTime)), &keeper)
 
 		// Check that the validator is deleted from state
@@ -596,7 +598,7 @@ func TestMultipleMsgCreateValidator(t *testing.T) {
 		require.False(t, found)
 
 		gotBalance := accMapper.GetAccount(ctx, delegatorAddrs[i]).GetCoins().AmountOf(params.BondDenom)
-		require.Equal(t, initTokens, gotBalance, "expected account to have %d, got %d", initTokens, gotBalance)
+		require.Equal(t, initTokens, gotBalance, "expected account %d to have %d, got %d", i, initTokens, gotBalance)
 	}
 }
 
