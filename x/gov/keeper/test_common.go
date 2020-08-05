@@ -203,7 +203,7 @@ func createValidators(ctx sdk.Context, sk staking.Keeper, powers []int64) {
 
 	header := abci.Header{Entropy: testBlockEntropy()}
 	staking.BeginBlocker(ctx, abci.RequestBeginBlock{Header: header}, &sk)
-	_ = staking.EndBlocker(ctx, &sk)
+	staking.EndBlocker(ctx, &sk)
 }
 
 func testBlockEntropy() abci.BlockEntropy {

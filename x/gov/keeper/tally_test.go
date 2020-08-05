@@ -227,7 +227,7 @@ func TestTallyDelgatorOverride(t *testing.T) {
 	_, err := sk.Delegate(ctx, TestAddrs[0], delTokens, sdk.Unbonded, val1, true)
 	require.NoError(t, err)
 
-	_ = staking.EndBlocker(ctx, &sk)
+	staking.EndBlocker(ctx, &sk)
 
 	tp := TestProposal
 	proposal, err := keeper.SubmitProposal(ctx, tp)
@@ -261,7 +261,7 @@ func TestTallyDelgatorInherit(t *testing.T) {
 	_, err := sk.Delegate(ctx, TestAddrs[0], delTokens, sdk.Unbonded, val3, true)
 	require.NoError(t, err)
 
-	_ = staking.EndBlocker(ctx, &sk)
+	staking.EndBlocker(ctx, &sk)
 
 	tp := TestProposal
 	proposal, err := keeper.SubmitProposal(ctx, tp)
@@ -298,7 +298,7 @@ func TestTallyDelgatorMultipleOverride(t *testing.T) {
 	_, err = sk.Delegate(ctx, TestAddrs[0], delTokens, sdk.Unbonded, val2, true)
 	require.NoError(t, err)
 
-	_ = staking.EndBlocker(ctx, &sk)
+	staking.EndBlocker(ctx, &sk)
 
 	tp := TestProposal
 	proposal, err := keeper.SubmitProposal(ctx, tp)
@@ -336,7 +336,7 @@ func TestTallyDelgatorMultipleInherit(t *testing.T) {
 	_, err = sk.Delegate(ctx, TestAddrs[0], delTokens, sdk.Unbonded, val3, true)
 	require.NoError(t, err)
 
-	_ = staking.EndBlocker(ctx, &sk)
+	staking.EndBlocker(ctx, &sk)
 
 	tp := TestProposal
 	proposal, err := keeper.SubmitProposal(ctx, tp)
@@ -373,7 +373,7 @@ func TestTallyJailedValidator(t *testing.T) {
 	_, err = sk.Delegate(ctx, TestAddrs[0], delTokens, sdk.Unbonded, val3, true)
 	require.NoError(t, err)
 
-	_ = staking.EndBlocker(ctx, &sk)
+	staking.EndBlocker(ctx, &sk)
 
 	sk.Jail(ctx, sdk.ConsAddress(val2.ConsPubKey.Address()))
 

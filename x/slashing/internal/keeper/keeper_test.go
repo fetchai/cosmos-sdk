@@ -151,7 +151,7 @@ func TestValidatorDippingInAndOut(t *testing.T) {
 	require.NotNil(t, res)
 
 	staking.BeginBlocker(ctx, abci.RequestBeginBlock{Header: header}, &sk)
-	validatorUpdates := staking.EndBlocker(ctx, &sk)
+	validatorUpdates, _ := staking.EndBlocker(ctx, &sk)
 	require.Equal(t, 2, len(validatorUpdates))
 	validator, _ := sk.GetValidator(ctx, addr)
 	require.Equal(t, sdk.Unbonding, validator.Status)
@@ -167,7 +167,7 @@ func TestValidatorDippingInAndOut(t *testing.T) {
 	require.NotNil(t, res)
 
 	staking.BeginBlocker(ctx, abci.RequestBeginBlock{Header: header}, &sk)
-	validatorUpdates = staking.EndBlocker(ctx, &sk)
+	validatorUpdates, _ = staking.EndBlocker(ctx, &sk)
 	require.Equal(t, 2, len(validatorUpdates))
 	validator, _ = sk.GetValidator(ctx, addr)
 	require.Equal(t, sdk.Bonded, validator.Status)

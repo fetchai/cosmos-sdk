@@ -145,7 +145,7 @@ type AppModule interface {
 
 	// ABCI
 	BeginBlock(sdk.Context, abci.RequestBeginBlock)
-	EndBlock(sdk.Context, abci.RequestEndBlock) []abci.ValidatorUpdate
+	EndBlock(sdk.Context, abci.RequestEndBlock) ([]abci.ValidatorUpdate, []abci.ValidatorUpdate)
 }
 
 //___________________________
@@ -181,8 +181,8 @@ func (gam GenesisOnlyAppModule) NewQuerierHandler() sdk.Querier { return nil }
 func (gam GenesisOnlyAppModule) BeginBlock(ctx sdk.Context, req abci.RequestBeginBlock) {}
 
 // EndBlock returns an empty module end-block
-func (GenesisOnlyAppModule) EndBlock(_ sdk.Context, _ abci.RequestEndBlock) []abci.ValidatorUpdate {
-	return []abci.ValidatorUpdate{}
+func (GenesisOnlyAppModule) EndBlock(_ sdk.Context, _ abci.RequestEndBlock) ([]abci.ValidatorUpdate, []abci.ValidatorUpdate) {
+	return []abci.ValidatorUpdate{}, []abci.ValidatorUpdate{}
 }
 
 //____________________________________________________________________________
@@ -308,23 +308,26 @@ func (m *Manager) BeginBlock(ctx sdk.Context, req abci.RequestBeginBlock) abci.R
 func (m *Manager) EndBlock(ctx sdk.Context, req abci.RequestEndBlock) abci.ResponseEndBlock {
 	ctx = ctx.WithEventManager(sdk.NewEventManager())
 	validatorUpdates := []abci.ValidatorUpdate{}
+	dkgValidatorUpdates := []abci.ValidatorUpdate{}
 
 	for _, moduleName := range m.OrderEndBlockers {
-		moduleValUpdates := m.Modules[moduleName].EndBlock(ctx, req)
+		moduleValUpdates, moduleDKGValUpdates := m.Modules[moduleName].EndBlock(ctx, req)
 
 		// use these validator updates if provided, the module manager assumes
-		// only one module will update the validator set
+		// only one module will update the validator set and dkg validator set
 		if len(moduleValUpdates) > 0 {
 			if len(validatorUpdates) > 0 {
 				panic("validator EndBlock updates already set by a previous module")
 			}
 
 			validatorUpdates = moduleValUpdates
+			dkgValidatorUpdates = moduleDKGValUpdates
 		}
 	}
 
 	return abci.ResponseEndBlock{
 		ValidatorUpdates: validatorUpdates,
+		DkgValidatorUpdates: dkgValidatorUpdates,
 		Events:           ctx.EventManager().ABCIEvents(),
 	}
 }
