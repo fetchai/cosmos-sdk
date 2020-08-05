@@ -29,9 +29,6 @@ type Keeper struct {
 	paramstore         params.Subspace
 	validatorCache     map[string]cachedValidator
 	validatorCacheList *list.List
-
-	// for delaying validator changover
-	ChangeoverValidators bool
 }
 
 // NewKeeper creates a new staking Keeper instance

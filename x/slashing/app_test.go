@@ -60,8 +60,8 @@ func getMockApp(t *testing.T) (*mock.App, staking.Keeper, Keeper) {
 	mapp.Router().AddRoute(staking.RouterKey, staking.NewHandler(stakingKeeper))
 	mapp.Router().AddRoute(RouterKey, NewHandler(keeper))
 
-	mapp.SetBeginBlocker(getBeginBlocker(&stakingKeeper))
-	mapp.SetEndBlocker(getEndBlocker(&stakingKeeper))
+	mapp.SetBeginBlocker(getBeginBlocker(stakingKeeper))
+	mapp.SetEndBlocker(getEndBlocker(stakingKeeper))
 	mapp.SetInitChainer(getInitChainer(mapp, stakingKeeper, mapp.AccountKeeper, supplyKeeper,
 		[]supplyexported.ModuleAccountI{feeCollector, notBondedPool, bondPool}))
 
@@ -71,7 +71,7 @@ func getMockApp(t *testing.T) (*mock.App, staking.Keeper, Keeper) {
 }
 
 // staking endblocker
-func getBeginBlocker(keeper *staking.Keeper) sdk.BeginBlocker {
+func getBeginBlocker(keeper staking.Keeper) sdk.BeginBlocker {
 	return func(ctx sdk.Context, req abci.RequestBeginBlock) abci.ResponseBeginBlock {
 		staking.BeginBlocker(ctx, req, keeper)
 		return abci.ResponseBeginBlock{}
@@ -79,7 +79,7 @@ func getBeginBlocker(keeper *staking.Keeper) sdk.BeginBlocker {
 }
 
 // staking endblocker
-func getEndBlocker(keeper *staking.Keeper) sdk.EndBlocker {
+func getEndBlocker(keeper staking.Keeper) sdk.EndBlocker {
 	return func(ctx sdk.Context, req abci.RequestEndBlock) abci.ResponseEndBlock {
 		validatorUpdates, _ := staking.EndBlocker(ctx, keeper)
 		return abci.ResponseEndBlock{
