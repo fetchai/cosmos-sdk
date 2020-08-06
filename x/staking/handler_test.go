@@ -97,7 +97,6 @@ func TestValidatorByPowerIndex(t *testing.T) {
 	header := abci.Header{Entropy: testBlockEntropy()}
 	BeginBlocker(ctx, abci.RequestBeginBlock{Header: header}, keeper)
 	EndBlocker(ctx, keeper)
-	EndBlocker(ctx, keeper)
 
 	// verify that by power key nolonger exists
 	_, found = keeper.GetValidator(ctx, validatorAddr)
