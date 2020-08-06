@@ -35,8 +35,8 @@ func (suite *KeeperTestSuite) TestHandleDoubleSign() {
 
 	// execute end-blocker and verify validator attributes
 	header := abci.Header{Entropy: testBlockEntropy()}
-	staking.BeginBlocker(ctx, abci.RequestBeginBlock{Header: header}, &suite.app.StakingKeeper)
-	staking.EndBlocker(ctx, &suite.app.StakingKeeper)
+	staking.BeginBlocker(ctx, abci.RequestBeginBlock{Header: header}, suite.app.StakingKeeper)
+	staking.EndBlocker(ctx, suite.app.StakingKeeper)
 	suite.Equal(
 		suite.app.BankKeeper.GetCoins(ctx, sdk.AccAddress(operatorAddr)),
 		sdk.NewCoins(sdk.NewCoin(stakingParams.BondDenom, initAmt.Sub(amt))),
@@ -103,8 +103,8 @@ func (suite *KeeperTestSuite) TestHandleDoubleSign_TooOld() {
 
 	// execute end-blocker and verify validator attributes
 	header := abci.Header{Entropy: testBlockEntropy()}
-	staking.BeginBlocker(ctx, abci.RequestBeginBlock{Header: header}, &suite.app.StakingKeeper)
-	staking.EndBlocker(ctx, &suite.app.StakingKeeper)
+	staking.BeginBlocker(ctx, abci.RequestBeginBlock{Header: header}, suite.app.StakingKeeper)
+	staking.EndBlocker(ctx, suite.app.StakingKeeper)
 	suite.Equal(
 		suite.app.BankKeeper.GetCoins(ctx, sdk.AccAddress(operatorAddr)),
 		sdk.NewCoins(sdk.NewCoin(stakingParams.BondDenom, initAmt.Sub(amt))),
