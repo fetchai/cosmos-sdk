@@ -27,8 +27,7 @@ func TestCannotUnjailUnlessJailed(t *testing.T) {
 	require.NoError(t, err)
 	require.NotNil(t, res)
 
-	header := abci.Header{Entropy: testBlockEntropy()}
-	staking.BeginBlocker(ctx, abci.RequestBeginBlock{Header: header}, sk)
+	staking.BeginBlocker(ctx, abci.RequestBeginBlock{}, sk)
 	staking.EndBlocker(ctx, sk)
 
 	require.Equal(
@@ -168,8 +167,7 @@ func TestHandleAbsentValidator(t *testing.T) {
 	require.NoError(t, err)
 	require.NotNil(t, res)
 
-	header := abci.Header{Entropy: testBlockEntropy()}
-	staking.BeginBlocker(ctx, abci.RequestBeginBlock{Header: header}, sk)
+	staking.BeginBlocker(ctx, abci.RequestBeginBlock{}, sk)
 	staking.EndBlocker(ctx, sk)
 
 	require.Equal(
@@ -223,7 +221,7 @@ func TestHandleAbsentValidator(t *testing.T) {
 	require.Equal(t, int64(0), info.MissedBlocksCounter)
 
 	// end block
-	staking.BeginBlocker(ctx, abci.RequestBeginBlock{Header: header}, sk)
+	staking.BeginBlocker(ctx, abci.RequestBeginBlock{}, sk)
 	staking.EndBlocker(ctx, sk)
 
 	// validator should have been jailed
@@ -245,7 +243,7 @@ func TestHandleAbsentValidator(t *testing.T) {
 	require.Equal(t, int64(1), info.MissedBlocksCounter)
 
 	// end block
-	staking.BeginBlocker(ctx, abci.RequestBeginBlock{Header: header}, sk)
+	staking.BeginBlocker(ctx, abci.RequestBeginBlock{}, sk)
 	staking.EndBlocker(ctx, sk)
 
 	// validator should not have been slashed any more, since it was already jailed
@@ -264,7 +262,7 @@ func TestHandleAbsentValidator(t *testing.T) {
 	require.NotNil(t, res)
 
 	// end block
-	staking.BeginBlocker(ctx, abci.RequestBeginBlock{Header: header}, sk)
+	staking.BeginBlocker(ctx, abci.RequestBeginBlock{}, sk)
 	staking.EndBlocker(ctx, sk)
 
 	// validator should be rebonded now
@@ -297,7 +295,7 @@ func TestHandleAbsentValidator(t *testing.T) {
 	}
 
 	// end block
-	staking.BeginBlocker(ctx, abci.RequestBeginBlock{Header: header}, sk)
+	staking.BeginBlocker(ctx, abci.RequestBeginBlock{}, sk)
 	staking.EndBlocker(ctx, sk)
 
 	// validator should be jailed again after 500 unsigned blocks
@@ -308,7 +306,7 @@ func TestHandleAbsentValidator(t *testing.T) {
 	}
 
 	// end block
-	staking.BeginBlocker(ctx, abci.RequestBeginBlock{Header: header}, sk)
+	staking.BeginBlocker(ctx, abci.RequestBeginBlock{}, sk)
 	staking.EndBlocker(ctx, sk)
 
 	validator, _ = sk.GetValidatorByConsAddr(ctx, sdk.GetConsAddress(val))

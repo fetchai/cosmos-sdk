@@ -145,6 +145,7 @@ func CreateTestInput(t *testing.T, isCheckTx bool, initPower int64) (sdk.Context
 
 	keeper := NewKeeper(cdc, keyStaking, supplyKeeper, pk.Subspace(DefaultParamspace))
 	keeper.SetParams(ctx, types.DefaultParams())
+	keeper.SetDelayValidatorUpdates(false)
 
 	// set module accounts
 	err = notBondedPool.SetCoins(totalSupply)

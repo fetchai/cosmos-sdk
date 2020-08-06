@@ -22,6 +22,7 @@ func newTestMsgCreateValidator(address sdk.ValAddress, pubKey crypto.PubKey, amt
 func (suite *KeeperTestSuite) TestHandleDoubleSign() {
 	ctx := suite.ctx.WithIsCheckTx(false).WithBlockHeight(1)
 	suite.populateValidators(ctx)
+	suite.app.StakingKeeper.SetDelayValidatorUpdates(false)
 
 	power := int64(100)
 	stakingParams := suite.app.StakingKeeper.GetParams(ctx)
@@ -34,8 +35,7 @@ func (suite *KeeperTestSuite) TestHandleDoubleSign() {
 	suite.NotNil(res)
 
 	// execute end-blocker and verify validator attributes
-	header := abci.Header{Entropy: testBlockEntropy()}
-	staking.BeginBlocker(ctx, abci.RequestBeginBlock{Header: header}, suite.app.StakingKeeper)
+	staking.BeginBlocker(ctx, abci.RequestBeginBlock{}, suite.app.StakingKeeper)
 	staking.EndBlocker(ctx, suite.app.StakingKeeper)
 	suite.Equal(
 		suite.app.BankKeeper.GetCoins(ctx, sdk.AccAddress(operatorAddr)),
@@ -90,6 +90,7 @@ func (suite *KeeperTestSuite) TestHandleDoubleSign() {
 func (suite *KeeperTestSuite) TestHandleDoubleSign_TooOld() {
 	ctx := suite.ctx.WithIsCheckTx(false).WithBlockHeight(1).WithBlockTime(time.Now())
 	suite.populateValidators(ctx)
+	suite.app.StakingKeeper.SetDelayValidatorUpdates(false)
 
 	power := int64(100)
 	stakingParams := suite.app.StakingKeeper.GetParams(ctx)
@@ -102,8 +103,7 @@ func (suite *KeeperTestSuite) TestHandleDoubleSign_TooOld() {
 	suite.NotNil(res)
 
 	// execute end-blocker and verify validator attributes
-	header := abci.Header{Entropy: testBlockEntropy()}
-	staking.BeginBlocker(ctx, abci.RequestBeginBlock{Header: header}, suite.app.StakingKeeper)
+	staking.BeginBlocker(ctx, abci.RequestBeginBlock{}, suite.app.StakingKeeper)
 	staking.EndBlocker(ctx, suite.app.StakingKeeper)
 	suite.Equal(
 		suite.app.BankKeeper.GetCoins(ctx, sdk.AccAddress(operatorAddr)),
@@ -122,11 +122,4 @@ func (suite *KeeperTestSuite) TestHandleDoubleSign_TooOld() {
 
 	suite.False(suite.app.StakingKeeper.Validator(ctx, operatorAddr).IsJailed())
 	suite.False(suite.app.SlashingKeeper.IsTombstoned(ctx, sdk.ConsAddress(val.Address())))
-}
-
-func testBlockEntropy() abci.BlockEntropy {
-	return abci.BlockEntropy{
-		Round:      1,
-		AeonLength: 3,
-	}
 }

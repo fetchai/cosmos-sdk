@@ -78,6 +78,7 @@ func CreateTestInputDefault(t *testing.T, isCheckTx bool, initPower int64) (
 	communityTax := sdk.NewDecWithPrec(2, 2)
 
 	ctx, ak, _, dk, sk, _, supplyKeeper := CreateTestInputAdvanced(t, isCheckTx, initPower, communityTax)
+	sk.SetDelayValidatorUpdates(false)
 	return ctx, ak, dk, sk, supplyKeeper
 }
 

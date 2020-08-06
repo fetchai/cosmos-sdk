@@ -22,13 +22,14 @@ var _ types.DelegationSet = Keeper{}
 
 // keeper of the staking store
 type Keeper struct {
-	storeKey           sdk.StoreKey
-	cdc                *codec.Codec
-	supplyKeeper       types.SupplyKeeper
-	hooks              types.StakingHooks
-	paramstore         params.Subspace
-	validatorCache     map[string]cachedValidator
-	validatorCacheList *list.List
+	storeKey              sdk.StoreKey
+	cdc                   *codec.Codec
+	supplyKeeper          types.SupplyKeeper
+	hooks                 types.StakingHooks
+	paramstore            params.Subspace
+	validatorCache        map[string]cachedValidator
+	validatorCacheList    *list.List
+	delayValidatorUpdates bool
 }
 
 // NewKeeper creates a new staking Keeper instance
@@ -46,13 +47,14 @@ func NewKeeper(
 	}
 
 	return Keeper{
-		storeKey:           key,
-		cdc:                cdc,
-		supplyKeeper:       supplyKeeper,
-		paramstore:         paramstore.WithKeyTable(ParamKeyTable()),
-		hooks:              nil,
-		validatorCache:     make(map[string]cachedValidator, aminoCacheSize),
-		validatorCacheList: list.New(),
+		storeKey:              key,
+		cdc:                   cdc,
+		supplyKeeper:          supplyKeeper,
+		paramstore:            paramstore.WithKeyTable(ParamKeyTable()),
+		hooks:                 nil,
+		validatorCache:        make(map[string]cachedValidator, aminoCacheSize),
+		validatorCacheList:    list.New(),
+		delayValidatorUpdates: true,
 	}
 }
 
@@ -86,4 +88,9 @@ func (k Keeper) SetLastTotalPower(ctx sdk.Context, power sdk.Int) {
 	store := ctx.KVStore(k.storeKey)
 	b := k.cdc.MustMarshalBinaryLengthPrefixed(power)
 	store.Set(types.LastTotalPowerKey, b)
+}
+
+// Allow turning off of validator updatte delays in tests
+func (k *Keeper) SetDelayValidatorUpdates(delay bool) {
+	k.delayValidatorUpdates = delay
 }

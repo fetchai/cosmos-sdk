@@ -24,8 +24,7 @@ func TestBeginBlocker(t *testing.T) {
 	require.NoError(t, err)
 	require.NotNil(t, res)
 
-	header := abci.Header{Entropy: testBlockEntropy()}
-	staking.BeginBlocker(ctx, abci.RequestBeginBlock{Header: header}, sk)
+	staking.BeginBlocker(ctx, abci.RequestBeginBlock{}, sk)
 	staking.EndBlocker(ctx, sk)
 	require.Equal(
 		t, ck.GetCoins(ctx, sdk.AccAddress(addr)),
@@ -87,7 +86,7 @@ func TestBeginBlocker(t *testing.T) {
 	}
 
 	// end block
-	staking.BeginBlocker(ctx, abci.RequestBeginBlock{Header: header}, sk)
+	staking.BeginBlocker(ctx, abci.RequestBeginBlock{}, sk)
 	staking.EndBlocker(ctx, sk)
 
 	// validator should be jailed

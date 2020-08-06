@@ -252,7 +252,7 @@ func TestProposalPassedEndblocker(t *testing.T) {
 	handler := NewHandler(input.keeper)
 	stakingHandler := staking.NewHandler(input.sk)
 
-	header := abci.Header{Height: input.mApp.LastBlockHeight() + 1, Entropy: testBlockEntropy()}
+	header := abci.Header{Height: input.mApp.LastBlockHeight() + 1}
 	input.mApp.BeginBlock(abci.RequestBeginBlock{Header: header})
 	ctx := input.mApp.BaseApp.NewContext(false, abci.Header{})
 

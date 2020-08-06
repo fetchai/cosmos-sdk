@@ -7,24 +7,46 @@ import (
 )
 
 var (
-	validatorUpdateKey = []byte("validatorUpdateKey")
+	computeValidatorUpdateKey    = []byte("computeValidatorUpdateKey")
+	computeDKGValidatorUpdateKey = []byte("computeDKGValidatorUpdateKey")
+	validatorUpdatesKey          = []byte("validatorUpdatesKey")
 )
 
 // Check whether entropy generation round corresponds to validator changeover height
 func (k Keeper) CheckValidatorUpdates(ctx sdk.Context, header abci.Header) {
-	// If two blocks before an next aeon start, need to return new validator set of next aeon
-	if header.Entropy.GetRound() == header.Entropy.GetAeonLength()-2 {
+	// One blocks before a new aeon start need to compute validator updates for next dkg committee.
+	// Two blocks before a new aeon start need to update consensus committee to those which ran dkg
+	nextAeonStart := header.Entropy.NextAeonStart
+	if !k.delayValidatorUpdates || header.Height == nextAeonStart-1 {
 		store := ctx.KVStore(k.storeKey)
-		store.Set(validatorUpdateKey, []byte{0})
+		store.Set(computeDKGValidatorUpdateKey, []byte{0})
+	}
+	if !k.delayValidatorUpdates || header.Height == nextAeonStart-2 {
+		store := ctx.KVStore(k.storeKey)
+		store.Set(computeValidatorUpdateKey, []byte{0})
 	}
 }
 
-// Tells EndBlocker whether to compute validator updates using variable set in BeginBlocker
-func (k Keeper) PerformValidatorUpdates(ctx sdk.Context) bool {
+// Returns dkg validator updates to EndBlock at block height set by BeginBlocker
+func (k Keeper) DKGValidatorUpdates(ctx sdk.Context) []abci.ValidatorUpdate {
 	store := ctx.KVStore(k.storeKey)
-	if len(store.Get(validatorUpdateKey)) == 0 {
-		return false
+	if len(store.Get(computeDKGValidatorUpdateKey)) == 0 {
+		return []abci.ValidatorUpdate{}
 	}
-	store.Set(validatorUpdateKey, []byte{})
-	return true
+	store.Set(computeDKGValidatorUpdateKey, []byte{})
+	updates := k.BlockValidatorUpdates(ctx)
+	store.Set(validatorUpdatesKey, k.cdc.MustMarshalBinaryLengthPrefixed(updates))
+	return updates
+}
+
+func (k Keeper) ValidatorUpdates(ctx sdk.Context) []abci.ValidatorUpdate {
+	store := ctx.KVStore(k.storeKey)
+	if len(store.Get(computeValidatorUpdateKey)) == 0 {
+		return []abci.ValidatorUpdate{}
+	}
+	store.Set(computeValidatorUpdateKey, []byte{})
+	updateBytes := store.Get(validatorUpdatesKey)
+	updates := []abci.ValidatorUpdate{}
+	k.cdc.UnmarshalBinaryLengthPrefixed(updateBytes, &updates)
+	return updates
 }

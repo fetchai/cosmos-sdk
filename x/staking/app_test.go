@@ -43,6 +43,7 @@ func getMockApp(t *testing.T) (*mock.App, Keeper) {
 	}
 	supplyKeeper := supply.NewKeeper(mApp.Cdc, keySupply, mApp.AccountKeeper, bankKeeper, maccPerms)
 	keeper := NewKeeper(mApp.Cdc, keyStaking, supplyKeeper, mApp.ParamsKeeper.Subspace(DefaultParamspace))
+	keeper.SetDelayValidatorUpdates(false)
 
 	mApp.Router().AddRoute(RouterKey, NewHandler(keeper))
 	mApp.SetBeginBlocker(getBeginBlocker(keeper))
@@ -68,7 +69,7 @@ func getEndBlocker(keeper Keeper) sdk.EndBlocker {
 		validatorUpdates, dkgValidatorUpdates := EndBlocker(ctx, keeper)
 
 		return abci.ResponseEndBlock{
-			ValidatorUpdates: validatorUpdates,
+			ValidatorUpdates:    validatorUpdates,
 			DkgValidatorUpdates: dkgValidatorUpdates,
 		}
 	}
@@ -151,11 +152,11 @@ func TestStakingMsgs(t *testing.T) {
 		sdk.ValAddress(addr1), priv1.PubKey(), bondCoin, description, commissionRates, sdk.OneInt(),
 	)
 
-	header := abci.Header{Height: mApp.LastBlockHeight() + 1, Entropy: testBlockEntropy()}
+	header := abci.Header{Height: mApp.LastBlockHeight() + 1}
 	mock.SignCheckDeliver(t, mApp.Cdc, mApp.BaseApp, header, []sdk.Msg{createValidatorMsg}, []uint64{0}, []uint64{0}, true, true, priv1)
 	mock.CheckBalance(t, mApp, addr1, sdk.Coins{genCoin.Sub(bondCoin)})
 
-	header = abci.Header{Height: mApp.LastBlockHeight() + 1, Entropy: testBlockEntropy()}
+	header = abci.Header{Height: mApp.LastBlockHeight() + 1}
 	mApp.BeginBlock(abci.RequestBeginBlock{Header: header})
 
 	validator := checkValidator(t, mApp, keeper, sdk.ValAddress(addr1), true)

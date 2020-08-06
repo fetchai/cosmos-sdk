@@ -94,8 +94,7 @@ func TestValidatorByPowerIndex(t *testing.T) {
 	types.ModuleCdc.MustUnmarshalBinaryLengthPrefixed(res.Data, &finishTime)
 
 	ctx = ctx.WithBlockTime(finishTime)
-	header := abci.Header{Entropy: testBlockEntropy()}
-	BeginBlocker(ctx, abci.RequestBeginBlock{Header: header}, keeper)
+	BeginBlocker(ctx, abci.RequestBeginBlock{}, keeper)
 	EndBlocker(ctx, keeper)
 
 	// verify that by power key nolonger exists
@@ -464,8 +463,7 @@ func TestIncrementsMsgUnbond(t *testing.T) {
 		types.ModuleCdc.MustUnmarshalBinaryLengthPrefixed(res.Data, &finishTime)
 
 		ctx = ctx.WithBlockTime(finishTime)
-		header := abci.Header{Entropy: testBlockEntropy()}
-		BeginBlocker(ctx, abci.RequestBeginBlock{Header: header}, keeper)
+		BeginBlocker(ctx, abci.RequestBeginBlock{}, keeper)
 		EndBlocker(ctx, keeper)
 
 		// check that the accounts and the bond account have the appropriate values
@@ -562,8 +560,7 @@ func TestMultipleMsgCreateValidator(t *testing.T) {
 		require.Equal(t, balanceExpd, balanceGot, "expected account %d to have %d, got %d", i, balanceExpd, balanceGot)
 	}
 
-	header := abci.Header{Entropy: testBlockEntropy()}
-	BeginBlocker(ctx, abci.RequestBeginBlock{Header: header}, keeper)
+	BeginBlocker(ctx, abci.RequestBeginBlock{}, keeper)
 	EndBlocker(ctx, keeper)
 
 	// unbond them all by removing delegation
@@ -581,11 +578,11 @@ func TestMultipleMsgCreateValidator(t *testing.T) {
 		types.ModuleCdc.MustUnmarshalBinaryLengthPrefixed(res.Data, &finishTime)
 
 		// adds validator into unbonding queue
-		BeginBlocker(ctx, abci.RequestBeginBlock{Header: header}, keeper)
+		BeginBlocker(ctx, abci.RequestBeginBlock{}, keeper)
 		EndBlocker(ctx, keeper)
 
 		// removes validator from queue and set
-		BeginBlocker(ctx, abci.RequestBeginBlock{Header: header}, keeper)
+		BeginBlocker(ctx, abci.RequestBeginBlock{}, keeper)
 		EndBlocker(ctx.WithBlockTime(blockTime.Add(params.UnbondingTime)), keeper)
 
 		// Check that the validator is deleted from state
@@ -718,8 +715,7 @@ func TestValidatorQueue(t *testing.T) {
 	require.NoError(t, err)
 	require.NotNil(t, res)
 
-	header := abci.Header{Entropy: testBlockEntropy()}
-	BeginBlocker(ctx, abci.RequestBeginBlock{Header: header}, keeper)
+	BeginBlocker(ctx, abci.RequestBeginBlock{}, keeper)
 	EndBlocker(ctx, keeper)
 
 	// unbond the all self-delegation to put validator in unbonding state
@@ -733,7 +729,7 @@ func TestValidatorQueue(t *testing.T) {
 	types.ModuleCdc.MustUnmarshalBinaryLengthPrefixed(res.Data, &finishTime)
 
 	ctx = ctx.WithBlockTime(finishTime)
-	BeginBlocker(ctx, abci.RequestBeginBlock{Header: header}, keeper)
+	BeginBlocker(ctx, abci.RequestBeginBlock{}, keeper)
 	EndBlocker(ctx, keeper)
 
 	origHeader := ctx.BlockHeader()
@@ -744,7 +740,7 @@ func TestValidatorQueue(t *testing.T) {
 
 	// should still be unbonding at time 6 seconds later
 	ctx = ctx.WithBlockTime(origHeader.Time.Add(time.Second * 6))
-	BeginBlocker(ctx, abci.RequestBeginBlock{Header: header}, keeper)
+	BeginBlocker(ctx, abci.RequestBeginBlock{}, keeper)
 	EndBlocker(ctx, keeper)
 
 	validator, found = keeper.GetValidator(ctx, validatorAddr)
@@ -753,7 +749,7 @@ func TestValidatorQueue(t *testing.T) {
 
 	// should be in unbonded state at time 7 seconds later
 	ctx = ctx.WithBlockTime(origHeader.Time.Add(time.Second * 7))
-	BeginBlocker(ctx, abci.RequestBeginBlock{Header: header}, keeper)
+	BeginBlocker(ctx, abci.RequestBeginBlock{}, keeper)
 	EndBlocker(ctx, keeper)
 
 	validator, found = keeper.GetValidator(ctx, validatorAddr)
@@ -777,8 +773,7 @@ func TestUnbondingPeriod(t *testing.T) {
 	require.NoError(t, err)
 	require.NotNil(t, res)
 
-	header := abci.Header{Entropy: testBlockEntropy()}
-	BeginBlocker(ctx, abci.RequestBeginBlock{Header: header}, keeper)
+	BeginBlocker(ctx, abci.RequestBeginBlock{}, keeper)
 	EndBlocker(ctx, keeper)
 
 	// begin unbonding
@@ -794,21 +789,21 @@ func TestUnbondingPeriod(t *testing.T) {
 	require.True(t, found, "should not have unbonded")
 
 	// cannot complete unbonding at same time
-	BeginBlocker(ctx, abci.RequestBeginBlock{Header: header}, keeper)
+	BeginBlocker(ctx, abci.RequestBeginBlock{}, keeper)
 	EndBlocker(ctx, keeper)
 	_, found = keeper.GetUnbondingDelegation(ctx, sdk.AccAddress(validatorAddr), validatorAddr)
 	require.True(t, found, "should not have unbonded")
 
 	// cannot complete unbonding at time 6 seconds later
 	ctx = ctx.WithBlockTime(origHeader.Time.Add(time.Second * 6))
-	BeginBlocker(ctx, abci.RequestBeginBlock{Header: header}, keeper)
+	BeginBlocker(ctx, abci.RequestBeginBlock{}, keeper)
 	EndBlocker(ctx, keeper)
 	_, found = keeper.GetUnbondingDelegation(ctx, sdk.AccAddress(validatorAddr), validatorAddr)
 	require.True(t, found, "should not have unbonded")
 
 	// can complete unbonding at time 7 seconds later
 	ctx = ctx.WithBlockTime(origHeader.Time.Add(time.Second * 7))
-	BeginBlocker(ctx, abci.RequestBeginBlock{Header: header}, keeper)
+	BeginBlocker(ctx, abci.RequestBeginBlock{}, keeper)
 	EndBlocker(ctx, keeper)
 	_, found = keeper.GetUnbondingDelegation(ctx, sdk.AccAddress(validatorAddr), validatorAddr)
 	require.False(t, found, "should have unbonded")
@@ -851,8 +846,7 @@ func TestUnbondingFromUnbondingValidator(t *testing.T) {
 	ctx = ctx.WithBlockTime(ctx.BlockHeader().Time.Add(keeper.UnbondingTime(ctx)))
 
 	// Run the EndBlocker
-	header := abci.Header{Entropy: testBlockEntropy()}
-	BeginBlocker(ctx, abci.RequestBeginBlock{Header: header}, keeper)
+	BeginBlocker(ctx, abci.RequestBeginBlock{}, keeper)
 	EndBlocker(ctx, keeper)
 
 	// Check to make sure that the unbonding delegation is no longer in state
@@ -906,22 +900,21 @@ func TestRedelegationPeriod(t *testing.T) {
 	origHeader := ctx.BlockHeader()
 
 	// cannot complete redelegation at same time
-	header := abci.Header{Entropy: testBlockEntropy()}
-	BeginBlocker(ctx, abci.RequestBeginBlock{Header: header}, keeper)
+	BeginBlocker(ctx, abci.RequestBeginBlock{}, keeper)
 	EndBlocker(ctx, keeper)
 	_, found := keeper.GetRedelegation(ctx, sdk.AccAddress(validatorAddr), validatorAddr, validatorAddr2)
 	require.True(t, found, "should not have unbonded")
 
 	// cannot complete redelegation at time 6 seconds later
 	ctx = ctx.WithBlockTime(origHeader.Time.Add(time.Second * 6))
-	BeginBlocker(ctx, abci.RequestBeginBlock{Header: header}, keeper)
+	BeginBlocker(ctx, abci.RequestBeginBlock{}, keeper)
 	EndBlocker(ctx, keeper)
 	_, found = keeper.GetRedelegation(ctx, sdk.AccAddress(validatorAddr), validatorAddr, validatorAddr2)
 	require.True(t, found, "should not have unbonded")
 
 	// can complete redelegation at time 7 seconds later
 	ctx = ctx.WithBlockTime(origHeader.Time.Add(time.Second * 7))
-	BeginBlocker(ctx, abci.RequestBeginBlock{Header: header}, keeper)
+	BeginBlocker(ctx, abci.RequestBeginBlock{}, keeper)
 	EndBlocker(ctx, keeper)
 	_, found = keeper.GetRedelegation(ctx, sdk.AccAddress(validatorAddr), validatorAddr, validatorAddr2)
 	require.False(t, found, "should have unbonded")
@@ -969,8 +962,7 @@ func TestTransitiveRedelegation(t *testing.T) {
 	ctx = ctx.WithBlockTime(blockTime.Add(params.UnbondingTime))
 
 	// complete first redelegation
-	header := abci.Header{Entropy: testBlockEntropy()}
-	BeginBlocker(ctx, abci.RequestBeginBlock{Header: header}, keeper)
+	BeginBlocker(ctx, abci.RequestBeginBlock{}, keeper)
 	EndBlocker(ctx, keeper)
 
 	// now should be able to redelegate from the second validator to the third
@@ -1002,8 +994,7 @@ func TestMultipleRedelegationAtSameTime(t *testing.T) {
 	require.NotNil(t, res)
 
 	// end block to bond them
-	header := abci.Header{Entropy: testBlockEntropy()}
-	BeginBlocker(ctx, abci.RequestBeginBlock{Header: header}, keeper)
+	BeginBlocker(ctx, abci.RequestBeginBlock{}, keeper)
 	EndBlocker(ctx, keeper)
 
 	// begin a redelegate
@@ -1031,7 +1022,7 @@ func TestMultipleRedelegationAtSameTime(t *testing.T) {
 
 	// move forward in time, should complete both redelegations
 	ctx = ctx.WithBlockTime(ctx.BlockHeader().Time.Add(1 * time.Second))
-	BeginBlocker(ctx, abci.RequestBeginBlock{Header: header}, keeper)
+	BeginBlocker(ctx, abci.RequestBeginBlock{}, keeper)
 	EndBlocker(ctx, keeper)
 
 	rd, found = keeper.GetRedelegation(ctx, selfDelAddr, valAddr, valAddr2)
@@ -1061,8 +1052,7 @@ func TestMultipleRedelegationAtUniqueTimes(t *testing.T) {
 	require.NotNil(t, res)
 
 	// end block to bond them
-	header := abci.Header{Entropy: testBlockEntropy()}
-	BeginBlocker(ctx, abci.RequestBeginBlock{Header: header}, keeper)
+	BeginBlocker(ctx, abci.RequestBeginBlock{}, keeper)
 	EndBlocker(ctx, keeper)
 
 	// begin a redelegate
@@ -1086,7 +1076,7 @@ func TestMultipleRedelegationAtUniqueTimes(t *testing.T) {
 
 	// move forward in time, should complete the first redelegation, but not the second
 	ctx = ctx.WithBlockTime(ctx.BlockHeader().Time.Add(5 * time.Second))
-	BeginBlocker(ctx, abci.RequestBeginBlock{Header: header}, keeper)
+	BeginBlocker(ctx, abci.RequestBeginBlock{}, keeper)
 	EndBlocker(ctx, keeper)
 	rd, found = keeper.GetRedelegation(ctx, selfDelAddr, valAddr, valAddr2)
 	require.True(t, found)
@@ -1094,7 +1084,7 @@ func TestMultipleRedelegationAtUniqueTimes(t *testing.T) {
 
 	// move forward in time, should complete the second redelegation
 	ctx = ctx.WithBlockTime(ctx.BlockHeader().Time.Add(5 * time.Second))
-	BeginBlocker(ctx, abci.RequestBeginBlock{Header: header}, keeper)
+	BeginBlocker(ctx, abci.RequestBeginBlock{}, keeper)
 	EndBlocker(ctx, keeper)
 	rd, found = keeper.GetRedelegation(ctx, selfDelAddr, valAddr, valAddr2)
 	require.False(t, found)
@@ -1117,8 +1107,7 @@ func TestMultipleUnbondingDelegationAtSameTime(t *testing.T) {
 	require.NotNil(t, res)
 
 	// end block to bond
-	header := abci.Header{Entropy: testBlockEntropy()}
-	BeginBlocker(ctx, abci.RequestBeginBlock{Header: header}, keeper)
+	BeginBlocker(ctx, abci.RequestBeginBlock{}, keeper)
 	EndBlocker(ctx, keeper)
 
 	// begin an unbonding delegation
@@ -1146,7 +1135,7 @@ func TestMultipleUnbondingDelegationAtSameTime(t *testing.T) {
 
 	// move forwaubd in time, should complete both ubds
 	ctx = ctx.WithBlockTime(ctx.BlockHeader().Time.Add(1 * time.Second))
-	BeginBlocker(ctx, abci.RequestBeginBlock{Header: header}, keeper)
+	BeginBlocker(ctx, abci.RequestBeginBlock{}, keeper)
 	EndBlocker(ctx, keeper)
 
 	ubd, found = keeper.GetUnbondingDelegation(ctx, selfDelAddr, valAddr)
@@ -1170,8 +1159,7 @@ func TestMultipleUnbondingDelegationAtUniqueTimes(t *testing.T) {
 	require.NotNil(t, res)
 
 	// end block to bond
-	header := abci.Header{Entropy: testBlockEntropy()}
-	BeginBlocker(ctx, abci.RequestBeginBlock{Header: header}, keeper)
+	BeginBlocker(ctx, abci.RequestBeginBlock{}, keeper)
 	EndBlocker(ctx, keeper)
 
 	// begin an unbonding delegation
@@ -1200,7 +1188,7 @@ func TestMultipleUnbondingDelegationAtUniqueTimes(t *testing.T) {
 
 	// move forwaubd in time, should complete the first redelegation, but not the second
 	ctx = ctx.WithBlockTime(ctx.BlockHeader().Time.Add(5 * time.Second))
-	BeginBlocker(ctx, abci.RequestBeginBlock{Header: header}, keeper)
+	BeginBlocker(ctx, abci.RequestBeginBlock{}, keeper)
 	EndBlocker(ctx, keeper)
 	ubd, found = keeper.GetUnbondingDelegation(ctx, selfDelAddr, valAddr)
 	require.True(t, found)
@@ -1208,7 +1196,7 @@ func TestMultipleUnbondingDelegationAtUniqueTimes(t *testing.T) {
 
 	// move forwaubd in time, should complete the second redelegation
 	ctx = ctx.WithBlockTime(ctx.BlockHeader().Time.Add(5 * time.Second))
-	BeginBlocker(ctx, abci.RequestBeginBlock{Header: header}, keeper)
+	BeginBlocker(ctx, abci.RequestBeginBlock{}, keeper)
 	EndBlocker(ctx, keeper)
 	ubd, found = keeper.GetUnbondingDelegation(ctx, selfDelAddr, valAddr)
 	require.False(t, found)
@@ -1373,8 +1361,7 @@ func TestBondUnbondRedelegateSlashTwice(t *testing.T) {
 	require.Equal(t, sdk.NewDecFromInt(redAmt.Amount.QuoRaw(2)), delegation.Shares)
 
 	// end blocker
-	header := abci.Header{Entropy: testBlockEntropy()}
-	BeginBlocker(ctx, abci.RequestBeginBlock{Header: header}, keeper)
+	BeginBlocker(ctx, abci.RequestBeginBlock{}, keeper)
 	EndBlocker(ctx, keeper)
 
 	// validator power should have been reduced to zero
