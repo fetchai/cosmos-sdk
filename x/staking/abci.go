@@ -16,8 +16,8 @@ func BeginBlocker(ctx sdk.Context, req abci.RequestBeginBlock, k keeper.Keeper) 
 
 // Called every block, update validator set
 func EndBlocker(ctx sdk.Context, k keeper.Keeper) ([]abci.ValidatorUpdate, []abci.ValidatorUpdate) {
-	// If dkg and validator updates are triggered at the same time then dkg validator updates 
+	// If dkg and validator updates are triggered at the same time then dkg validator updates
 	// must be computed first
-	dkgUpdates :=  k.DKGValidatorUpdates(ctx)
+	dkgUpdates := k.DKGValidatorUpdates(ctx)
 	return k.ValidatorUpdates(ctx), dkgUpdates
 }
