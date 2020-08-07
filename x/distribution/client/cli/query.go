@@ -209,7 +209,7 @@ $ %s query distribution slashes fetchvaloper1gghjut3ccd8ay0zduzj64hwre2fxs9ldgd4
 				return err
 			}
 
-			return clientCtx.PrintOutput(res.GetSlashes())
+			return clientCtx.PrintOutput(res)
 		},
 	}
 

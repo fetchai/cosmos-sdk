@@ -179,7 +179,7 @@ $ %s query staking unbonding-delegations-from fetchvaloper1gghjut3ccd8ay0zduzj64
 				return err
 			}
 
-			return clientCtx.PrintOutput(res.UnbondingResponses)
+			return clientCtx.PrintOutput(res)
 		},
 	}
 
@@ -234,7 +234,7 @@ $ %s query staking redelegations-from fetchvaloper1gghjut3ccd8ay0zduzj64hwre2fxs
 				return err
 			}
 
-			return clientCtx.PrintOutput(res.RedelegationResponses)
+			return clientCtx.PrintOutput(res)
 		},
 	}
 
@@ -342,7 +342,7 @@ $ %s query staking delegations cosmos1gghjut3ccd8ay0zduzj64hwre2fxs9ld75ru9p
 				return err
 			}
 
-			return clientCtx.PrintOutput(res.DelegationResponses)
+			return clientCtx.PrintOutput(res)
 		},
 	}
 
@@ -397,7 +397,7 @@ $ %s query staking delegations-to fetchvaloper1gghjut3ccd8ay0zduzj64hwre2fxs9ldg
 				return err
 			}
 
-			return clientCtx.PrintOutput(res.DelegationResponses)
+			return clientCtx.PrintOutput(res)
 		},
 	}
 
@@ -506,7 +506,7 @@ $ %s query staking unbonding-delegations cosmos1gghjut3ccd8ay0zduzj64hwre2fxs9ld
 				return err
 			}
 
-			return clientCtx.PrintOutput(res.UnbondingResponses)
+			return clientCtx.PrintOutput(res)
 		},
 	}
 
@@ -621,7 +621,7 @@ $ %s query staking redelegation fetch1gghjut3ccd8ay0zduzj64hwre2fxs9lddf2c8k
 				return err
 			}
 
-			return clientCtx.PrintOutput(res.RedelegationResponses)
+			return clientCtx.PrintOutput(res)
 		},
 	}
 
