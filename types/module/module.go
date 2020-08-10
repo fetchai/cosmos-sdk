@@ -315,8 +315,8 @@ func (m *Manager) EndBlock(ctx sdk.Context, req abci.RequestEndBlock) abci.Respo
 
 		// use these validator updates if provided, the module manager assumes
 		// only one module will update the validator set and dkg validator set
-		if len(moduleValUpdates) > 0 {
-			if len(validatorUpdates) > 0 {
+		if len(moduleValUpdates) > 0 || len(moduleDKGValUpdates) > 0 {
+			if len(validatorUpdates) > 0 || len(dkgValidatorUpdates) > 0 {
 				panic("validator EndBlock updates already set by a previous module")
 			}
 
@@ -326,8 +326,8 @@ func (m *Manager) EndBlock(ctx sdk.Context, req abci.RequestEndBlock) abci.Respo
 	}
 
 	return abci.ResponseEndBlock{
-		ValidatorUpdates: validatorUpdates,
+		ValidatorUpdates:    validatorUpdates,
 		DkgValidatorUpdates: dkgValidatorUpdates,
-		Events:           ctx.EventManager().ABCIEvents(),
+		Events:              ctx.EventManager().ABCIEvents(),
 	}
 }
