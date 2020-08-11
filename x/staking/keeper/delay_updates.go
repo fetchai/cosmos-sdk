@@ -27,7 +27,8 @@ func (k Keeper) CheckValidatorUpdates(ctx sdk.Context, header abci.Header) {
 	}
 }
 
-// Returns dkg validator updates to EndBlock at block height set by BeginBlocker
+// DKGValidatorUpdates returns dkg validator updates to EndBlock at block height set by BeginBlock and
+// saves them to store for retrieval by ValidatorUpdates
 func (k Keeper) DKGValidatorUpdates(ctx sdk.Context) []abci.ValidatorUpdate {
 	store := ctx.KVStore(k.storeKey)
 	if len(store.Get(computeDKGValidatorUpdateKey)) == 0 {
@@ -39,6 +40,8 @@ func (k Keeper) DKGValidatorUpdates(ctx sdk.Context) []abci.ValidatorUpdate {
 	return updates
 }
 
+// ValidatorUpdates retrieve last saved updates from store when non-trivial update
+// is triggered by BeginBlock,
 func (k Keeper) ValidatorUpdates(ctx sdk.Context) []abci.ValidatorUpdate {
 	store := ctx.KVStore(k.storeKey)
 	if len(store.Get(computeValidatorUpdateKey)) == 0 {

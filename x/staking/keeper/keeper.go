@@ -90,7 +90,7 @@ func (k Keeper) SetLastTotalPower(ctx sdk.Context, power sdk.Int) {
 	store.Set(types.LastTotalPowerKey, b)
 }
 
-// Allow turning off of validator updatte delays in tests
+// Allow turning off of validator update delays in tests
 func (k *Keeper) SetDelayValidatorUpdates(delay bool) {
 	k.delayValidatorUpdates = delay
 }
