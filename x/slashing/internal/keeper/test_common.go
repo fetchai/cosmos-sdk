@@ -103,6 +103,7 @@ func CreateTestInput(t *testing.T, defaults types.Params) (sdk.Context, bank.Kee
 	supplyKeeper.SetSupply(ctx, supply.NewSupply(totalSupply))
 
 	sk := staking.NewKeeper(cdc, keyStaking, supplyKeeper, paramsKeeper.Subspace(staking.DefaultParamspace))
+	sk.SetDelayValidatorUpdates(false)
 	genesis := staking.DefaultGenesisState()
 
 	// set module accounts
@@ -155,11 +156,4 @@ func NewTestMsgCreateValidator(address sdk.ValAddress, pubKey crypto.PubKey, amt
 func NewTestMsgDelegate(delAddr sdk.AccAddress, valAddr sdk.ValAddress, delAmount sdk.Int) staking.MsgDelegate {
 	amount := sdk.NewCoin(sdk.DefaultBondDenom, delAmount)
 	return staking.NewMsgDelegate(delAddr, valAddr, amount)
-}
-
-func testBlockEntropy() abci.BlockEntropy {
-	return abci.BlockEntropy{
-		Round:      1,
-		AeonLength: 3,
-	}
 }

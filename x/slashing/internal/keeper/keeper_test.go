@@ -30,8 +30,7 @@ func TestHandleNewValidator(t *testing.T) {
 	require.NoError(t, err)
 	require.NotNil(t, res)
 
-	header := abci.Header{Entropy: testBlockEntropy()}
-	staking.BeginBlocker(ctx, abci.RequestBeginBlock{Header: header}, sk)
+	staking.BeginBlocker(ctx, abci.RequestBeginBlock{}, sk)
 	staking.EndBlocker(ctx, sk)
 
 	require.Equal(
@@ -74,8 +73,7 @@ func TestHandleAlreadyJailed(t *testing.T) {
 	require.NoError(t, err)
 	require.NotNil(t, res)
 
-	header := abci.Header{Entropy: testBlockEntropy()}
-	staking.BeginBlocker(ctx, abci.RequestBeginBlock{Header: header}, sk)
+	staking.BeginBlocker(ctx, abci.RequestBeginBlock{}, sk)
 	staking.EndBlocker(ctx, sk)
 
 	// 1000 first blocks OK
@@ -92,7 +90,7 @@ func TestHandleAlreadyJailed(t *testing.T) {
 	}
 
 	// end block
-	staking.BeginBlocker(ctx, abci.RequestBeginBlock{Header: header}, sk)
+	staking.BeginBlocker(ctx, abci.RequestBeginBlock{}, sk)
 	staking.EndBlocker(ctx, sk)
 
 	// validator should have been jailed and slashed
@@ -133,8 +131,7 @@ func TestValidatorDippingInAndOut(t *testing.T) {
 	require.NoError(t, err)
 	require.NotNil(t, res)
 
-	header := abci.Header{Entropy: testBlockEntropy()}
-	staking.BeginBlocker(ctx, abci.RequestBeginBlock{Header: header}, sk)
+	staking.BeginBlocker(ctx, abci.RequestBeginBlock{}, sk)
 	staking.EndBlocker(ctx, sk)
 
 	// 100 first blocks OK
@@ -150,7 +147,7 @@ func TestValidatorDippingInAndOut(t *testing.T) {
 	require.NoError(t, err)
 	require.NotNil(t, res)
 
-	staking.BeginBlocker(ctx, abci.RequestBeginBlock{Header: header}, sk)
+	staking.BeginBlocker(ctx, abci.RequestBeginBlock{}, sk)
 	validatorUpdates, _ := staking.EndBlocker(ctx, sk)
 	require.Equal(t, 2, len(validatorUpdates))
 	validator, _ := sk.GetValidator(ctx, addr)
@@ -166,7 +163,7 @@ func TestValidatorDippingInAndOut(t *testing.T) {
 	require.NoError(t, err)
 	require.NotNil(t, res)
 
-	staking.BeginBlocker(ctx, abci.RequestBeginBlock{Header: header}, sk)
+	staking.BeginBlocker(ctx, abci.RequestBeginBlock{}, sk)
 	validatorUpdates, _ = staking.EndBlocker(ctx, sk)
 	require.Equal(t, 2, len(validatorUpdates))
 	validator, _ = sk.GetValidator(ctx, addr)
@@ -189,7 +186,7 @@ func TestValidatorDippingInAndOut(t *testing.T) {
 	}
 
 	// should now be jailed & kicked
-	staking.BeginBlocker(ctx, abci.RequestBeginBlock{Header: header}, sk)
+	staking.BeginBlocker(ctx, abci.RequestBeginBlock{}, sk)
 	staking.EndBlocker(ctx, sk)
 	validator, _ = sk.GetValidator(ctx, addr)
 	require.Equal(t, sdk.Unbonding, validator.Status)
@@ -215,7 +212,7 @@ func TestValidatorDippingInAndOut(t *testing.T) {
 	height++
 
 	// validator should not be kicked since we reset counter/array when it was jailed
-	staking.BeginBlocker(ctx, abci.RequestBeginBlock{Header: header}, sk)
+	staking.BeginBlocker(ctx, abci.RequestBeginBlock{}, sk)
 	staking.EndBlocker(ctx, sk)
 	validator, _ = sk.GetValidator(ctx, addr)
 	require.Equal(t, sdk.Bonded, validator.Status)
@@ -228,7 +225,7 @@ func TestValidatorDippingInAndOut(t *testing.T) {
 	}
 
 	// validator should now be jailed & kicked
-	staking.BeginBlocker(ctx, abci.RequestBeginBlock{Header: header}, sk)
+	staking.BeginBlocker(ctx, abci.RequestBeginBlock{}, sk)
 	staking.EndBlocker(ctx, sk)
 	validator, _ = sk.GetValidator(ctx, addr)
 	require.Equal(t, sdk.Unbonding, validator.Status)

@@ -543,8 +543,7 @@ func TestCalculateRewardsMultiDelegatorMultWithdraw(t *testing.T) {
 	require.NotNil(t, res)
 
 	// end block to bond validator
-	header := abci.Header{Entropy: abci.BlockEntropy{Round: 1, AeonLength: 3}}
-	staking.BeginBlocker(ctx, abci.RequestBeginBlock{Header: header}, sk)
+	staking.BeginBlocker(ctx, abci.RequestBeginBlock{}, sk)
 	staking.EndBlocker(ctx, sk)
 
 	// next block
@@ -574,7 +573,7 @@ func TestCalculateRewardsMultiDelegatorMultWithdraw(t *testing.T) {
 	del2 := sk.Delegation(ctx, sdk.AccAddress(valOpAddr2), valOpAddr1)
 
 	// end block
-	staking.BeginBlocker(ctx, abci.RequestBeginBlock{Header: header}, sk)
+	staking.BeginBlocker(ctx, abci.RequestBeginBlock{}, sk)
 	staking.EndBlocker(ctx, sk)
 
 	// next block

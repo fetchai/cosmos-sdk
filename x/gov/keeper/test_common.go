@@ -146,6 +146,7 @@ func createTestInput(t *testing.T, isCheckTx bool, initPower int64) (sdk.Context
 
 	sk := staking.NewKeeper(cdc, keyStaking, supplyKeeper, pk.Subspace(staking.DefaultParamspace))
 	sk.SetParams(ctx, staking.DefaultParams())
+	sk.SetDelayValidatorUpdates(false)
 
 	rtr := types.NewRouter().
 		AddRoute(types.RouterKey, types.ProposalHandler)
@@ -201,14 +202,6 @@ func createValidators(ctx sdk.Context, sk staking.Keeper, powers []int64) {
 	_, _ = sk.Delegate(ctx, valAccAddr2, sdk.TokensFromConsensusPower(powers[1]), sdk.Unbonded, val2, true)
 	_, _ = sk.Delegate(ctx, valAccAddr3, sdk.TokensFromConsensusPower(powers[2]), sdk.Unbonded, val3, true)
 
-	header := abci.Header{Entropy: testBlockEntropy()}
-	staking.BeginBlocker(ctx, abci.RequestBeginBlock{Header: header}, sk)
+	staking.BeginBlocker(ctx, abci.RequestBeginBlock{}, sk)
 	staking.EndBlocker(ctx, sk)
-}
-
-func testBlockEntropy() abci.BlockEntropy {
-	return abci.BlockEntropy{
-		Round:      1,
-		AeonLength: 3,
-	}
 }

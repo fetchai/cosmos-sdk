@@ -56,6 +56,7 @@ func getMockApp(t *testing.T) (*mock.App, staking.Keeper, Keeper) {
 	}
 	supplyKeeper := supply.NewKeeper(mapp.Cdc, keySupply, mapp.AccountKeeper, bankKeeper, maccPerms)
 	stakingKeeper := staking.NewKeeper(mapp.Cdc, keyStaking, supplyKeeper, mapp.ParamsKeeper.Subspace(staking.DefaultParamspace))
+	stakingKeeper.SetDelayValidatorUpdates(false)
 	keeper := NewKeeper(mapp.Cdc, keySlashing, stakingKeeper, mapp.ParamsKeeper.Subspace(DefaultParamspace))
 	mapp.Router().AddRoute(staking.RouterKey, staking.NewHandler(stakingKeeper))
 	mapp.Router().AddRoute(RouterKey, NewHandler(keeper))
@@ -144,11 +145,11 @@ func TestSlashingMsgs(t *testing.T) {
 		sdk.ValAddress(addr1), priv1.PubKey(), bondCoin, description, commission, sdk.OneInt(),
 	)
 
-	header := abci.Header{Height: mapp.LastBlockHeight() + 1, Entropy: testBlockEntropy()}
+	header := abci.Header{Height: mapp.LastBlockHeight() + 1}
 	mock.SignCheckDeliver(t, mapp.Cdc, mapp.BaseApp, header, []sdk.Msg{createValidatorMsg}, []uint64{0}, []uint64{0}, true, true, priv1)
 	mock.CheckBalance(t, mapp, addr1, sdk.Coins{genCoin.Sub(bondCoin)})
 
-	header = abci.Header{Height: mapp.LastBlockHeight() + 1, Entropy: testBlockEntropy()}
+	header = abci.Header{Height: mapp.LastBlockHeight() + 1}
 	mapp.BeginBlock(abci.RequestBeginBlock{Header: header})
 
 	validator := checkValidator(t, mapp, stakingKeeper, addr1, true)
@@ -166,11 +167,4 @@ func TestSlashingMsgs(t *testing.T) {
 	require.Error(t, err)
 	require.Nil(t, res)
 	require.True(t, errors.Is(ErrValidatorNotJailed, err))
-}
-
-func testBlockEntropy() abci.BlockEntropy {
-	return abci.BlockEntropy{
-		Round:      1,
-		AeonLength: 3,
-	}
 }
