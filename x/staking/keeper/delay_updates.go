@@ -12,7 +12,8 @@ var (
 	validatorUpdatesKey          = []byte("validatorUpdatesKey")
 )
 
-// Check whether entropy generation round corresponds to validator changeover height
+// CheckValidatorUpdates determines whether block height is sufficiently close to the next aeon start
+// to trigger dkg and consensus validator changes
 func (k Keeper) CheckValidatorUpdates(ctx sdk.Context, header abci.Header) {
 	// One blocks before a new aeon start need to compute validator updates for next dkg committee.
 	// Two blocks before a new aeon start need to update consensus committee to those which ran dkg
