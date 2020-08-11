@@ -259,7 +259,7 @@ func TestProposalPassedEndblocker(t *testing.T) {
 	valAddr := sdk.ValAddress(input.addrs[0])
 
 	createValidators(t, stakingHandler, ctx, []sdk.ValAddress{valAddr}, []int64{10})
-	staking.EndBlocker(ctx, &input.sk)
+	staking.EndBlocker(ctx, input.sk)
 
 	macc := input.keeper.GetGovernanceAccount(ctx)
 	require.NotNil(t, macc)
@@ -311,7 +311,7 @@ func TestEndBlockerProposalHandlerFailed(t *testing.T) {
 	valAddr := sdk.ValAddress(input.addrs[0])
 
 	createValidators(t, stakingHandler, ctx, []sdk.ValAddress{valAddr}, []int64{10})
-	staking.EndBlocker(ctx, &input.sk)
+	staking.EndBlocker(ctx, input.sk)
 
 	// Create a proposal where the handler will pass for the test proposal
 	// because the value of contextKeyBadProposal is true.

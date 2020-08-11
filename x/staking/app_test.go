@@ -45,8 +45,8 @@ func getMockApp(t *testing.T) (*mock.App, Keeper) {
 	keeper := NewKeeper(mApp.Cdc, keyStaking, supplyKeeper, mApp.ParamsKeeper.Subspace(DefaultParamspace))
 
 	mApp.Router().AddRoute(RouterKey, NewHandler(keeper))
-	mApp.SetBeginBlocker(getBeginBlocker(&keeper))
-	mApp.SetEndBlocker(getEndBlocker(&keeper))
+	mApp.SetBeginBlocker(getBeginBlocker(keeper))
+	mApp.SetEndBlocker(getEndBlocker(keeper))
 	mApp.SetInitChainer(getInitChainer(mApp, keeper, mApp.AccountKeeper, supplyKeeper,
 		[]supplyexported.ModuleAccountI{feeCollector, notBondedPool, bondPool}))
 
@@ -55,7 +55,7 @@ func getMockApp(t *testing.T) (*mock.App, Keeper) {
 }
 
 // getBeginBlocker returns a staking beginblocker.
-func getBeginBlocker(keeper *Keeper) sdk.BeginBlocker {
+func getBeginBlocker(keeper Keeper) sdk.BeginBlocker {
 	return func(ctx sdk.Context, req abci.RequestBeginBlock) abci.ResponseBeginBlock {
 		BeginBlocker(ctx, req, keeper)
 		return abci.ResponseBeginBlock{}
@@ -63,7 +63,7 @@ func getBeginBlocker(keeper *Keeper) sdk.BeginBlocker {
 }
 
 // getEndBlocker returns a staking endblocker.
-func getEndBlocker(keeper *Keeper) sdk.EndBlocker {
+func getEndBlocker(keeper Keeper) sdk.EndBlocker {
 	return func(ctx sdk.Context, req abci.RequestEndBlock) abci.ResponseEndBlock {
 		validatorUpdates, dkgValidatorUpdates := EndBlocker(ctx, keeper)
 
