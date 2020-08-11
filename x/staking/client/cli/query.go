@@ -80,7 +80,7 @@ $ %s query staking validator fetchvaloper1gghjut3ccd8ay0zduzj64hwre2fxs9ldgd4m53
 				return err
 			}
 
-			return clientCtx.PrintOutput(res.Validator)
+			return clientCtx.PrintOutput(&res.Validator)
 		},
 	}
 
@@ -126,7 +126,7 @@ $ %s query staking validators
 				validators = append(validators, validator)
 			}
 
-			return clientCtx.PrintOutput(validators)
+			return clientCtx.PrintOutputLegacy(validators)
 		},
 	}
 
@@ -452,7 +452,7 @@ $ %s query staking unbonding-delegation fetch1gghjut3ccd8ay0zduzj64hwre2fxs9lddf
 				return err
 			}
 
-			return clientCtx.PrintOutput(res.Unbond)
+			return clientCtx.PrintOutput(&res.Unbond)
 		},
 	}
 
@@ -567,7 +567,7 @@ $ %s query staking redelegation fetch1gghjut3ccd8ay0zduzj64hwre2fxs9lddf2c8k fet
 				return err
 			}
 
-			return clientCtx.PrintOutput(res.RedelegationResponses)
+			return clientCtx.PrintOutput(res)
 		},
 	}
 
@@ -705,7 +705,7 @@ $ %s query staking pool
 				return err
 			}
 
-			return clientCtx.PrintOutput(res.Pool)
+			return clientCtx.PrintOutput(&res.Pool)
 		},
 	}
 
@@ -743,7 +743,7 @@ $ %s query staking params
 				return err
 			}
 
-			return clientCtx.PrintOutput(res.Params)
+			return clientCtx.PrintOutput(&res.Params)
 		},
 	}
 

@@ -56,7 +56,7 @@ func GetCmdQueryParams() *cobra.Command {
 				return err
 			}
 
-			return clientCtx.PrintOutput(res.GetParams())
+			return clientCtx.PrintOutput(&res.Params)
 		},
 	}
 
@@ -101,7 +101,7 @@ $ %s query distribution validator-outstanding-rewards fetchvaloper1lwjmdnks33xwn
 				return err
 			}
 
-			return clientCtx.PrintOutput(res.GetRewards())
+			return clientCtx.PrintOutput(&res.Rewards)
 		},
 	}
 
@@ -145,7 +145,7 @@ $ %s query distribution commission fetchvaloper1gghjut3ccd8ay0zduzj64hwre2fxs9ld
 				return err
 			}
 
-			return clientCtx.PrintOutput(res.GetCommission())
+			return clientCtx.PrintOutput(&res.Commission)
 		},
 	}
 
@@ -262,7 +262,7 @@ $ %s query distribution rewards fetch1gghjut3ccd8ay0zduzj64hwre2fxs9lddf2c8k fet
 					return err
 				}
 
-				return clientCtx.PrintOutput(res.GetRewards())
+				return clientCtx.PrintOutput(res)
 			}
 
 			res, err := queryClient.DelegationTotalRewards(
@@ -309,7 +309,7 @@ $ %s query distribution community-pool
 				return err
 			}
 
-			return clientCtx.PrintOutput(res.GetPool())
+			return clientCtx.PrintOutput(res)
 		},
 	}
 
