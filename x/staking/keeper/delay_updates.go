@@ -33,6 +33,9 @@ func (k Keeper) CheckValidatorUpdates(ctx sdk.Context, header abci.Header) {
 func (k Keeper) DKGValidatorUpdates(ctx sdk.Context) []abci.ValidatorUpdate {
 	store := ctx.KVStore(k.storeKey)
 	if len(store.Get(computeDKGValidatorUpdateKey)) == 0 {
+		// Check mature items in queues every block, regardless of whether return validator updates
+		// or not, in order for items to be removed as soon as possible
+		k.RemoveMatureQueueItems(ctx)
 		return []abci.ValidatorUpdate{}
 	}
 	store.Set(computeDKGValidatorUpdateKey, []byte{})

@@ -25,50 +25,7 @@ func (k Keeper) BlockValidatorUpdates(ctx sdk.Context) []abci.ValidatorUpdate {
 	// UnbondAllMatureValidatorQueue).
 	validatorUpdates := k.ApplyAndReturnValidatorSetUpdates(ctx)
 
-	// Unbond all mature validators from the unbonding queue.
-	k.UnbondAllMatureValidatorQueue(ctx)
-
-	// Remove all mature unbonding delegations from the ubd queue.
-	matureUnbonds := k.DequeueAllMatureUBDQueue(ctx, ctx.BlockHeader().Time)
-	for _, dvPair := range matureUnbonds {
-		balances, err := k.CompleteUnbondingWithAmount(ctx, dvPair.DelegatorAddress, dvPair.ValidatorAddress)
-		if err != nil {
-			continue
-		}
-
-		ctx.EventManager().EmitEvent(
-			sdk.NewEvent(
-				types.EventTypeCompleteUnbonding,
-				sdk.NewAttribute(sdk.AttributeKeyAmount, balances.String()),
-				sdk.NewAttribute(types.AttributeKeyValidator, dvPair.ValidatorAddress.String()),
-				sdk.NewAttribute(types.AttributeKeyDelegator, dvPair.DelegatorAddress.String()),
-			),
-		)
-	}
-
-	// Remove all mature redelegations from the red queue.
-	matureRedelegations := k.DequeueAllMatureRedelegationQueue(ctx, ctx.BlockHeader().Time)
-	for _, dvvTriplet := range matureRedelegations {
-		balances, err := k.CompleteRedelegationWithAmount(
-			ctx,
-			dvvTriplet.DelegatorAddress,
-			dvvTriplet.ValidatorSrcAddress,
-			dvvTriplet.ValidatorDstAddress,
-		)
-		if err != nil {
-			continue
-		}
-
-		ctx.EventManager().EmitEvent(
-			sdk.NewEvent(
-				types.EventTypeCompleteRedelegation,
-				sdk.NewAttribute(sdk.AttributeKeyAmount, balances.String()),
-				sdk.NewAttribute(types.AttributeKeyDelegator, dvvTriplet.DelegatorAddress.String()),
-				sdk.NewAttribute(types.AttributeKeySrcValidator, dvvTriplet.ValidatorSrcAddress.String()),
-				sdk.NewAttribute(types.AttributeKeyDstValidator, dvvTriplet.ValidatorDstAddress.String()),
-			),
-		)
-	}
+	k.RemoveMatureQueueItems(ctx)
 
 	return validatorUpdates
 }
@@ -183,6 +140,55 @@ func (k Keeper) ApplyAndReturnValidatorSetUpdates(ctx sdk.Context) (updates []ab
 	}
 
 	return updates
+}
+
+// RemoveMatureQueueItems checks validator, unbonding and redelegation queues for mature items
+// and removes them. Should be called at every EndBlocker
+func (k Keeper) RemoveMatureQueueItems(ctx sdk.Context) {
+	// Unbond all mature validators from the unbonding queue.
+	k.UnbondAllMatureValidatorQueue(ctx)
+
+	// Remove all mature unbonding delegations from the ubd queue.
+	matureUnbonds := k.DequeueAllMatureUBDQueue(ctx, ctx.BlockHeader().Time)
+	for _, dvPair := range matureUnbonds {
+		balances, err := k.CompleteUnbondingWithAmount(ctx, dvPair.DelegatorAddress, dvPair.ValidatorAddress)
+		if err != nil {
+			continue
+		}
+
+		ctx.EventManager().EmitEvent(
+			sdk.NewEvent(
+				types.EventTypeCompleteUnbonding,
+				sdk.NewAttribute(sdk.AttributeKeyAmount, balances.String()),
+				sdk.NewAttribute(types.AttributeKeyValidator, dvPair.ValidatorAddress.String()),
+				sdk.NewAttribute(types.AttributeKeyDelegator, dvPair.DelegatorAddress.String()),
+			),
+		)
+	}
+
+	// Remove all mature redelegations from the red queue.
+	matureRedelegations := k.DequeueAllMatureRedelegationQueue(ctx, ctx.BlockHeader().Time)
+	for _, dvvTriplet := range matureRedelegations {
+		balances, err := k.CompleteRedelegationWithAmount(
+			ctx,
+			dvvTriplet.DelegatorAddress,
+			dvvTriplet.ValidatorSrcAddress,
+			dvvTriplet.ValidatorDstAddress,
+		)
+		if err != nil {
+			continue
+		}
+
+		ctx.EventManager().EmitEvent(
+			sdk.NewEvent(
+				types.EventTypeCompleteRedelegation,
+				sdk.NewAttribute(sdk.AttributeKeyAmount, balances.String()),
+				sdk.NewAttribute(types.AttributeKeyDelegator, dvvTriplet.DelegatorAddress.String()),
+				sdk.NewAttribute(types.AttributeKeySrcValidator, dvvTriplet.ValidatorSrcAddress.String()),
+				sdk.NewAttribute(types.AttributeKeyDstValidator, dvvTriplet.ValidatorDstAddress.String()),
+			),
+		)
+	}
 }
 
 // Validator state transitions
