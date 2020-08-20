@@ -246,6 +246,7 @@ func ValidatorByPowerIndexExists(ctx sdk.Context, keeper Keeper, power []byte) b
 // update validator for testing
 func TestingUpdateValidator(keeper Keeper, ctx sdk.Context, validator types.Validator, apply bool) types.Validator {
 	keeper.SetValidator(ctx, validator)
+	keeper.SetValidatorByConsAddr(ctx, validator)
 
 	// Remove any existing power key for validator.
 	store := ctx.KVStore(keeper.storeKey)
@@ -266,7 +267,8 @@ func TestingUpdateValidator(keeper Keeper, ctx sdk.Context, validator types.Vali
 
 	keeper.SetValidatorByPowerIndex(ctx, validator)
 	if apply {
-		keeper.ApplyAndReturnValidatorSetUpdates(ctx)
+		updates := keeper.ApplyAndReturnValidatorSetUpdates(ctx)
+		keeper.ExecuteUnbonding(ctx, updates)
 		validator, found := keeper.GetValidator(ctx, validator.OperatorAddress)
 		if !found {
 			panic("validator expected but not found")
@@ -274,7 +276,8 @@ func TestingUpdateValidator(keeper Keeper, ctx sdk.Context, validator types.Vali
 		return validator
 	}
 	cachectx, _ := ctx.CacheContext()
-	keeper.ApplyAndReturnValidatorSetUpdates(cachectx)
+	updates := keeper.ApplyAndReturnValidatorSetUpdates(cachectx)
+	keeper.ExecuteUnbonding(cachectx, updates)
 	validator, found := keeper.GetValidator(cachectx, validator.OperatorAddress)
 	if !found {
 		panic("validator expected but not found")

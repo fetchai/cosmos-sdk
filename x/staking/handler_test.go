@@ -32,6 +32,7 @@ func TestValidatorByPowerIndex(t *testing.T) {
 
 	// must end-block
 	updates := keeper.ApplyAndReturnValidatorSetUpdates(ctx)
+	keeper.ExecuteUnbonding(ctx, updates)
 	require.Equal(t, 1, len(updates))
 
 	// verify the self-delegation exists
@@ -55,12 +56,14 @@ func TestValidatorByPowerIndex(t *testing.T) {
 	// must end-block
 	updates = keeper.ApplyAndReturnValidatorSetUpdates(ctx)
 	require.Equal(t, 1, len(updates))
+	keeper.ExecuteUnbonding(ctx, updates)
 
 	// slash and jail the first validator
 	consAddr0 := sdk.ConsAddress(keep.PKs[0].Address())
 	keeper.Slash(ctx, consAddr0, 0, initPower, sdk.NewDecWithPrec(5, 1))
 	keeper.Jail(ctx, consAddr0)
-	keeper.ApplyAndReturnValidatorSetUpdates(ctx)
+	updates = keeper.ApplyAndReturnValidatorSetUpdates(ctx)
+	keeper.ExecuteUnbonding(ctx, updates)
 
 	validator, found = keeper.GetValidator(ctx, validatorAddr)
 	require.True(t, found)
@@ -1221,7 +1224,8 @@ func TestUnbondingWhenExcessValidators(t *testing.T) {
 	require.NotNil(t, res)
 
 	// apply TM updates
-	keeper.ApplyAndReturnValidatorSetUpdates(ctx)
+	updates := keeper.ApplyAndReturnValidatorSetUpdates(ctx)
+	keeper.ExecuteUnbonding(ctx, updates)
 	require.Equal(t, 1, len(keeper.GetLastValidators(ctx)))
 
 	valTokens2 := sdk.TokensFromConsensusPower(30)
@@ -1231,7 +1235,8 @@ func TestUnbondingWhenExcessValidators(t *testing.T) {
 	require.NotNil(t, res)
 
 	// apply TM updates
-	keeper.ApplyAndReturnValidatorSetUpdates(ctx)
+	updates = keeper.ApplyAndReturnValidatorSetUpdates(ctx)
+	keeper.ExecuteUnbonding(ctx, updates)
 	require.Equal(t, 2, len(keeper.GetLastValidators(ctx)))
 
 	valTokens3 := sdk.TokensFromConsensusPower(10)
@@ -1241,7 +1246,8 @@ func TestUnbondingWhenExcessValidators(t *testing.T) {
 	require.NotNil(t, res)
 
 	// apply TM updates
-	keeper.ApplyAndReturnValidatorSetUpdates(ctx)
+	updates = keeper.ApplyAndReturnValidatorSetUpdates(ctx)
+	keeper.ExecuteUnbonding(ctx, updates)
 	require.Equal(t, 2, len(keeper.GetLastValidators(ctx)))
 
 	// unbond the validator-2
@@ -1252,7 +1258,8 @@ func TestUnbondingWhenExcessValidators(t *testing.T) {
 	require.NotNil(t, res)
 
 	// apply TM updates
-	keeper.ApplyAndReturnValidatorSetUpdates(ctx)
+	updates = keeper.ApplyAndReturnValidatorSetUpdates(ctx)
+	keeper.ExecuteUnbonding(ctx, updates)
 
 	// because there are extra validators waiting to get in, the queued
 	// validator (aka. validator-1) should make it into the bonded group, thus

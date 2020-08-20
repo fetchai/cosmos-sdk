@@ -262,6 +262,7 @@ func TestSlashWithUnbondingDelegation(t *testing.T) {
 
 	// end block
 	updates := keeper.ApplyAndReturnValidatorSetUpdates(ctx)
+	keeper.ExecuteUnbonding(ctx, updates)
 	require.Equal(t, 1, len(updates))
 
 	// read updating unbonding delegation
@@ -342,7 +343,9 @@ func TestSlashWithUnbondingDelegation(t *testing.T) {
 	diffTokens = oldBondedPool.GetCoins().Sub(newBondedPool.GetCoins()).AmountOf(keeper.BondDenom(ctx))
 	require.Equal(t, sdk.TokensFromConsensusPower(10), diffTokens)
 	// apply TM updates
-	keeper.ApplyAndReturnValidatorSetUpdates(ctx)
+	updates = keeper.ApplyAndReturnValidatorSetUpdates(ctx)
+	keeper.ExecuteUnbonding(ctx, updates)
+
 	// read updated validator
 	// power decreased by 1 again, validator is out of stake
 	// validator should be in unbonding period
@@ -453,7 +456,8 @@ func TestSlashWithRedelegation(t *testing.T) {
 	require.True(t, found)
 	require.Len(t, rd.Entries, 1)
 	// apply TM updates
-	keeper.ApplyAndReturnValidatorSetUpdates(ctx)
+	updates := keeper.ApplyAndReturnValidatorSetUpdates(ctx)
+	keeper.ExecuteUnbonding(ctx, updates)
 	// read updated validator
 	// validator decreased to zero power, should be in unbonding period
 	validator, _ = keeper.GetValidatorByConsAddr(ctx, consAddr)

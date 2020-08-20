@@ -71,9 +71,11 @@ func TestTrackHistoricalInfo(t *testing.T) {
 
 	// Set last validators in keeper
 	val1 := types.NewValidator(sdk.ValAddress(Addrs[2]), PKs[2], types.Description{})
+	val1.ProducingBlocks = true
 	k.SetValidator(ctx, val1)
 	k.SetLastValidatorPower(ctx, val1.OperatorAddress, 10)
 	val2 := types.NewValidator(sdk.ValAddress(Addrs[3]), PKs[3], types.Description{})
+	val2.ProducingBlocks = true
 	vals := []types.Validator{val1, val2}
 	sort.Sort(types.Validators(vals))
 	k.SetValidator(ctx, val2)

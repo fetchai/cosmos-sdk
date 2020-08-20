@@ -331,8 +331,10 @@ func (k Keeper) GetLastValidators(ctx sdk.Context) (validators []types.Validator
 		address := types.AddressFromLastValidatorPowerKey(iterator.Key())
 		validator := k.mustGetValidator(ctx, address)
 
-		validators[i] = validator
-		i++
+		if validator.IsProducingBlocks() {
+			validators[i] = validator
+			i++
+		}
 	}
 	return validators[:i] // trim
 }

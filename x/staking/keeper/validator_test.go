@@ -30,10 +30,12 @@ func TestSetValidator(t *testing.T) {
 	assert.Equal(t, valTokens, validator.Tokens)
 	assert.Equal(t, valTokens, validator.DelegatorShares.RoundInt())
 	keeper.SetValidator(ctx, validator)
+	keeper.SetValidatorByConsAddr(ctx, validator)
 	keeper.SetValidatorByPowerIndex(ctx, validator)
 
 	// ensure update
 	updates := keeper.ApplyAndReturnValidatorSetUpdates(ctx)
+	keeper.ExecuteUnbonding(ctx, updates)
 	validator, found := keeper.GetValidator(ctx, valAddr)
 	require.True(t, found)
 	require.Equal(t, 1, len(updates))
@@ -187,7 +189,8 @@ func TestSlashToZeroPowerRemoved(t *testing.T) {
 	consAddr0 := sdk.ConsAddress(PKs[0].Address())
 	keeper.Slash(ctx, consAddr0, 0, 100, sdk.OneDec())
 	// apply TM updates
-	keeper.ApplyAndReturnValidatorSetUpdates(ctx)
+	updates := keeper.ApplyAndReturnValidatorSetUpdates(ctx)
+	keeper.ExecuteUnbonding(ctx, updates)
 	// validator should be unbonding
 	validator, _ = keeper.GetValidator(ctx, addrVals[0])
 	require.Equal(t, validator.GetStatus(), sdk.Unbonding)
