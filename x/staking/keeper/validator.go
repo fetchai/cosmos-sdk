@@ -331,6 +331,8 @@ func (k Keeper) GetLastValidators(ctx sdk.Context) (validators []types.Validator
 		address := types.AddressFromLastValidatorPowerKey(iterator.Key())
 		validator := k.mustGetValidator(ctx, address)
 
+		// Need to distinguish between bonded validators which are only running DKG and those
+		// producing blocks
 		if validator.IsProducingBlocks() {
 			validators[i] = validator
 			i++

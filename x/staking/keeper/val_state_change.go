@@ -113,7 +113,7 @@ func (k Keeper) ApplyAndReturnValidatorSetUpdates(ctx sdk.Context) (updates []ab
 }
 
 // ExecuteUnbonding performs the validator unbonding operations for validators with 0 power
-// in valUpdates
+// in valUpdates and turns on/off ProducingBlocks varible in validators
 func (k Keeper) ExecuteUnbonding(ctx sdk.Context, valUpdates []abci.ValidatorUpdate) {
 
 	// Collect validators that should be unbonded from updates, and turn on block production
