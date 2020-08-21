@@ -33,13 +33,19 @@ func (k Keeper) CheckValidatorUpdates(ctx sdk.Context, header abci.Header) {
 func (k Keeper) DKGValidatorUpdates(ctx sdk.Context) []abci.ValidatorUpdate {
 	store := ctx.KVStore(k.storeKey)
 	if len(store.Get(computeDKGValidatorUpdateKey)) == 0 {
-		// Check mature items in queues every block, regardless of whether return validator updates
-		// or not, in order for items to be removed as soon as possible
-		k.RemoveMatureQueueItems(ctx)
 		return []abci.ValidatorUpdate{}
 	}
 	store.Set(computeDKGValidatorUpdateKey, []byte{})
-	updates := k.BlockValidatorUpdates(ctx)
+	// Calculate validator set changes.
+	//
+	// NOTE: ApplyAndReturnValidatorSetUpdates has to come before
+	// UnbondAllMatureValidatorQueue.
+	// This fixes a bug when the unbonding period is instant (is the case in
+	// some of the tests). The test expected the validator to be completely
+	// unbonded after the Endblocker (go from Bonded -> Unbonding during
+	// ApplyAndReturnValidatorSetUpdates and then Unbonding -> Unbonded during
+	// UnbondAllMatureValidatorQueue).
+	updates := k.ApplyAndReturnValidatorSetUpdates(ctx)
 	store.Set(validatorUpdatesKey, k.cdc.MustMarshalBinaryLengthPrefixed(updates))
 	return updates
 }
@@ -49,11 +55,16 @@ func (k Keeper) DKGValidatorUpdates(ctx sdk.Context) []abci.ValidatorUpdate {
 func (k Keeper) ValidatorUpdates(ctx sdk.Context) []abci.ValidatorUpdate {
 	store := ctx.KVStore(k.storeKey)
 	if len(store.Get(computeValidatorUpdateKey)) == 0 {
+		// Check mature items in queues every block, regardless of whether return validator updates
+		// or not, in order for items to be removed as soon as possible
+		k.RemoveMatureQueueItems(ctx)
 		return []abci.ValidatorUpdate{}
 	}
 	store.Set(computeValidatorUpdateKey, []byte{})
 	updateBytes := store.Get(validatorUpdatesKey)
 	updates := []abci.ValidatorUpdate{}
 	k.cdc.UnmarshalBinaryLengthPrefixed(updateBytes, &updates)
+	k.ExecuteUnbonding(ctx, updates)
+	k.RemoveMatureQueueItems(ctx)
 	return updates
 }

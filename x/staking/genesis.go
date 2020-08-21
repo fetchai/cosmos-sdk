@@ -33,6 +33,9 @@ func InitGenesis(ctx sdk.Context, keeper Keeper, accountKeeper types.AccountKeep
 	keeper.SetLastTotalPower(ctx, data.LastTotalPower)
 
 	for _, validator := range data.Validators {
+		// At genesis set all validators to producing blocks. The excess one will be removed
+		// in the ExecuteUnbonding call below
+		validator.ProducingBlocks = true
 		keeper.SetValidator(ctx, validator)
 
 		// Manually set indices for the first time
@@ -131,6 +134,7 @@ func InitGenesis(ctx sdk.Context, keeper Keeper, accountKeeper types.AccountKeep
 		}
 	} else {
 		res = keeper.ApplyAndReturnValidatorSetUpdates(ctx)
+		keeper.ExecuteUnbonding(ctx, res)
 	}
 
 	return res

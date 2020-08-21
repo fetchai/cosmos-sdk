@@ -6,29 +6,11 @@ import (
 	"sort"
 
 	abci "github.com/tendermint/tendermint/abci/types"
+	tmtypes "github.com/tendermint/tendermint/types"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/x/staking/types"
 )
-
-// Calculate the ValidatorUpdates for the current block
-// Called in each EndBlock
-func (k Keeper) BlockValidatorUpdates(ctx sdk.Context) []abci.ValidatorUpdate {
-	// Calculate validator set changes.
-	//
-	// NOTE: ApplyAndReturnValidatorSetUpdates has to come before
-	// UnbondAllMatureValidatorQueue.
-	// This fixes a bug when the unbonding period is instant (is the case in
-	// some of the tests). The test expected the validator to be completely
-	// unbonded after the Endblocker (go from Bonded -> Unbonding during
-	// ApplyAndReturnValidatorSetUpdates and then Unbonding -> Unbonded during
-	// UnbondAllMatureValidatorQueue).
-	validatorUpdates := k.ApplyAndReturnValidatorSetUpdates(ctx)
-
-	k.RemoveMatureQueueItems(ctx)
-
-	return validatorUpdates
-}
 
 // Apply and return accumulated updates to the bonded validator set. Also,
 // * Updates the active valset as keyed by LastValidatorPowerKey.
@@ -46,7 +28,7 @@ func (k Keeper) ApplyAndReturnValidatorSetUpdates(ctx sdk.Context) (updates []ab
 
 	maxValidators := k.GetParams(ctx).MaxValidators
 	totalPower := sdk.ZeroInt()
-	amtFromBondedToNotBonded, amtFromNotBondedToBonded := sdk.ZeroInt(), sdk.ZeroInt()
+	amtFromNotBondedToBonded := sdk.ZeroInt()
 
 	// Retrieve the last validator set.
 	// The persistent set is updated later in this function.
@@ -112,26 +94,14 @@ func (k Keeper) ApplyAndReturnValidatorSetUpdates(ctx sdk.Context) (updates []ab
 	for _, valAddrBytes := range noLongerBonded {
 
 		validator := k.mustGetValidator(ctx, sdk.ValAddress(valAddrBytes))
-		validator = k.bondedToUnbonding(ctx, validator)
-		amtFromBondedToNotBonded = amtFromBondedToNotBonded.Add(validator.GetTokens())
-		k.DeleteLastValidatorPower(ctx, validator.GetOperator())
 		updates = append(updates, validator.ABCIValidatorUpdateZero())
 	}
 
 	// Update the pools based on the recent updates in the validator set:
 	// - The tokens from the non-bonded candidates that enter the new validator set need to be transferred
 	// to the Bonded pool.
-	// - The tokens from the bonded validators that are being kicked out from the validator set
-	// need to be transferred to the NotBonded pool.
-	switch {
-	// Compare and subtract the respective amounts to only perform one transfer.
-	// This is done in order to avoid doing multiple updates inside each iterator/loop.
-	case amtFromNotBondedToBonded.GT(amtFromBondedToNotBonded):
-		k.notBondedTokensToBonded(ctx, amtFromNotBondedToBonded.Sub(amtFromBondedToNotBonded))
-	case amtFromNotBondedToBonded.LT(amtFromBondedToNotBonded):
-		k.bondedTokensToNotBonded(ctx, amtFromBondedToNotBonded.Sub(amtFromNotBondedToBonded))
-	default:
-		// equal amounts of tokens; no update required
+	if !amtFromNotBondedToBonded.IsZero() {
+		k.notBondedTokensToBonded(ctx, amtFromNotBondedToBonded)
 	}
 
 	// set total power on lookup index if there are any updates
@@ -140,6 +110,40 @@ func (k Keeper) ApplyAndReturnValidatorSetUpdates(ctx sdk.Context) (updates []ab
 	}
 
 	return updates
+}
+
+// ExecuteUnbonding performs the validator unbonding operations for validators with 0 power
+// in valUpdates and turns on/off ProducingBlocks varible in validators
+func (k Keeper) ExecuteUnbonding(ctx sdk.Context, valUpdates []abci.ValidatorUpdate) {
+
+	// Collect validators that should be unbonded from updates, and turn on block production
+	// for those bonded
+	amtFromBondedToNotBonded := sdk.ZeroInt()
+	for _, val := range valUpdates {
+		pubKey, err := tmtypes.PB2TM.PubKey(val.PubKey)
+		if err != nil {
+			panic(fmt.Sprintf("Error converting public key %v in validator updates", val.PubKey))
+		}
+		validator := k.mustGetValidatorByConsAddr(ctx, sdk.GetConsAddress(pubKey))
+		if val.Power == 0 {
+			// Check that a unbonding transaction hasn't been submitted
+			if !validator.IsUnbonding() {
+				validator = k.bondedToUnbonding(ctx, validator)
+				amtFromBondedToNotBonded = amtFromBondedToNotBonded.Add(validator.GetTokens())
+			}
+			k.stopProducingBlocks(ctx, validator)
+			k.DeleteLastValidatorPower(ctx, validator.GetOperator())
+		} else if !validator.IsProducingBlocks() {
+			k.startProducingBlocks(ctx, validator)
+		}
+	}
+
+	// Update the pools based on the recent updates in the validator set:
+	// - The tokens from the bonded validators that are being kicked out from the validator set
+	// need to be transferred to the NotBonded pool.
+	if !amtFromBondedToNotBonded.IsZero() {
+		k.bondedTokensToNotBonded(ctx, amtFromBondedToNotBonded)
+	}
 }
 
 // RemoveMatureQueueItems checks validator, unbonding and redelegation queues for mature items
@@ -342,4 +346,13 @@ func sortNoLongerBonded(last validatorsByAddr) [][]byte {
 		return bytes.Compare(noLongerBonded[i], noLongerBonded[j]) == -1
 	})
 	return noLongerBonded
+}
+
+func (k Keeper) startProducingBlocks(ctx sdk.Context, validator types.Validator) {
+	validator.ProducingBlocks = true
+	k.SetValidator(ctx, validator)
+}
+func (k Keeper) stopProducingBlocks(ctx sdk.Context, validator types.Validator) {
+	validator.ProducingBlocks = false
+	k.SetValidator(ctx, validator)
 }

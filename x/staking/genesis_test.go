@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/tendermint/tendermint/crypto/ed25519"
+	tmtypes "github.com/tendermint/tendermint/types"
 
 	"github.com/stretchr/testify/assert"
 
@@ -97,6 +98,15 @@ func TestInitGenesisLargeValidatorSet(t *testing.T) {
 	}
 
 	require.Equal(t, abcivals, vals)
+	for _, val := range vals {
+		pubKey, err := tmtypes.PB2TM.PubKey(val.PubKey)
+		if err != nil {
+			panic(fmt.Sprintf("Error converting public key %v in validator updates", val.PubKey))
+		}
+		validator, found := keeper.GetValidatorByConsAddr(ctx, sdk.GetConsAddress(pubKey))
+		require.True(t, found)
+		require.True(t, validator.ProducingBlocks)
+	}
 }
 
 func TestValidateGenesis(t *testing.T) {

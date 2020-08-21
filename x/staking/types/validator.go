@@ -50,6 +50,7 @@ type Validator struct {
 	UnbondingCompletionTime time.Time      `json:"unbonding_time" yaml:"unbonding_time"`           // if unbonding, min time for the validator to complete unbonding
 	Commission              Commission     `json:"commission" yaml:"commission"`                   // commission parameters
 	MinSelfDelegation       sdk.Int        `json:"min_self_delegation" yaml:"min_self_delegation"` // validator's self declared minimum self delegation
+	ProducingBlocks         bool           `json:"producing_blocks" yaml:"producing_blocks"`       // whether validator is in producing blocks
 }
 
 // custom marshal yaml function due to consensus pubkey
@@ -66,6 +67,7 @@ func (v Validator) MarshalYAML() (interface{}, error) {
 		UnbondingCompletionTime time.Time
 		Commission              Commission
 		MinSelfDelegation       sdk.Int
+		ProducingBlocks         bool
 	}{
 		OperatorAddress:         v.OperatorAddress,
 		ConsPubKey:              sdk.MustBech32ifyPubKey(sdk.Bech32PubKeyTypeConsPub, v.ConsPubKey),
@@ -78,6 +80,7 @@ func (v Validator) MarshalYAML() (interface{}, error) {
 		UnbondingCompletionTime: v.UnbondingCompletionTime,
 		Commission:              v.Commission,
 		MinSelfDelegation:       v.MinSelfDelegation,
+		ProducingBlocks:         v.ProducingBlocks,
 	})
 	if err != nil {
 		return nil, err
@@ -140,6 +143,7 @@ func NewValidator(operator sdk.ValAddress, pubKey crypto.PubKey, description Des
 		UnbondingCompletionTime: time.Unix(0, 0).UTC(),
 		Commission:              NewCommission(sdk.ZeroDec(), sdk.ZeroDec(), sdk.ZeroDec()),
 		MinSelfDelegation:       sdk.OneInt(),
+		ProducingBlocks:         false,
 	}
 }
 
@@ -180,10 +184,11 @@ func (v Validator) String() string {
   Unbonding Height:           %d
   Unbonding Completion Time:  %v
   Minimum Self Delegation:    %v
-  Commission:                 %s`, v.OperatorAddress, bechConsPubKey,
+  Commission:                 %s
+  Producing Blocks:           %v`, v.OperatorAddress, bechConsPubKey,
 		v.Jailed, v.Status, v.Tokens,
 		v.DelegatorShares, v.Description,
-		v.UnbondingHeight, v.UnbondingCompletionTime, v.MinSelfDelegation, v.Commission)
+		v.UnbondingHeight, v.UnbondingCompletionTime, v.MinSelfDelegation, v.Commission, v.ProducingBlocks)
 }
 
 // this is a helper struct used for JSON de- and encoding only
@@ -199,6 +204,7 @@ type bechValidator struct {
 	UnbondingCompletionTime time.Time      `json:"unbonding_time" yaml:"unbonding_time"`           // if unbonding, min time for the validator to complete unbonding
 	Commission              Commission     `json:"commission" yaml:"commission"`                   // commission parameters
 	MinSelfDelegation       sdk.Int        `json:"min_self_delegation" yaml:"min_self_delegation"` // minimum self delegation
+	ProducingBlocks         bool           `json:"producing_blocks" yaml:"producing_blocks"`       // whether validator is producing blocks
 }
 
 // MarshalJSON marshals the validator to JSON using Bech32
@@ -220,6 +226,7 @@ func (v Validator) MarshalJSON() ([]byte, error) {
 		UnbondingCompletionTime: v.UnbondingCompletionTime,
 		MinSelfDelegation:       v.MinSelfDelegation,
 		Commission:              v.Commission,
+		ProducingBlocks:         v.ProducingBlocks,
 	})
 }
 
@@ -245,6 +252,7 @@ func (v *Validator) UnmarshalJSON(data []byte) error {
 		UnbondingCompletionTime: bv.UnbondingCompletionTime,
 		Commission:              bv.Commission,
 		MinSelfDelegation:       bv.MinSelfDelegation,
+		ProducingBlocks:         bv.ProducingBlocks,
 	}
 	return nil
 }
@@ -528,3 +536,4 @@ func (v Validator) GetConsensusPower() int64      { return v.ConsensusPower() }
 func (v Validator) GetCommission() sdk.Dec        { return v.Commission.Rate }
 func (v Validator) GetMinSelfDelegation() sdk.Int { return v.MinSelfDelegation }
 func (v Validator) GetDelegatorShares() sdk.Dec   { return v.DelegatorShares }
+func (v Validator) IsProducingBlocks() bool       { return v.ProducingBlocks }
