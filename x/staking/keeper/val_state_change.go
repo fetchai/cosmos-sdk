@@ -12,23 +12,6 @@ import (
 	"github.com/cosmos/cosmos-sdk/x/staking/types"
 )
 
-// Calculate the ValidatorUpdates for the current block
-// Called in each EndBlock
-func (k Keeper) BlockValidatorUpdates(ctx sdk.Context) []abci.ValidatorUpdate {
-	// Calculate validator set changes.
-	//
-	// NOTE: ApplyAndReturnValidatorSetUpdates has to come before
-	// UnbondAllMatureValidatorQueue.
-	// This fixes a bug when the unbonding period is instant (is the case in
-	// some of the tests). The test expected the validator to be completely
-	// unbonded after the Endblocker (go from Bonded -> Unbonding during
-	// ApplyAndReturnValidatorSetUpdates and then Unbonding -> Unbonded during
-	// UnbondAllMatureValidatorQueue).
-	validatorUpdates := k.ApplyAndReturnValidatorSetUpdates(ctx)
-
-	return validatorUpdates
-}
-
 // Apply and return accumulated updates to the bonded validator set. Also,
 // * Updates the active valset as keyed by LastValidatorPowerKey.
 // * Updates the total power as keyed by LastTotalPowerKey.
@@ -150,7 +133,7 @@ func (k Keeper) ExecuteUnbonding(ctx sdk.Context, valUpdates []abci.ValidatorUpd
 			}
 			k.stopProducingBlocks(ctx, validator)
 			k.DeleteLastValidatorPower(ctx, validator.GetOperator())
-		} else {
+		} else if !validator.IsProducingBlocks() {
 			k.startProducingBlocks(ctx, validator)
 		}
 	}
@@ -368,10 +351,8 @@ func sortNoLongerBonded(last validatorsByAddr) [][]byte {
 func (k Keeper) startProducingBlocks(ctx sdk.Context, validator types.Validator) {
 	validator.ProducingBlocks = true
 	k.SetValidator(ctx, validator)
-	k.SetValidatorByPowerIndex(ctx, validator)
 }
 func (k Keeper) stopProducingBlocks(ctx sdk.Context, validator types.Validator) {
 	validator.ProducingBlocks = false
 	k.SetValidator(ctx, validator)
-	k.SetValidatorByPowerIndex(ctx, validator)
 }

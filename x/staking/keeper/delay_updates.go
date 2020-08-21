@@ -36,7 +36,16 @@ func (k Keeper) DKGValidatorUpdates(ctx sdk.Context) []abci.ValidatorUpdate {
 		return []abci.ValidatorUpdate{}
 	}
 	store.Set(computeDKGValidatorUpdateKey, []byte{})
-	updates := k.BlockValidatorUpdates(ctx)
+	// Calculate validator set changes.
+	//
+	// NOTE: ApplyAndReturnValidatorSetUpdates has to come before
+	// UnbondAllMatureValidatorQueue.
+	// This fixes a bug when the unbonding period is instant (is the case in
+	// some of the tests). The test expected the validator to be completely
+	// unbonded after the Endblocker (go from Bonded -> Unbonding during
+	// ApplyAndReturnValidatorSetUpdates and then Unbonding -> Unbonded during
+	// UnbondAllMatureValidatorQueue).
+	updates := k.ApplyAndReturnValidatorSetUpdates(ctx)
 	store.Set(validatorUpdatesKey, k.cdc.MustMarshalBinaryLengthPrefixed(updates))
 	return updates
 }

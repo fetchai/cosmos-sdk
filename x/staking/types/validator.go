@@ -185,7 +185,7 @@ func (v Validator) String() string {
   Unbonding Completion Time:  %v
   Minimum Self Delegation:    %v
   Commission:                 %s
-  ProducingBlocks:            %v`, v.OperatorAddress, bechConsPubKey,
+  Producing Blocks:           %v`, v.OperatorAddress, bechConsPubKey,
 		v.Jailed, v.Status, v.Tokens,
 		v.DelegatorShares, v.Description,
 		v.UnbondingHeight, v.UnbondingCompletionTime, v.MinSelfDelegation, v.Commission, v.ProducingBlocks)
