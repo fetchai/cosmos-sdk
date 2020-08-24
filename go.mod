@@ -1,12 +1,14 @@
 module github.com/cosmos/cosmos-sdk
 
 require (
-	github.com/99designs/keyring v1.1.3
+	github.com/99designs/keyring v1.1.5
+	github.com/armon/go-metrics v0.3.3
 	github.com/bartekn/go-bip39 v0.0.0-20171116152956-a05967ea095d
 	github.com/bgentry/speakeasy v0.1.0
 	github.com/btcsuite/btcd v0.0.0-20190115013929-ed77733ec07d
 	github.com/cosmos/go-bip39 v0.0.0-20180819234021-555e2067c45d
 	github.com/cosmos/ledger-cosmos-go v0.11.1
+	github.com/go-kit/kit v0.10.0
 	github.com/gogo/protobuf v1.3.1
 	github.com/golang/mock v1.3.1-0.20190508161146-9fa652df1129
 	github.com/gorilla/handlers v1.4.2
@@ -15,9 +17,11 @@ require (
 	github.com/mattn/go-isatty v0.0.12
 	github.com/pelletier/go-toml v1.6.0
 	github.com/pkg/errors v0.9.1
-	github.com/rakyll/statik v0.1.6
-	github.com/spf13/afero v1.2.1 // indirect
-	github.com/spf13/cobra v0.0.6
+	github.com/prometheus/client_golang v1.6.0
+	github.com/prometheus/common v0.10.0
+	github.com/rakyll/statik v0.1.7
+	github.com/spf13/afero v1.2.2 // indirect
+	github.com/spf13/cobra v1.0.0
 	github.com/spf13/jwalterweatherman v1.1.0 // indirect
 	github.com/spf13/pflag v1.0.5
 	github.com/spf13/viper v1.6.2
