@@ -7,6 +7,7 @@ import (
 	"github.com/cosmos/cosmos-sdk/store"
 	"github.com/cosmos/cosmos-sdk/telemetry"
 	sdk "github.com/cosmos/cosmos-sdk/types"
+	"github.com/spf13/viper"
 )
 
 const (
@@ -82,6 +83,40 @@ func DefaultConfig() *Config {
 			InterBlockCache: true,
 			Pruning:         store.PruningStrategySyncable,
 		},
-		Telemetry: telemetry.Config{},
+		Telemetry: telemetry.Config{
+			Enabled:      false,
+			GlobalLabels: [][]string{},
+		},
+	}
+}
+
+// GetConfig returns a fully parsed Config object.
+func GetConfig() Config {
+	globalLabelsRaw := viper.Get("telemetry.global-labels").([]interface{})
+	globalLabels := make([][]string, 0, len(globalLabelsRaw))
+	for _, glr := range globalLabelsRaw {
+		labelsRaw := glr.([]interface{})
+		if len(labelsRaw) == 2 {
+			globalLabels = append(globalLabels, []string{labelsRaw[0].(string), labelsRaw[1].(string)})
+		}
+	}
+
+	return Config{
+		BaseConfig: BaseConfig{
+			MinGasPrices:    viper.GetString("minimum-gas-prices"),
+			InterBlockCache: viper.GetBool("inter-block-cache"),
+			Pruning:         viper.GetString("pruning"),
+			HaltHeight:      viper.GetUint64("halt-height"),
+			HaltTime:        viper.GetUint64("halt-time"),
+		},
+		Telemetry: telemetry.Config{
+			ServiceName:             viper.GetString("telemetry.service-name"),
+			Enabled:                 viper.GetBool("telemetry.enabled"),
+			EnableHostname:          viper.GetBool("telemetry.enable-hostname"),
+			EnableHostnameLabel:     viper.GetBool("telemetry.enable-hostname-label"),
+			EnableServiceLabel:      viper.GetBool("telemetry.enable-service-label"),
+			PrometheusRetentionTime: viper.GetInt64("telemetry.prometheus-retention-time"),
+			GlobalLabels:            globalLabels,
+		},
 	}
 }

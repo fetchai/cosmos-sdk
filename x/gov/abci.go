@@ -3,12 +3,16 @@ package gov
 import (
 	"fmt"
 
+	"github.com/cosmos/cosmos-sdk/telemetry"
 	sdk "github.com/cosmos/cosmos-sdk/types"
+	"github.com/cosmos/cosmos-sdk/x/gov/keeper"
 	"github.com/cosmos/cosmos-sdk/x/gov/types"
 )
 
 // EndBlocker called every block, process inflation, update validator set.
-func EndBlocker(ctx sdk.Context, keeper Keeper) {
+func EndBlocker(ctx sdk.Context, keeper keeper.Keeper) {
+	defer telemetry.ModuleMeasureSince(types.ModuleName, telemetry.MetricKeyEndBlocker)
+
 	logger := keeper.Logger(ctx)
 
 	// delete inactive proposal from store and its deposits
