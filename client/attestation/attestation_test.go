@@ -3,10 +3,12 @@ package attestation
 import (
 	"bytes"
 	"crypto/rand"
-	"github.com/cosmos/cosmos-sdk/crypto/keys"
+	"testing"
+
 	"github.com/stretchr/testify/require"
 	"github.com/tendermint/tendermint/crypto"
-	"testing"
+
+	"github.com/cosmos/cosmos-sdk/crypto/keys"
 )
 
 func generatePrivateKey(t *testing.T) crypto.PrivKey {
