@@ -13,7 +13,7 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 	"github.com/tendermint/tendermint/libs/log"
-	rpcserver "github.com/tendermint/tendermint/rpc/lib/server"
+	tmrpcserver "github.com/tendermint/tendermint/rpc/jsonrpc/server"
 
 	"github.com/cosmos/cosmos-sdk/client/context"
 	"github.com/cosmos/cosmos-sdk/client/flags"
@@ -55,12 +55,12 @@ func (rs *RestServer) Start(listenAddr string, maxOpen int, readTimeout, writeTi
 		rs.log.Error("error closing listener", "err", err)
 	})
 
-	cfg := rpcserver.DefaultConfig()
+	cfg := tmrpcserver.DefaultConfig()
 	cfg.MaxOpenConnections = maxOpen
 	cfg.ReadTimeout = time.Duration(readTimeout) * time.Second
 	cfg.WriteTimeout = time.Duration(writeTimeout) * time.Second
 
-	rs.listener, err = rpcserver.Listen(listenAddr, cfg)
+	rs.listener, err = tmrpcserver.Listen(listenAddr, cfg)
 	if err != nil {
 		return
 	}
@@ -73,13 +73,11 @@ func (rs *RestServer) Start(listenAddr string, maxOpen int, readTimeout, writeTi
 
 	var h http.Handler = rs.Mux
 	if cors {
-		h = handlers.CORS(
-			handlers.AllowedHeaders([]string{"Content-Type"}),
-			handlers.AllowedOrigins([]string{"*"}),
-		)(h)
+		allowAllCORS := handlers.CORS(handlers.AllowedHeaders([]string{"Content-Type"}))
+		h = allowAllCORS(h)
 	}
 
-	return rpcserver.StartHTTPServer(rs.listener, h, rs.log, cfg)
+	return tmrpcserver.Serve(rs.listener, h, rs.log, cfg)
 }
 
 // ServeCommand will start the application REST service as a blocking process. It
@@ -101,7 +99,7 @@ func ServeCommand(cdc *codec.Codec, registerRoutesFn func(*RestServer)) *cobra.C
 				viper.GetInt(flags.FlagMaxOpenConnections),
 				uint(viper.GetInt(flags.FlagRPCReadTimeout)),
 				uint(viper.GetInt(flags.FlagRPCWriteTimeout)),
-				viper.GetBool(FlagAllowCORS),
+				viper.GetBool(flags.FlagUnsafeCORS),
 			)
 
 			return err

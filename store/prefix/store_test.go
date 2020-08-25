@@ -17,11 +17,7 @@ import (
 )
 
 // copied from iavl/store_test.go
-var (
-	cacheSize        = 100
-	numRecent  int64 = 5
-	storeEvery int64 = 3
-)
+var cacheSize = 100
 
 func bz(s string) []byte { return []byte(s) }
 
@@ -90,7 +86,7 @@ func TestIAVLStorePrefix(t *testing.T) {
 	db := dbm.NewMemDB()
 	tree, err := tiavl.NewMutableTree(db, cacheSize)
 	require.NoError(t, err)
-	iavlStore := iavl.UnsafeNewStore(tree, types.PruneNothing)
+	iavlStore := iavl.UnsafeNewStore(tree)
 
 	testPrefixStore(t, iavlStore, []byte("test"))
 }
