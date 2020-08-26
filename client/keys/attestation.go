@@ -4,38 +4,40 @@ import (
 	"bufio"
 	"errors"
 	"fmt"
+
+	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
+	"github.com/tendermint/tendermint/crypto"
+	"github.com/tendermint/tendermint/libs/bech32"
+
 	"github.com/cosmos/cosmos-sdk/client/attestation"
 	"github.com/cosmos/cosmos-sdk/client/flags"
 	"github.com/cosmos/cosmos-sdk/client/input"
 	"github.com/cosmos/cosmos-sdk/crypto/keys"
 	sdk "github.com/cosmos/cosmos-sdk/types"
-	"github.com/spf13/cobra"
-	"github.com/spf13/viper"
-	"github.com/tendermint/tendermint/crypto"
-	"github.com/tendermint/tendermint/libs/bech32"
 )
 
 func AttestationCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "attestation",
 		Short: "Create or verify attestations",
-		Long: `Create or verify offline proofs to demonstrate ownership of keys`,
+		Long:  `Create or verify offline proofs to demonstrate ownership of keys`,
 	}
 
 	cmd.AddCommand(
 		&cobra.Command{
-			Use: "create [name]",
+			Use:   "create [name]",
 			Short: "Create an attestation",
-			Long: "Create and attestation for one of the keys present in the store",
-			Args: cobra.ExactArgs(1),
-			RunE: runAttestationCreate,
+			Long:  "Create and attestation for one of the keys present in the store",
+			Args:  cobra.ExactArgs(1),
+			RunE:  runAttestationCreate,
 		},
 		&cobra.Command{
-			Use: "verify [address] [attestation]",
+			Use:   "verify [address] [attestation]",
 			Short: "Verify an attestation",
-			Long: "Given an attestation and address, verify that one proves ownership of the other",
-			Args: cobra.ExactArgs(2),
-			RunE: runAttestationVerify,
+			Long:  "Given an attestation and address, verify that one proves ownership of the other",
+			Args:  cobra.ExactArgs(2),
+			RunE:  runAttestationVerify,
 		},
 	)
 
