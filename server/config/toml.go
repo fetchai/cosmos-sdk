@@ -11,7 +11,9 @@ import (
 const defaultConfigTemplate = `# This is a TOML config file.
 # For more information, see https://github.com/toml-lang/toml
 
-##### main base config options #####
+###############################################################################
+###                           Base Configuration                            ###
+###############################################################################
 
 # The minimum gas prices a validator is willing to accept for processing a
 # transaction. A transaction's fees must meet the minimum of any denomination
@@ -44,6 +46,36 @@ halt-time = {{ .BaseConfig.HaltTime }}
 
 # InterBlockCache enables inter-block caching.
 inter-block-cache = {{ .BaseConfig.InterBlockCache }}
+
+###############################################################################
+###                           API Configuration                             ###
+###############################################################################
+
+[api]
+
+# Enable defines if the API server should be enabled.
+enable = {{ .API.Enable }}
+
+# Swagger defines if swagger documentation should automatically be registered.
+swagger = {{ .API.Swagger }}
+
+# Address defines the API server to listen on
+address = "{{ .API.Address }}"
+
+# MaxOpenConnections defines the number of maximum open connections
+max-open-connections = {{ .API.MaxOpenConnections }}
+
+# RPCReadTimeout defines the Tendermint RPC read timeout (in seconds)
+rpc-read-timeout = {{ .API.RPCReadTimeout }}
+
+# RPCWriteTimeout defines the Tendermint RPC write timeout (in seconds)
+rpc-write-timeout = {{ .API.RPCWriteTimeout }}
+
+# RPCMaxBodyBytes defines the Tendermint maximum response body (in bytes)
+rpc-max-body-bytes = {{ .API.RPCMaxBodyBytes }}
+
+# EnableUnsafeCORS defines if CORS should be enabled (unsafe - use it at your own risk)
+enabled-unsafe-cors = {{ .API.EnableUnsafeCORS }}
 `
 
 var configTemplate *template.Template

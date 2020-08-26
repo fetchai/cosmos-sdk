@@ -35,6 +35,12 @@ Ref: https://keepachangelog.com/en/1.0.0/
 
 # Changelog
 
+## [Unreleased]
+
+### Client Breaking
+
+* (api) [\#6426](https://github.com/cosmos/cosmos-sdk/pull/6426) The ability to start an out-of-process API REST server has now been removed. Instead, the API server is now started in-process along with the application and Tendermint. Configuration options have been added to `app.toml` to enable/disable the API server along with additional HTTP server options.
+
 ## [v0.39.1]
 
 * (x/auth) [\#6861](https://github.com/cosmos/cosmos-sdk/pull/6861) Remove public key Bech32 encoding for all account types for JSON serialization, instead relying on direct Amino encoding. In addition, JSON serialization utilizes Amino instead of the Go stdlib, so integers are treated as strings.
