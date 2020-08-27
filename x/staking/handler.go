@@ -3,9 +3,12 @@ package staking
 import (
 	"time"
 
+	"github.com/armon/go-metrics"
+	gogotypes "github.com/gogo/protobuf/types"
 	tmstrings "github.com/tendermint/tendermint/libs/strings"
 	tmtypes "github.com/tendermint/tendermint/types"
 
+	"github.com/cosmos/cosmos-sdk/telemetry"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
 	"github.com/cosmos/cosmos-sdk/x/staking/keeper"
@@ -184,6 +187,15 @@ func handleMsgDelegate(ctx sdk.Context, msg types.MsgDelegate, k keeper.Keeper) 
 		return nil, err
 	}
 
+	defer func() {
+		telemetry.IncrCounter(1, types.ModuleName, "delegate")
+		telemetry.SetGaugeWithLabels(
+			[]string{"tx", "msg", msg.Type()},
+			float32(sdk.TokensToConsensusPower(msg.Amount.Amount)),
+			[]metrics.Label{telemetry.NewLabel("denom", msg.Amount.Denom)},
+		)
+	}()
+
 	ctx.EventManager().EmitEvents(sdk.Events{
 		sdk.NewEvent(
 			types.EventTypeDelegate,
@@ -217,7 +229,21 @@ func handleMsgUndelegate(ctx sdk.Context, msg types.MsgUndelegate, k keeper.Keep
 		return nil, err
 	}
 
-	completionTimeBz := types.ModuleCdc.MustMarshalBinaryLengthPrefixed(completionTime)
+	ts, err := gogotypes.TimestampProto(completionTime)
+	if err != nil {
+		return nil, types.ErrBadRedelegationAddr
+	}
+
+	defer func() {
+		telemetry.IncrCounter(1, types.ModuleName, "undelegate")
+		telemetry.SetGaugeWithLabels(
+			[]string{"tx", "msg", msg.Type()},
+			float32(sdk.TokensToConsensusPower(msg.Amount.Amount)),
+			[]metrics.Label{telemetry.NewLabel("denom", msg.Amount.Denom)},
+		)
+	}()
+
+	completionTimeBz := types.ModuleCdc.MustMarshalBinaryLengthPrefixed(ts)
 	ctx.EventManager().EmitEvents(sdk.Events{
 		sdk.NewEvent(
 			types.EventTypeUnbond,
@@ -254,7 +280,21 @@ func handleMsgBeginRedelegate(ctx sdk.Context, msg types.MsgBeginRedelegate, k k
 		return nil, err
 	}
 
-	completionTimeBz := types.ModuleCdc.MustMarshalBinaryLengthPrefixed(completionTime)
+	ts, err := gogotypes.TimestampProto(completionTime)
+	if err != nil {
+		return nil, types.ErrBadRedelegationAddr
+	}
+
+	defer func() {
+		telemetry.IncrCounter(1, types.ModuleName, "redelegate")
+		telemetry.SetGaugeWithLabels(
+			[]string{"tx", "msg", msg.Type()},
+			float32(sdk.TokensToConsensusPower(msg.Amount.Amount)),
+			[]metrics.Label{telemetry.NewLabel("denom", msg.Amount.Denom)},
+		)
+	}()
+
+	completionTimeBz := types.ModuleCdc.MustMarshalBinaryLengthPrefixed(ts)
 	ctx.EventManager().EmitEvents(sdk.Events{
 		sdk.NewEvent(
 			types.EventTypeRedelegate,
