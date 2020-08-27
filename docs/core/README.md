@@ -15,6 +15,7 @@ This repository contains reference documentation on the core conepts of the Cosm
 5. [Store](./store.md)
 6. [Encoding](./encoding.md)
 7. [Events](./events.md)
-8. [Object-Capabilities](./ocap.md)
+8. [Telemetry](./telemetry.md)
+9. [Object-Capabilities](./ocap.md)
 
 After reading about the core concepts, head on to the [Building Modules documentation](../building-modules/README.md) to learn more about the process of building modules. 
