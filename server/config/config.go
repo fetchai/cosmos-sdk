@@ -4,8 +4,9 @@ import (
 	"fmt"
 	"strings"
 
-	storetypes "github.com/cosmos/cosmos-sdk/store/types"
 	"github.com/spf13/viper"
+
+	storetypes "github.com/cosmos/cosmos-sdk/store/types"
 
 	"github.com/cosmos/cosmos-sdk/telemetry"
 	sdk "github.com/cosmos/cosmos-sdk/types"
