@@ -102,6 +102,11 @@ The following examples expose too much cardinality and may not even prove to be 
 | `abci_end_block`                | Duration of ABCI `EndBlock`                                                            | ms              | summary |
 | `begin_blocker`                 | Duration of `BeginBlock` for a given module                                            | ms              | summary |
 | `end_blocker`                   | Duration of `EndBlock` for a given module                                              | ms              | summary |
+| `staking_vals_bonded`           | Number of bonded validators                                                            | validators      | gauge   |
+| `staking_vals_jailed`           | Number of jailed validators                                                            | validators      | gauge   |
+| `staking_vals_producing_blocks` | Number of validators producing blocks                                                  | validators      | gauge   |
+| `staking_vals_unbonded`         | Number of unbonded validators                                                          | validators      | gauge   |
+| `staking_vals_unbonding`        | Number of unbonding validators                                                         | validators      | gauge   |
 | `store_iavl_get`                | Duration of an IAVL `Store#Get` call                                                   | ms              | summary |
 | `store_iavl_set`                | Duration of an IAVL `Store#Set` call                                                   | ms              | summary |
 | `store_iavl_has`                | Duration of an IAVL `Store#Has` call                                                   | ms              | summary |
