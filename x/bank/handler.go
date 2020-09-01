@@ -45,10 +45,18 @@ func handleMsgSend(ctx sdk.Context, k keeper.Keeper, msg types.MsgSend) (*sdk.Re
 
 	defer func() {
 		for _, a := range msg.Amount {
+			var amount int64
+			denom := a.Denom
+			if a.Denom == "stake" {
+				amount = sdk.TokensToConsensusPower(a.Amount)
+				denom = "consensus_power"
+			} else {
+				amount = a.Amount.Int64()
+			}
 			telemetry.SetGaugeWithLabels(
 				[]string{"tx", "msg", "send"},
-				float32(a.Amount.Int64()),
-				[]metrics.Label{telemetry.NewLabel("denom", a.Denom)},
+				float32(amount),
+				[]metrics.Label{telemetry.NewLabel("denom", denom)},
 			)
 		}
 	}()

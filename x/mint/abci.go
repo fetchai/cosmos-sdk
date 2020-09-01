@@ -38,7 +38,7 @@ func BeginBlocker(ctx sdk.Context, k Keeper) {
 		panic(err)
 	}
 
-	defer telemetry.ModuleSetGauge(types.ModuleName, float32(mintedCoin.Amount.Int64()), "minted_tokens")
+	defer telemetry.ModuleSetGauge(types.ModuleName, float32(sdk.TokensToConsensusPower(mintedCoin.Amount)), "minted_tokens")
 
 	ctx.EventManager().EmitEvent(
 		sdk.NewEvent(

@@ -61,10 +61,18 @@ func handleMsgWithdrawDelegatorReward(ctx sdk.Context, msg types.MsgWithdrawDele
 
 	defer func() {
 		for _, a := range amount {
+			var amountInt64 int64
+			denom := a.Denom
+			if a.Denom == "stake" {
+				amountInt64 = sdk.TokensToConsensusPower(a.Amount)
+				denom = "consensus_power"
+			} else {
+				amountInt64 = a.Amount.Int64()
+			}
 			telemetry.SetGaugeWithLabels(
 				[]string{"tx", "msg", "withdraw_reward"},
-				float32(a.Amount.Int64()),
-				[]metrics.Label{telemetry.NewLabel("denom", a.Denom)},
+				float32(amountInt64),
+				[]metrics.Label{telemetry.NewLabel("denom", denom)},
 			)
 		}
 	}()
@@ -88,10 +96,18 @@ func handleMsgWithdrawValidatorCommission(ctx sdk.Context, msg types.MsgWithdraw
 
 	defer func() {
 		for _, a := range amount {
+			var amountInt64 int64
+			denom := a.Denom
+			if a.Denom == "stake" {
+				amountInt64 = sdk.TokensToConsensusPower(a.Amount)
+				denom = "consensus_power"
+			} else {
+				amountInt64 = a.Amount.Int64()
+			}
 			telemetry.SetGaugeWithLabels(
 				[]string{"tx", "msg", "withdraw_commission"},
-				float32(a.Amount.Int64()),
-				[]metrics.Label{telemetry.NewLabel("denom", a.Denom)},
+				float32(amountInt64),
+				[]metrics.Label{telemetry.NewLabel("denom", denom)},
 			)
 		}
 	}()
