@@ -21,7 +21,7 @@ import (
 	"github.com/cosmos/cosmos-sdk/server"
 
 	// unnamed import of statik for swagger UI support
-	_ "github.com/cosmos/cosmos-sdk/client/lcd/statik"
+	_ "github.com/cosmos/cosmos-sdk/client/docs/statik"
 )
 
 const FlagAllowCORS = "cors"

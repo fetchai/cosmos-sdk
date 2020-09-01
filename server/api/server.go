@@ -20,7 +20,7 @@ import (
 	"github.com/cosmos/cosmos-sdk/types/rest"
 
 	// unnamed import of statik for swagger UI support
-	_ "github.com/cosmos/cosmos-sdk/client/lcd/statik"
+	_ "github.com/cosmos/cosmos-sdk/client/docs/statik"
 )
 
 // Server defines the server's API interface.
