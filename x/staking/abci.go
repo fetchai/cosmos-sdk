@@ -20,7 +20,30 @@ func BeginBlocker(ctx sdk.Context, req abci.RequestBeginBlock, k Keeper) {
 
 // Called every block, update validator set
 func EndBlocker(ctx sdk.Context, k Keeper) ([]abci.ValidatorUpdate, []abci.ValidatorUpdate) {
-	defer telemetry.ModuleMeasureSince(ModuleName, time.Now(), telemetry.MetricKeyEndBlocker)
+	defer func() {
+		telemetry.ModuleMeasureSince(ModuleName, time.Now(), telemetry.MetricKeyEndBlocker)
+		numBonded, numUnbonding, numUnbonded, numProducingBlocks, numJailed := k.GetValidatorSetMetrics(ctx)
+		telemetry.SetGauge(
+			float32(numBonded),
+			"staking", "vals_bonded",
+		)
+		telemetry.SetGauge(
+			float32(numUnbonding),
+			"staking", "vals_unbonding",
+		)
+		telemetry.SetGauge(
+			float32(numUnbonded),
+			"staking", "vals_unbonded",
+		)
+		telemetry.SetGauge(
+			float32(numProducingBlocks),
+			"staking", "vals_producing_blocks",
+		)
+		telemetry.SetGauge(
+			float32(numJailed),
+			"staking", "vals_jailed",
+		)
+	}()
 	// If dkg and validator updates are triggered at the same time then dkg validator updates
 	// must be computed first
 	dkgUpdates := k.DKGValidatorUpdates(ctx)

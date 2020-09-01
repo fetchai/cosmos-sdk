@@ -260,6 +260,38 @@ func (k Keeper) ValidatorsPowerStoreIterator(ctx sdk.Context) sdk.Iterator {
 	return sdk.KVStoreReversePrefixIterator(store, types.ValidatorsByPowerIndexKey)
 }
 
+// GetValidatorSetMetrics returns number of validators in the states bonded, unbonding, unbonded, producing blocks, and
+// jailed
+func (k Keeper) GetValidatorSetMetrics(ctx sdk.Context) (int64, int64, int64, int64, int64) {
+	store := ctx.KVStore(k.storeKey)
+	iterator := sdk.KVStorePrefixIterator(store, types.ValidatorsKey)
+	defer iterator.Close()
+
+	numBonded := int64(0)
+	numUnbonding := int64(0)
+	numUnbonded := int64(0)
+	numProducingBlocks := int64(0)
+	numJailed := int64(0)
+	for ; iterator.Valid(); iterator.Next() {
+		validator := types.MustUnmarshalValidator(k.cdc, iterator.Value())
+		if validator.IsBonded() {
+			numBonded++
+		} else if validator.IsUnbonding() {
+			numUnbonding++
+		} else if validator.IsUnbonded() {
+			numUnbonded++
+		}
+
+		if validator.IsProducingBlocks() {
+			numProducingBlocks++
+		}
+		if validator.IsJailed() {
+			numJailed++
+		}
+	}
+	return numBonded, numUnbonding, numUnbonded, numProducingBlocks, numJailed
+}
+
 //_______________________________________________________________________
 // Last Validator Index
 
