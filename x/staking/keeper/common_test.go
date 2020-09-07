@@ -33,7 +33,7 @@ func createTestInput() (*codec.LegacyAmino, *simapp.SimApp, sdk.Context) {
 		app.GetSubspace(types.ModuleName),
 	)
 
-	return cdc, app, ctx
+	return codec.NewLegacyAmino(), app, ctx
 }
 
 // intended to be used with require/assert:  require.True(ValEq(...))
