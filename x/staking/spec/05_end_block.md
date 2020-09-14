@@ -10,10 +10,11 @@ changes are specified to execute.
 ## Validator Set Changes
 
 The staking validator set is updated during this process by state transitions
-that run at the end of every block. As a part of this process any updated
-validators are also returned back to Tendermint for inclusion in the Tendermint
-validator set which is responsible for validating Tendermint messages at the
-consensus layer. Operations are as following:
+that run at the end of a block if designated to do so by the corresponding `BeginBlock` call.
+As a part of this process any updated DKG or consensus validators are also returned back to
+Tendermint for inclusion in the Tendermint validator set which is responsible for 
+running the DKG and validating Tendermint messages at the consensus layer. 
+Operations are as following:
 
 - the new validator set is taken as the top `params.MaxValidators` number of
   validators retrieved from the ValidatorsByPower index
@@ -25,7 +26,9 @@ consensus layer. Operations are as following:
 
 In all cases, any validators leaving or entering the bonded validator set or
 changing balances and staying within the bonded validator set incur an update
-message which is passed back to Tendermint.
+message which is passed back to Tendermint. DKG validator updates are saved in order 
+to update the consensus validators in the next aeon, after they have successfully completed 
+the DKG.
 
 ## Queues
 

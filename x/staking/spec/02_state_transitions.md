@@ -11,8 +11,9 @@ This document describes the state transition operations pertaining to:
 3. [Slashing](./02_state_transitions.md#slashing)
 
 ## Validators
-State transitions in validators are performed on every [`EndBlock`](./05_end_block.md#validator-set-changes) 
-in order to check for changes in the active `ValidatorSet`.
+State transitions in validators are performed on an [`EndBlock`](./05_end_block.md#validator-set-changes), if the 
+current block height is at the boundary between two aeons. This ensures that the active `ValidatorSet` remains the 
+same for at least one aeon and changes are triggered at the right time. 
 
 ### Unbonded to Bonded
 
@@ -53,6 +54,12 @@ this process may be also be reversed. the following operations occur:
 - set `Validator.Jailed` and update object
 - if jailed delete record from `ValidatorByPowerIndex`
 - if unjailed add record to `ValidatorByPowerIndex`
+
+## Producing Blocks
+
+A validator is `ProducingBlocks` if it is currently taking part in entropy generation and block 
+production. It is possible for validators to have status `Bonded` and not `ProducingBlocks` if it 
+has recently joined the validator pool and is only responsible for running the DKG.
 
 ## Delegations
 

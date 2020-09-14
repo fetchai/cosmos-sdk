@@ -90,6 +90,7 @@ type Validator struct {
     UnbondingCompletionTime time.Time       // if unbonding, min time for the validator to complete unbonding
     Commission              Commission      // commission parameters
     MinSelfDelegation       sdk.Int         // validator's self declared minimum self delegation
+    ProducingBlocks         bool            // whether validator is in producing blocks
 }
 
 type Commission struct {
