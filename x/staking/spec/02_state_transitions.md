@@ -12,7 +12,7 @@ This document describes the state transition operations pertaining to:
 
 ## Validators
 State transitions in validators are performed on an [`EndBlock`](./05_end_block.md#validator-set-changes), if the 
-current block height is are the boundary between two aeons. This ensures that the active `ValidatorSet` remains the 
+current block height is at the boundary between two aeons. This ensures that the active `ValidatorSet` remains the 
 same for at least one aeon and changes are triggered at the right time. 
 
 ### Unbonded to Bonded
