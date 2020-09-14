@@ -20,4 +20,4 @@ However, if the parameter `HistoricalEntries` has changed to a lower value there
 
 ## Triggering Validator Set Changes
 
-If the block height of the current block is equal to `NextAeonStart - 1` then DKG validator updates are triggered in the corresponding `EndBlock`.  For height equal to `NextAeonStart - 2` the consensus validator are updated. Delaying validator set updates to aeon boundaries can be turned off by  setting `delayValidatorUpdates` to false in the staking keeper. Validator updates are computed on every `EndBlock`.
+If the block height of the current block is equal to `NextAeonStart - 1` then DKG validator updates are triggered in the corresponding `EndBlock`.  For height equal to `NextAeonStart - 2` the consensus validators are updated. Delaying validator set updates to aeon boundaries can be turned off by setting `delayValidatorUpdates` to false in the staking keeper. Validator updates are computed on every `EndBlock`.
