@@ -54,16 +54,18 @@ func (k Keeper) DKGValidatorUpdates(ctx sdk.Context) []abci.ValidatorUpdate {
 // is triggered by BeginBlock,
 func (k Keeper) ValidatorUpdates(ctx sdk.Context) []abci.ValidatorUpdate {
 	store := ctx.KVStore(k.storeKey)
+	updateBytes := store.Get(validatorUpdatesKey)
+	updates := []abci.ValidatorUpdate{}
+	k.cdc.UnmarshalBinaryLengthPrefixed(updateBytes, &updates)
 	if len(store.Get(computeValidatorUpdateKey)) == 0 {
 		// Check mature items in queues every block, regardless of whether return validator updates
 		// or not, in order for items to be removed as soon as possible
 		k.RemoveMatureQueueItems(ctx)
-		return []abci.ValidatorUpdate{}
+		// Away from validator changeover points we only remove jailed validators from the consensus
+		// validator set
+		return k.CheckJailedValidators(ctx)
 	}
 	store.Set(computeValidatorUpdateKey, []byte{})
-	updateBytes := store.Get(validatorUpdatesKey)
-	updates := []abci.ValidatorUpdate{}
-	k.cdc.UnmarshalBinaryLengthPrefixed(updateBytes, &updates)
 	k.ExecuteUnbonding(ctx, updates)
 	k.RemoveMatureQueueItems(ctx)
 	return updates

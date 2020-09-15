@@ -195,6 +195,18 @@ func (k Keeper) RemoveMatureQueueItems(ctx sdk.Context) {
 	}
 }
 
+// CheckJailedValidators if any of the current consensus validators have been jailed, if they have then
+// update consensus validator to remove them
+func (k Keeper) CheckJailedValidators(ctx sdk.Context) []abci.ValidatorUpdate {
+	jailed := []abci.ValidatorUpdate{}
+	for _, val := range k.GetLastValidators(ctx) {
+		if val.IsJailed() {
+			jailed = append(jailed, val.ABCIValidatorUpdateZero())
+		}
+	}
+	return jailed
+}
+
 // Validator state transitions
 
 func (k Keeper) bondedToUnbonding(ctx sdk.Context, validator types.Validator) types.Validator {
