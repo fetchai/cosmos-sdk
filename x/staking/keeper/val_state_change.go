@@ -233,6 +233,13 @@ func (k Keeper) jailValidator(ctx sdk.Context, validator types.Validator) {
 	}
 
 	validator.Jailed = true
+
+	// Store jailed validators for updating consensus validators at EndBlock
+	validator.ProducingBlocks = false
+	jailedValidatorUpdates := k.getJailedValidatorUpdates(ctx)
+	jailedValidatorUpdates = append(jailedValidatorUpdates, validator.ABCIValidatorUpdateZero())
+	k.setJailedValidatorUpdates(ctx, jailedValidatorUpdates)
+
 	k.SetValidator(ctx, validator)
 	k.DeleteValidatorByPowerIndex(ctx, validator)
 }
