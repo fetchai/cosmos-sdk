@@ -13,7 +13,7 @@ import (
 // StakingKeeper defines the expected staking keeper (noalias)
 type StakingKeeper interface {
 	ApplyAndReturnValidatorSetUpdates(sdk.Context) (updates []abci.ValidatorUpdate)
-	ExecuteUnbonding(sdk.Context, []abci.ValidatorUpdate)
+	ConsensusFromDKGUpdates(sdk.Context, []abci.ValidatorUpdate) []abci.ValidatorUpdate
 }
 
 // AccountKeeper defines the expected account keeper (noalias)

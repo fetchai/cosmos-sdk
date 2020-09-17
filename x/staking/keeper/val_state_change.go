@@ -112,26 +112,33 @@ func (k Keeper) ApplyAndReturnValidatorSetUpdates(ctx sdk.Context) (updates []ab
 	return updates
 }
 
-// ExecuteUnbonding performs the validator unbonding operations for validators with 0 power
-// in valUpdates and turns on/off ProducingBlocks varible in validators
-func (k Keeper) ExecuteUnbonding(ctx sdk.Context, valUpdates []abci.ValidatorUpdate) {
+// ConsensusFromDKGUpdates performs the validator unbonding operations for validators with 0 power
+// in valUpdates and turns on/off ProducingBlocks varible in validators. Returns consensus updates
+// after removing validators which have been jailed
+func (k Keeper) ConsensusFromDKGUpdates(ctx sdk.Context, dkgUpdates []abci.ValidatorUpdate) []abci.ValidatorUpdate {
 
 	// Collect validators that should be unbonded from updates, and turn on block production
 	// for those bonded
+	consensusUpdates := dkgUpdates
 	amtFromBondedToNotBonded := sdk.ZeroInt()
-	for _, val := range valUpdates {
+	for i, val := range dkgUpdates {
 		pubKey, err := tmtypes.PB2TM.PubKey(val.PubKey)
 		if err != nil {
 			panic(fmt.Sprintf("Error converting public key %v in validator updates", val.PubKey))
 		}
 		validator := k.mustGetValidatorByConsAddr(ctx, sdk.GetConsAddress(pubKey))
 		if val.Power == 0 {
-			// Check that a unbonding transaction hasn't been submitted
-			if !validator.IsUnbonding() {
-				validator = k.bondedToUnbonding(ctx, validator)
-				amtFromBondedToNotBonded = amtFromBondedToNotBonded.Add(validator.GetTokens())
+			validator = k.bondedToUnbonding(ctx, validator)
+			amtFromBondedToNotBonded = amtFromBondedToNotBonded.Add(validator.GetTokens())
+
+			if validator.IsProducingBlocks() {
+				k.stopProducingBlocks(ctx, validator)
+			} else {
+				// If validator is to be removed (has power == 0) and is already not producing blocks
+				// then remove from updates as this validator has already been removed from consensus validators
+				// due to jailing
+				consensusUpdates = append(consensusUpdates[:i], consensusUpdates[i+1:]...)
 			}
-			k.stopProducingBlocks(ctx, validator)
 			k.DeleteLastValidatorPower(ctx, validator.GetOperator())
 		} else if !validator.IsProducingBlocks() {
 			k.startProducingBlocks(ctx, validator)
@@ -144,6 +151,8 @@ func (k Keeper) ExecuteUnbonding(ctx sdk.Context, valUpdates []abci.ValidatorUpd
 	if !amtFromBondedToNotBonded.IsZero() {
 		k.bondedTokensToNotBonded(ctx, amtFromBondedToNotBonded)
 	}
+
+	return consensusUpdates
 }
 
 // RemoveMatureQueueItems checks validator, unbonding and redelegation queues for mature items
@@ -234,22 +243,13 @@ func (k Keeper) jailValidator(ctx sdk.Context, validator types.Validator) {
 
 	validator.Jailed = true
 
-	// Store jailed validators for updating consensus validators at EndBlock
-	validator.ProducingBlocks = false
-	jailedValidatorUpdates := k.getJailedValidatorUpdates(ctx)
-	newJailedUpdate := validator.ABCIValidatorUpdateZero()
-	jailedValidatorUpdates = append(jailedValidatorUpdates, newJailedUpdate)
-	k.setJailedValidatorUpdates(ctx, jailedValidatorUpdates)
-
-	// Remove this validator if it is in next consensus validator updates as Tendermint
-	// panics trying to remove a non-existent validator
-	consensusUpdates := k.getConsensusValidatorUpdates(ctx)
-	for i, update := range consensusUpdates {
-		if update.PubKey.String() == newJailedUpdate.PubKey.String() && update.Power == 0 {
-			consensusUpdates = append(consensusUpdates[:i], consensusUpdates[i+1:]...)
-			k.setConsensusValidatorUpdates(ctx, consensusUpdates)
-			break
-		}
+	// Store jailed validators for updating consensus validators at EndBlock if
+	// staking updates are delayed (otherwise jailed validator updates are included
+	// in the staking update)
+	if k.delayValidatorUpdates {
+		jailedValidatorUpdates := k.getJailedValidatorUpdates(ctx)
+		jailedValidatorUpdates = append(jailedValidatorUpdates, validator.ABCIValidatorUpdateZero())
+		k.setJailedValidatorUpdates(ctx, jailedValidatorUpdates)
 	}
 
 	k.SetValidator(ctx, validator)

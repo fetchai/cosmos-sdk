@@ -334,7 +334,7 @@ func TestUndelegateSelfDelegationBelowMinSelfDelegation(t *testing.T) {
 
 	// end block
 	updates := keeper.ApplyAndReturnValidatorSetUpdates(ctx)
-	keeper.ExecuteUnbonding(ctx, updates)
+	updates = keeper.ConsensusFromDKGUpdates(ctx, updates)
 	require.Equal(t, 1, len(updates))
 
 	validator, found := keeper.GetValidator(ctx, addrVals[0])
@@ -406,7 +406,7 @@ func TestUndelegateFromUnbondingValidator(t *testing.T) {
 
 	// end block
 	updates := keeper.ApplyAndReturnValidatorSetUpdates(ctx)
-	keeper.ExecuteUnbonding(ctx, updates)
+	updates = keeper.ConsensusFromDKGUpdates(ctx, updates)
 	require.Equal(t, 1, len(updates))
 
 	validator, found := keeper.GetValidator(ctx, addrVals[0])
@@ -480,7 +480,7 @@ func TestUndelegateFromUnbondedValidator(t *testing.T) {
 
 	// end block
 	updates := keeper.ApplyAndReturnValidatorSetUpdates(ctx)
-	keeper.ExecuteUnbonding(ctx, updates)
+	updates = keeper.ConsensusFromDKGUpdates(ctx, updates)
 	require.Equal(t, 1, len(updates))
 
 	validator, found := keeper.GetValidator(ctx, addrVals[0])
@@ -563,7 +563,7 @@ func TestUnbondingAllDelegationFromValidator(t *testing.T) {
 
 	// end block
 	updates := keeper.ApplyAndReturnValidatorSetUpdates(ctx)
-	keeper.ExecuteUnbonding(ctx, updates)
+	updates = keeper.ConsensusFromDKGUpdates(ctx, updates)
 	require.Equal(t, 1, len(updates))
 
 	// unbond all the remaining delegation
@@ -793,7 +793,7 @@ func TestRedelegateSelfDelegation(t *testing.T) {
 
 	// end block
 	updates := keeper.ApplyAndReturnValidatorSetUpdates(ctx)
-	keeper.ExecuteUnbonding(ctx, updates)
+	updates = keeper.ConsensusFromDKGUpdates(ctx, updates)
 	require.Equal(t, 2, len(updates))
 
 	validator, found := keeper.GetValidator(ctx, addrVals[0])
@@ -852,7 +852,7 @@ func TestRedelegateFromUnbondingValidator(t *testing.T) {
 
 	// end block
 	updates := keeper.ApplyAndReturnValidatorSetUpdates(ctx)
-	keeper.ExecuteUnbonding(ctx, updates)
+	updates = keeper.ConsensusFromDKGUpdates(ctx, updates)
 	require.Equal(t, 1, len(updates))
 
 	validator, found := keeper.GetValidator(ctx, addrVals[0])
@@ -929,7 +929,7 @@ func TestRedelegateFromUnbondedValidator(t *testing.T) {
 
 	// end block
 	updates := keeper.ApplyAndReturnValidatorSetUpdates(ctx)
-	keeper.ExecuteUnbonding(ctx, updates)
+	updates = keeper.ConsensusFromDKGUpdates(ctx, updates)
 	require.Equal(t, 1, len(updates))
 
 	validator, found := keeper.GetValidator(ctx, addrVals[0])

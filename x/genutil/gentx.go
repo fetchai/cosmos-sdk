@@ -103,6 +103,6 @@ func DeliverGenTxs(ctx sdk.Context, cdc *codec.Codec, genTxs []json.RawMessage,
 		}
 	}
 	updates := stakingKeeper.ApplyAndReturnValidatorSetUpdates(ctx)
-	stakingKeeper.ExecuteUnbonding(ctx, updates)
+	updates = stakingKeeper.ConsensusFromDKGUpdates(ctx, updates)
 	return updates
 }
