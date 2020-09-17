@@ -237,8 +237,20 @@ func (k Keeper) jailValidator(ctx sdk.Context, validator types.Validator) {
 	// Store jailed validators for updating consensus validators at EndBlock
 	validator.ProducingBlocks = false
 	jailedValidatorUpdates := k.getJailedValidatorUpdates(ctx)
-	jailedValidatorUpdates = append(jailedValidatorUpdates, validator.ABCIValidatorUpdateZero())
+	newJailedUpdate := validator.ABCIValidatorUpdateZero()
+	jailedValidatorUpdates = append(jailedValidatorUpdates, newJailedUpdate)
 	k.setJailedValidatorUpdates(ctx, jailedValidatorUpdates)
+
+	// Remove this validator if it is in next consensus validator updates as Tendermint
+	// panics trying to remove a non-existent validator
+	consensusUpdates := k.getConsensusValidatorUpdates(ctx)
+	for i, update := range consensusUpdates {
+		if update.PubKey.String() == newJailedUpdate.PubKey.String() && update.Power == 0 {
+			consensusUpdates = append(consensusUpdates[:i], consensusUpdates[i+1:]...)
+			k.setConsensusValidatorUpdates(ctx, consensusUpdates)
+			break
+		}
+	}
 
 	k.SetValidator(ctx, validator)
 	k.DeleteValidatorByPowerIndex(ctx, validator)

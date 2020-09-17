@@ -47,17 +47,15 @@ func (k Keeper) DKGValidatorUpdates(ctx sdk.Context) []abci.ValidatorUpdate {
 	// ApplyAndReturnValidatorSetUpdates and then Unbonding -> Unbonded during
 	// UnbondAllMatureValidatorQueue).
 	updates := k.ApplyAndReturnValidatorSetUpdates(ctx)
-	store.Set(validatorUpdatesKey, k.cdc.MustMarshalBinaryLengthPrefixed(updates))
+	k.setConsensusValidatorUpdates(ctx, updates)
 	return updates
 }
 
 // ValidatorUpdates retrieve last saved updates from store when non-trivial update
 // is triggered by BeginBlock,
 func (k Keeper) ValidatorUpdates(ctx sdk.Context) []abci.ValidatorUpdate {
+	updates := k.getConsensusValidatorUpdates(ctx)
 	store := ctx.KVStore(k.storeKey)
-	updateBytes := store.Get(validatorUpdatesKey)
-	updates := []abci.ValidatorUpdate{}
-	k.cdc.UnmarshalBinaryLengthPrefixed(updateBytes, &updates)
 	if len(store.Get(computeValidatorUpdateKey)) == 0 {
 		// Check mature items in queues every block, regardless of whether return validator updates
 		// or not, in order for items to be removed as soon as possible
@@ -70,6 +68,19 @@ func (k Keeper) ValidatorUpdates(ctx sdk.Context) []abci.ValidatorUpdate {
 	k.ExecuteUnbonding(ctx, updates)
 	k.RemoveMatureQueueItems(ctx)
 	return updates
+}
+
+func (k Keeper) getConsensusValidatorUpdates(ctx sdk.Context) []abci.ValidatorUpdate {
+	store := ctx.KVStore(k.storeKey)
+	updateBytes := store.Get(validatorUpdatesKey)
+	updates := []abci.ValidatorUpdate{}
+	k.cdc.UnmarshalBinaryLengthPrefixed(updateBytes, &updates)
+	return updates
+}
+
+func (k Keeper) setConsensusValidatorUpdates(ctx sdk.Context, update []abci.ValidatorUpdate) {
+	store := ctx.KVStore(k.storeKey)
+	store.Set(validatorUpdatesKey, k.cdc.MustMarshalBinaryLengthPrefixed(update))
 }
 
 // Get validators which have been jailed since last block and then reset the stored updates
