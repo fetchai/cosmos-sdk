@@ -34,7 +34,7 @@ func InitGenesis(ctx sdk.Context, keeper Keeper, accountKeeper types.AccountKeep
 
 	for _, validator := range data.Validators {
 		// At genesis set all validators to producing blocks. The excess one will be removed
-		// in the ExecuteUnbonding call below
+		// in the ConsensusFromDKGUpdates call below
 		validator.ProducingBlocks = true
 		keeper.SetValidator(ctx, validator)
 
@@ -134,7 +134,7 @@ func InitGenesis(ctx sdk.Context, keeper Keeper, accountKeeper types.AccountKeep
 		}
 	} else {
 		res = keeper.ApplyAndReturnValidatorSetUpdates(ctx)
-		keeper.ExecuteUnbonding(ctx, res)
+		res = keeper.ConsensusFromDKGUpdates(ctx, res)
 	}
 
 	return res

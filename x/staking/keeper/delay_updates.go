@@ -1,7 +1,10 @@
 package keeper
 
 import (
+	"fmt"
+
 	abci "github.com/tendermint/tendermint/abci/types"
+	tmtypes "github.com/tendermint/tendermint/types"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
 )
@@ -47,35 +50,57 @@ func (k Keeper) DKGValidatorUpdates(ctx sdk.Context) []abci.ValidatorUpdate {
 	// ApplyAndReturnValidatorSetUpdates and then Unbonding -> Unbonded during
 	// UnbondAllMatureValidatorQueue).
 	updates := k.ApplyAndReturnValidatorSetUpdates(ctx)
-	store.Set(validatorUpdatesKey, k.cdc.MustMarshalBinaryLengthPrefixed(updates))
+	k.setDKGValidatorUpdates(ctx, updates)
 	return updates
 }
 
 // ValidatorUpdates retrieve last saved updates from store when non-trivial update
 // is triggered by BeginBlock,
 func (k Keeper) ValidatorUpdates(ctx sdk.Context) []abci.ValidatorUpdate {
+	// Away from validator changeover points we only remove jailed validators from the consensus
+	// validator set
+	consensusUpdates := k.checkJailedValidatorUpdates(ctx)
+	if len(k.getComputeValUpdateKey(ctx)) != 0 {
+		dkgUpdates := k.getDKGValidatorUpdates(ctx)
+		consensusUpdates = k.ConsensusFromDKGUpdates(ctx, dkgUpdates)
+	}
+	k.RemoveMatureQueueItems(ctx)
+	return consensusUpdates
+}
+
+func (k Keeper) getComputeValUpdateKey(ctx sdk.Context) []byte {
+	store := ctx.KVStore(k.storeKey)
+	return store.Get(computeValidatorUpdateKey)
+}
+
+func (k Keeper) getDKGValidatorUpdates(ctx sdk.Context) []abci.ValidatorUpdate {
 	store := ctx.KVStore(k.storeKey)
 	updateBytes := store.Get(validatorUpdatesKey)
 	updates := []abci.ValidatorUpdate{}
 	k.cdc.UnmarshalBinaryLengthPrefixed(updateBytes, &updates)
-	if len(store.Get(computeValidatorUpdateKey)) == 0 {
-		// Check mature items in queues every block, regardless of whether return validator updates
-		// or not, in order for items to be removed as soon as possible
-		k.RemoveMatureQueueItems(ctx)
-		// Away from validator changeover points we only remove jailed validators from the consensus
-		// validator set
-		return k.checkJailedValidatorUpdates(ctx)
-	}
 	store.Set(computeValidatorUpdateKey, []byte{})
-	k.ExecuteUnbonding(ctx, updates)
-	k.RemoveMatureQueueItems(ctx)
 	return updates
+}
+
+func (k Keeper) setDKGValidatorUpdates(ctx sdk.Context, update []abci.ValidatorUpdate) {
+	store := ctx.KVStore(k.storeKey)
+	store.Set(validatorUpdatesKey, k.cdc.MustMarshalBinaryLengthPrefixed(update))
 }
 
 // Get validators which have been jailed since last block and then reset the stored updates
 func (k Keeper) checkJailedValidatorUpdates(ctx sdk.Context) []abci.ValidatorUpdate {
 	updates := k.getJailedValidatorUpdates(ctx)
 	k.setJailedValidatorUpdates(ctx, []abci.ValidatorUpdate{})
+	// Turn off producing blocks for jailed validators
+	for _, val := range updates {
+		pubKey, err := tmtypes.PB2TM.PubKey(val.PubKey)
+		if err != nil {
+			panic(fmt.Sprintf("Error converting public key %v in validator updates", val.PubKey))
+		}
+		validator := k.mustGetValidatorByConsAddr(ctx, sdk.GetConsAddress(pubKey))
+		k.stopProducingBlocks(ctx, validator)
+	}
+
 	return updates
 }
 

@@ -268,7 +268,7 @@ func TestingUpdateValidator(keeper Keeper, ctx sdk.Context, validator types.Vali
 	keeper.SetValidatorByPowerIndex(ctx, validator)
 	if apply {
 		updates := keeper.ApplyAndReturnValidatorSetUpdates(ctx)
-		keeper.ExecuteUnbonding(ctx, updates)
+		keeper.ConsensusFromDKGUpdates(ctx, updates)
 		validator, found := keeper.GetValidator(ctx, validator.OperatorAddress)
 		if !found {
 			panic("validator expected but not found")
@@ -277,7 +277,7 @@ func TestingUpdateValidator(keeper Keeper, ctx sdk.Context, validator types.Vali
 	}
 	cachectx, _ := ctx.CacheContext()
 	updates := keeper.ApplyAndReturnValidatorSetUpdates(cachectx)
-	keeper.ExecuteUnbonding(cachectx, updates)
+	keeper.ConsensusFromDKGUpdates(cachectx, updates)
 	validator, found := keeper.GetValidator(cachectx, validator.OperatorAddress)
 	if !found {
 		panic("validator expected but not found")

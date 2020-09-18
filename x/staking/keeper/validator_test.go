@@ -35,7 +35,7 @@ func TestSetValidator(t *testing.T) {
 
 	// ensure update
 	updates := keeper.ApplyAndReturnValidatorSetUpdates(ctx)
-	keeper.ExecuteUnbonding(ctx, updates)
+	updates = keeper.ConsensusFromDKGUpdates(ctx, updates)
 	validator, found := keeper.GetValidator(ctx, valAddr)
 	require.True(t, found)
 	require.Equal(t, 1, len(updates))
@@ -190,7 +190,7 @@ func TestSlashToZeroPowerRemoved(t *testing.T) {
 	keeper.Slash(ctx, consAddr0, 0, 100, sdk.OneDec())
 	// apply TM updates
 	updates := keeper.ApplyAndReturnValidatorSetUpdates(ctx)
-	keeper.ExecuteUnbonding(ctx, updates)
+	updates = keeper.ConsensusFromDKGUpdates(ctx, updates)
 	// validator should be unbonding
 	validator, _ = keeper.GetValidator(ctx, addrVals[0])
 	require.Equal(t, validator.GetStatus(), sdk.Unbonding)
