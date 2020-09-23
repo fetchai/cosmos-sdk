@@ -23,6 +23,8 @@ type Keeper interface {
 
 	DelegateCoins(ctx sdk.Context, delegatorAddr, moduleAccAddr sdk.AccAddress, amt sdk.Coins) error
 	UndelegateCoins(ctx sdk.Context, moduleAccAddr, delegatorAddr sdk.AccAddress, amt sdk.Coins) error
+
+	BondDenom(ctx sdk.Context) string
 }
 
 // BaseKeeper manages transfers between accounts. It implements the Keeper interface.
@@ -31,6 +33,8 @@ type BaseKeeper struct {
 
 	ak         types.AccountKeeper
 	paramSpace params.Subspace
+
+	stakingDenomFunc func(sdk.Context) string
 }
 
 // NewBaseKeeper returns a new BaseKeeper
@@ -129,6 +133,20 @@ func (keeper BaseKeeper) UndelegateCoins(ctx sdk.Context, moduleAccAddr, delegat
 
 	keeper.ak.SetAccount(ctx, delegatorAcc)
 	return nil
+}
+
+// SetBondDenom sets function for getting denomination used for staking
+func (keeper BaseKeeper) SetBondDenomFunc(sdFunc func(sdk.Context) string) BaseKeeper {
+	keeper.stakingDenomFunc = sdFunc
+	return keeper
+}
+
+// BondDenom returns denomination used for staking
+func (keeper BaseKeeper) BondDenom(ctx sdk.Context) string {
+	if keeper.stakingDenomFunc == nil {
+		return sdk.DefaultBondDenom
+	}
+	return keeper.stakingDenomFunc(ctx)
 }
 
 // SendKeeper defines a module interface that facilitates the transfer of coins
