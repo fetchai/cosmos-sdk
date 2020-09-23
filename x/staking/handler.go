@@ -192,7 +192,7 @@ func handleMsgDelegate(ctx sdk.Context, msg types.MsgDelegate, k keeper.Keeper) 
 		telemetry.SetGaugeWithLabels(
 			[]string{"tx", "msg", msg.Type()},
 			float32(sdk.TokensToConsensusPower(msg.Amount.Amount)),
-			[]metrics.Label{telemetry.NewLabel("denom", msg.Amount.Denom)},
+			[]metrics.Label{telemetry.NewLabel("denom", "consensus_power")},
 		)
 	}()
 
@@ -239,7 +239,7 @@ func handleMsgUndelegate(ctx sdk.Context, msg types.MsgUndelegate, k keeper.Keep
 		telemetry.SetGaugeWithLabels(
 			[]string{"tx", "msg", msg.Type()},
 			float32(sdk.TokensToConsensusPower(msg.Amount.Amount)),
-			[]metrics.Label{telemetry.NewLabel("denom", msg.Amount.Denom)},
+			[]metrics.Label{telemetry.NewLabel("denom", "consensus_power")},
 		)
 	}()
 
@@ -290,7 +290,7 @@ func handleMsgBeginRedelegate(ctx sdk.Context, msg types.MsgBeginRedelegate, k k
 		telemetry.SetGaugeWithLabels(
 			[]string{"tx", "msg", msg.Type()},
 			float32(sdk.TokensToConsensusPower(msg.Amount.Amount)),
-			[]metrics.Label{telemetry.NewLabel("denom", msg.Amount.Denom)},
+			[]metrics.Label{telemetry.NewLabel("denom", "consensus_power")},
 		)
 	}()
 

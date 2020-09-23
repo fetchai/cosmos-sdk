@@ -47,11 +47,15 @@ func handleMsgSend(ctx sdk.Context, k keeper.Keeper, msg types.MsgSend) (*sdk.Re
 		for _, a := range msg.Amount {
 			var amount int64
 			denom := a.Denom
-			if a.Denom == "stake" {
+			if a.Denom == k.BondDenom(ctx) {
 				amount = sdk.TokensToConsensusPower(a.Amount)
 				denom = "consensus_power"
-			} else {
+			} else if a.Amount.IsInt64() {
 				amount = a.Amount.Int64()
+			} else {
+				// Count transactions which have amounts that overflow
+				amount = 1
+				denom = "ErrOverflow"
 			}
 			telemetry.SetGaugeWithLabels(
 				[]string{"tx", "msg", "send"},

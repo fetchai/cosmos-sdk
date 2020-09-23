@@ -63,11 +63,15 @@ func handleMsgWithdrawDelegatorReward(ctx sdk.Context, msg types.MsgWithdrawDele
 		for _, a := range amount {
 			var amountInt64 int64
 			denom := a.Denom
-			if a.Denom == "stake" {
+			if a.Denom == k.BondDenom(ctx) {
 				amountInt64 = sdk.TokensToConsensusPower(a.Amount)
 				denom = "consensus_power"
-			} else {
+			} else if a.Amount.IsInt64() {
 				amountInt64 = a.Amount.Int64()
+			} else {
+				// Count transactions which have amounts that overflow
+				amountInt64 = 1
+				denom = "ErrOverflow"
 			}
 			telemetry.SetGaugeWithLabels(
 				[]string{"tx", "msg", "withdraw_reward"},
@@ -98,11 +102,15 @@ func handleMsgWithdrawValidatorCommission(ctx sdk.Context, msg types.MsgWithdraw
 		for _, a := range amount {
 			var amountInt64 int64
 			denom := a.Denom
-			if a.Denom == "stake" {
+			if a.Denom == k.BondDenom(ctx) {
 				amountInt64 = sdk.TokensToConsensusPower(a.Amount)
 				denom = "consensus_power"
-			} else {
+			} else if a.Amount.IsInt64() {
 				amountInt64 = a.Amount.Int64()
+			} else {
+				// Count transactions which have amounts that overflow
+				amountInt64 = 1
+				denom = "ErrOverflow"
 			}
 			telemetry.SetGaugeWithLabels(
 				[]string{"tx", "msg", "withdraw_commission"},
