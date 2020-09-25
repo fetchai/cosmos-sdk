@@ -59,7 +59,7 @@ $ <appcli> query slashing signing-info fetchvalconspub1zcjduepqfhvwcmt7p06fvdgex
 			}
 
 			consAddr := sdk.ConsAddress(pk.Address())
-			params := &types.QuerySigningInfoRequest{ConsAddress: consAddr}
+			params := &types.QuerySigningInfoRequest{ConsAddress: consAddr.String()}
 			res, err := queryClient.SigningInfo(context.Background(), params)
 			if err != nil {
 				return err
