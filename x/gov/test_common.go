@@ -23,6 +23,7 @@ import (
 	"github.com/cosmos/cosmos-sdk/x/gov/types"
 	"github.com/cosmos/cosmos-sdk/x/mock"
 	"github.com/cosmos/cosmos-sdk/x/staking"
+	stakingTypes "github.com/cosmos/cosmos-sdk/x/staking/types"
 	"github.com/cosmos/cosmos-sdk/x/supply"
 	supplyexported "github.com/cosmos/cosmos-sdk/x/supply/exported"
 )
@@ -229,7 +230,7 @@ func createValidators(t *testing.T, stakingHandler sdk.Handler, ctx sdk.Context,
 		valTokens := sdk.TokensFromConsensusPower(powerAmt[i])
 		valCreateMsg := staking.NewMsgCreateValidator(
 			addrs[i], pubkeys[i], sdk.NewCoin(sdk.DefaultBondDenom, valTokens),
-			keep.TestDescription, keep.TestCommissionRates, sdk.OneInt(),
+			keep.TestDescription, keep.TestCommissionRates, stakingTypes.DefaultMinSelfDelegation,
 		)
 
 		res, err := stakingHandler(ctx, valCreateMsg)

@@ -30,6 +30,12 @@ const (
 	DefaultHistoricalEntries uint16 = 0
 )
 
+var (
+	// DefaultMinSelfDelegation is the minimum allowed self delegation when creating
+	// a new validator. At the moment set equal to 1 consensus power
+	DefaultMinSelfDelegation = sdk.PowerReduction
+)
+
 // nolint - Keys for parameter access
 var (
 	KeyUnbondingTime     = []byte("UnbondingTime")
@@ -37,22 +43,24 @@ var (
 	KeyMaxEntries        = []byte("KeyMaxEntries")
 	KeyBondDenom         = []byte("BondDenom")
 	KeyHistoricalEntries = []byte("HistoricalEntries")
+	KeyMinSelfDelegation = []byte("MinSelfDelegation")
 )
 
 var _ params.ParamSet = (*Params)(nil)
 
 // Params defines the high level settings for staking
 type Params struct {
-	UnbondingTime     time.Duration `json:"unbonding_time" yaml:"unbonding_time"`         // time duration of unbonding
-	MaxValidators     uint16        `json:"max_validators" yaml:"max_validators"`         // maximum number of validators (max uint16 = 65535)
-	MaxEntries        uint16        `json:"max_entries" yaml:"max_entries"`               // max entries for either unbonding delegation or redelegation (per pair/trio)
-	HistoricalEntries uint16        `json:"historical_entries" yaml:"historical_entries"` // number of historical entries to persist
-	BondDenom         string        `json:"bond_denom" yaml:"bond_denom"`                 // bondable coin denomination
+	UnbondingTime     time.Duration `json:"unbonding_time" yaml:"unbonding_time"`           // time duration of unbonding
+	MaxValidators     uint16        `json:"max_validators" yaml:"max_validators"`           // maximum number of validators (max uint16 = 65535)
+	MaxEntries        uint16        `json:"max_entries" yaml:"max_entries"`                 // max entries for either unbonding delegation or redelegation (per pair/trio)
+	HistoricalEntries uint16        `json:"historical_entries" yaml:"historical_entries"`   // number of historical entries to persist
+	BondDenom         string        `json:"bond_denom" yaml:"bond_denom"`                   // bondable coin denomination
+	MinSelfDelegation sdk.Int       `json:"min_self_delegation" yaml:"min_self_delegation"` // min self delegation for validators
 }
 
 // NewParams creates a new Params instance
 func NewParams(unbondingTime time.Duration, maxValidators, maxEntries, historicalEntries uint16,
-	bondDenom string) Params {
+	bondDenom string, minSelfDelegation sdk.Int) Params {
 
 	return Params{
 		UnbondingTime:     unbondingTime,
@@ -60,6 +68,7 @@ func NewParams(unbondingTime time.Duration, maxValidators, maxEntries, historica
 		MaxEntries:        maxEntries,
 		HistoricalEntries: historicalEntries,
 		BondDenom:         bondDenom,
+		MinSelfDelegation: minSelfDelegation,
 	}
 }
 
@@ -71,6 +80,7 @@ func (p *Params) ParamSetPairs() params.ParamSetPairs {
 		params.NewParamSetPair(KeyMaxEntries, &p.MaxEntries, validateMaxEntries),
 		params.NewParamSetPair(KeyHistoricalEntries, &p.HistoricalEntries, validateHistoricalEntries),
 		params.NewParamSetPair(KeyBondDenom, &p.BondDenom, validateBondDenom),
+		params.NewParamSetPair(KeyMinSelfDelegation, &p.MinSelfDelegation, validateMinSelfDelegation),
 	}
 }
 
@@ -84,7 +94,8 @@ func (p Params) Equal(p2 Params) bool {
 
 // DefaultParams returns a default set of parameters.
 func DefaultParams() Params {
-	return NewParams(DefaultUnbondingTime, DefaultMaxValidators, DefaultMaxEntries, DefaultHistoricalEntries, sdk.DefaultBondDenom)
+	return NewParams(DefaultUnbondingTime, DefaultMaxValidators, DefaultMaxEntries, DefaultHistoricalEntries, sdk.DefaultBondDenom,
+		DefaultMinSelfDelegation)
 }
 
 // String returns a human readable string representation of the parameters.
@@ -94,8 +105,9 @@ func (p Params) String() string {
   Max Validators:     %d
   Max Entries:        %d
   Historical Entries: %d
-  Bonded Coin Denom:  %s`, p.UnbondingTime,
-		p.MaxValidators, p.MaxEntries, p.HistoricalEntries, p.BondDenom)
+  Bonded Coin Denom:  %s
+  MinSelfDelegation:  %s`, p.UnbondingTime,
+		p.MaxValidators, p.MaxEntries, p.HistoricalEntries, p.BondDenom, p.MinSelfDelegation)
 }
 
 // unmarshal the current staking params value from store key or panic
@@ -128,6 +140,9 @@ func (p Params) Validate() error {
 		return err
 	}
 	if err := validateBondDenom(p.BondDenom); err != nil {
+		return err
+	}
+	if err := validateMinSelfDelegation(p.MinSelfDelegation); err != nil {
 		return err
 	}
 
@@ -193,6 +208,19 @@ func validateBondDenom(i interface{}) error {
 	}
 	if err := sdk.ValidateDenom(v); err != nil {
 		return err
+	}
+
+	return nil
+}
+
+func validateMinSelfDelegation(i interface{}) error {
+	v, ok := i.(sdk.Int)
+	if !ok {
+		return fmt.Errorf("invalid parameter type: %T", i)
+	}
+
+	if v.LT(sdk.ZeroInt()) {
+		return fmt.Errorf("min self delegation cannot be less than 0: %s", v)
 	}
 
 	return nil
