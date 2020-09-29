@@ -96,6 +96,7 @@ var (
 	ErrSelfDelegationBelowMinimum      = types.ErrSelfDelegationBelowMinimum
 	ErrMinSelfDelegationInvalid        = types.ErrMinSelfDelegationInvalid
 	ErrMinSelfDelegationDecreased      = types.ErrMinSelfDelegationDecreased
+	ErrMinSelfDelegationInsufficient   = types.ErrMinSelfDelegationInsufficient
 	ErrEmptyDelegatorAddr              = types.ErrEmptyDelegatorAddr
 	ErrBadDenom                        = types.ErrBadDenom
 	ErrBadDelegationAddr               = types.ErrBadDelegationAddr

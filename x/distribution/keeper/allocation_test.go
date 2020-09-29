@@ -8,6 +8,7 @@ import (
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/x/staking"
+	stakingTypes "github.com/cosmos/cosmos-sdk/x/staking/types"
 )
 
 func TestAllocateTokensToValidatorWithCommission(t *testing.T) {
@@ -18,7 +19,7 @@ func TestAllocateTokensToValidatorWithCommission(t *testing.T) {
 	commission := staking.NewCommissionRates(sdk.NewDecWithPrec(5, 1), sdk.NewDecWithPrec(5, 1), sdk.NewDec(0))
 	msg := staking.NewMsgCreateValidator(
 		valOpAddr1, valConsPk1,
-		sdk.NewCoin(sdk.DefaultBondDenom, sdk.NewInt(100)), staking.Description{}, commission, sdk.OneInt(),
+		sdk.NewCoin(sdk.DefaultBondDenom, sdk.NewInt(100)), staking.Description{}, commission, stakingTypes.DefaultMinSelfDelegation,
 	)
 
 	res, err := sh(ctx, msg)
@@ -50,7 +51,7 @@ func TestAllocateTokensToManyValidators(t *testing.T) {
 	// create validator with 50% commission
 	commission := staking.NewCommissionRates(sdk.NewDecWithPrec(5, 1), sdk.NewDecWithPrec(5, 1), sdk.NewDec(0))
 	msg := staking.NewMsgCreateValidator(valOpAddr1, valConsPk1,
-		sdk.NewCoin(sdk.DefaultBondDenom, sdk.NewInt(100)), staking.Description{}, commission, sdk.OneInt())
+		sdk.NewCoin(sdk.DefaultBondDenom, sdk.NewInt(100)), staking.Description{}, commission, stakingTypes.DefaultMinSelfDelegation)
 
 	res, err := sh(ctx, msg)
 	require.NoError(t, err)
@@ -59,7 +60,7 @@ func TestAllocateTokensToManyValidators(t *testing.T) {
 	// create second validator with 0% commission
 	commission = staking.NewCommissionRates(sdk.NewDec(0), sdk.NewDec(0), sdk.NewDec(0))
 	msg = staking.NewMsgCreateValidator(valOpAddr2, valConsPk2,
-		sdk.NewCoin(sdk.DefaultBondDenom, sdk.NewInt(100)), staking.Description{}, commission, sdk.OneInt())
+		sdk.NewCoin(sdk.DefaultBondDenom, sdk.NewInt(100)), staking.Description{}, commission, stakingTypes.DefaultMinSelfDelegation)
 
 	res, err = sh(ctx, msg)
 	require.NoError(t, err)
@@ -127,7 +128,7 @@ func TestAllocateTokensTruncation(t *testing.T) {
 	// create validator with 10% commission
 	commission := staking.NewCommissionRates(sdk.NewDecWithPrec(1, 1), sdk.NewDecWithPrec(1, 1), sdk.NewDec(0))
 	msg := staking.NewMsgCreateValidator(valOpAddr1, valConsPk1,
-		sdk.NewCoin(sdk.DefaultBondDenom, sdk.NewInt(110)), staking.Description{}, commission, sdk.OneInt())
+		sdk.NewCoin(sdk.DefaultBondDenom, sdk.NewInt(110)), staking.Description{}, commission, stakingTypes.DefaultMinSelfDelegation)
 	res, err := sh(ctx, msg)
 	require.NoError(t, err)
 	require.NotNil(t, res)
@@ -135,7 +136,7 @@ func TestAllocateTokensTruncation(t *testing.T) {
 	// create second validator with 10% commission
 	commission = staking.NewCommissionRates(sdk.NewDecWithPrec(1, 1), sdk.NewDecWithPrec(1, 1), sdk.NewDec(0))
 	msg = staking.NewMsgCreateValidator(valOpAddr2, valConsPk2,
-		sdk.NewCoin(sdk.DefaultBondDenom, sdk.NewInt(100)), staking.Description{}, commission, sdk.OneInt())
+		sdk.NewCoin(sdk.DefaultBondDenom, sdk.NewInt(100)), staking.Description{}, commission, stakingTypes.DefaultMinSelfDelegation)
 	res, err = sh(ctx, msg)
 	require.NoError(t, err)
 	require.NotNil(t, res)
@@ -143,7 +144,7 @@ func TestAllocateTokensTruncation(t *testing.T) {
 	// create third validator with 10% commission
 	commission = staking.NewCommissionRates(sdk.NewDecWithPrec(1, 1), sdk.NewDecWithPrec(1, 1), sdk.NewDec(0))
 	msg = staking.NewMsgCreateValidator(valOpAddr3, valConsPk3,
-		sdk.NewCoin(sdk.DefaultBondDenom, sdk.NewInt(100)), staking.Description{}, commission, sdk.OneInt())
+		sdk.NewCoin(sdk.DefaultBondDenom, sdk.NewInt(100)), staking.Description{}, commission, stakingTypes.DefaultMinSelfDelegation)
 	res, err = sh(ctx, msg)
 	require.NoError(t, err)
 	require.NotNil(t, res)

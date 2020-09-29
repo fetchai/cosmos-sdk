@@ -358,7 +358,7 @@ func TestEditValidatorDecreaseMinSelfDelegation(t *testing.T) {
 
 	// create validator
 	msgCreateValidator := NewTestMsgCreateValidator(validatorAddr, keep.PKs[0], initBond)
-	msgCreateValidator.MinSelfDelegation = sdk.NewInt(2)
+	msgCreateValidator.MinSelfDelegation = types.DefaultMinSelfDelegation.Mul(sdk.NewInt(2))
 	res, err := handleMsgCreateValidator(ctx, msgCreateValidator, keeper)
 	require.NoError(t, err)
 	require.NotNil(t, res)
@@ -391,7 +391,7 @@ func TestEditValidatorIncreaseMinSelfDelegationBeyondCurrentBond(t *testing.T) {
 
 	// create validator
 	msgCreateValidator := NewTestMsgCreateValidator(validatorAddr, keep.PKs[0], initBond)
-	msgCreateValidator.MinSelfDelegation = sdk.NewInt(2)
+	msgCreateValidator.MinSelfDelegation = types.DefaultMinSelfDelegation.Mul(sdk.NewInt(2))
 	res, err := handleMsgCreateValidator(ctx, msgCreateValidator, keeper)
 	require.NoError(t, err)
 	require.NotNil(t, res)
@@ -1398,17 +1398,17 @@ func TestInvalidCoinDenom(t *testing.T) {
 
 	commission := types.NewCommissionRates(sdk.OneDec(), sdk.OneDec(), sdk.ZeroDec())
 
-	msgCreate := types.NewMsgCreateValidator(valA, keep.PKs[0], invalidCoin, Description{}, commission, sdk.OneInt())
+	msgCreate := types.NewMsgCreateValidator(valA, keep.PKs[0], invalidCoin, Description{}, commission, types.DefaultMinSelfDelegation)
 	res, err := handleMsgCreateValidator(ctx, msgCreate, keeper)
 	require.Error(t, err)
 	require.Nil(t, res)
 
-	msgCreate = types.NewMsgCreateValidator(valA, keep.PKs[0], validCoin, Description{}, commission, sdk.OneInt())
+	msgCreate = types.NewMsgCreateValidator(valA, keep.PKs[0], validCoin, Description{}, commission, types.DefaultMinSelfDelegation)
 	res, err = handleMsgCreateValidator(ctx, msgCreate, keeper)
 	require.NoError(t, err)
 	require.NotNil(t, res)
 
-	msgCreate = types.NewMsgCreateValidator(valB, keep.PKs[1], validCoin, Description{}, commission, sdk.OneInt())
+	msgCreate = types.NewMsgCreateValidator(valB, keep.PKs[1], validCoin, Description{}, commission, types.DefaultMinSelfDelegation)
 	res, err = handleMsgCreateValidator(ctx, msgCreate, keeper)
 	require.NoError(t, err)
 	require.NotNil(t, res)
@@ -1440,6 +1440,26 @@ func TestInvalidCoinDenom(t *testing.T) {
 
 	msgRedelegate = types.NewMsgBeginRedelegate(delAddr, valA, valB, oneCoin)
 	res, err = handleMsgBeginRedelegate(ctx, msgRedelegate, keeper)
+	require.NoError(t, err)
+	require.NotNil(t, res)
+}
+
+func TestInvalidMinSelfDelegation(t *testing.T) {
+	ctx, _, keeper, _ := keep.CreateTestInput(t, false, 1000)
+	valA := sdk.ValAddress(keep.Addrs[0])
+
+	valTokens := sdk.TokensFromConsensusPower(100)
+	validCoin := sdk.NewCoin(sdk.DefaultBondDenom, valTokens)
+	commission := types.NewCommissionRates(sdk.OneDec(), sdk.OneDec(), sdk.ZeroDec())
+
+	msgCreate := types.NewMsgCreateValidator(valA, keep.PKs[0], validCoin, Description{}, commission,
+		types.DefaultMinSelfDelegation.Sub(sdk.NewInt(1)))
+	res, err := handleMsgCreateValidator(ctx, msgCreate, keeper)
+	require.Error(t, err)
+	require.Nil(t, res)
+
+	msgCreate = types.NewMsgCreateValidator(valA, keep.PKs[0], validCoin, Description{}, commission, types.DefaultMinSelfDelegation)
+	res, err = handleMsgCreateValidator(ctx, msgCreate, keeper)
 	require.NoError(t, err)
 	require.NotNil(t, res)
 }

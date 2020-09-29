@@ -82,6 +82,10 @@ func handleMsgCreateValidator(ctx sdk.Context, msg types.MsgCreateValidator, k k
 		return nil, err
 	}
 
+	if msg.MinSelfDelegation.LT(k.MinSelfDelegation(ctx)) {
+		return nil, sdkerrors.Wrapf(ErrMinSelfDelegationInsufficient,
+			"got: %s, valid: %s", msg.MinSelfDelegation, k.MinSelfDelegation(ctx))
+	}
 	validator.MinSelfDelegation = msg.MinSelfDelegation
 
 	k.SetValidator(ctx, validator)
