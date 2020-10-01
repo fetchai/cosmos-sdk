@@ -263,7 +263,7 @@ var (
 	defaultCommissionRate          = "0.1"
 	defaultCommissionMaxRate       = "0.2"
 	defaultCommissionMaxChangeRate = "0.01"
-	defaultMinSelfDelegation       = "1"
+	defaultMinSelfDelegation       = "1000000000000000000"
 )
 
 // Return the flagset, particular flags, and a description of defaults
