@@ -17,7 +17,8 @@
       ]
     },
     "entropy": {
-      "aeon_length": "100"
+      "aeon_length": "100",
+      "inactivity_window_size": "100"
     }
   },
   "app_hash": "",
