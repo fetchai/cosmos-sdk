@@ -77,7 +77,7 @@ func newBaseKeybase(optionsFns ...KeybaseOption) baseKeybase {
 	options := kbOptions{
 		keygenFunc:           StdPrivKeyGen,
 		deriveFunc:           StdDeriveKey,
-		supportedAlgos:       []SigningAlgo{Secp256k1},
+		supportedAlgos:       []SigningAlgo{Secp256k1, CombinedSignature},
 		supportedAlgosLedger: []SigningAlgo{Secp256k1},
 	}
 
@@ -253,12 +253,30 @@ func (kb baseKeybase) writeMultisigKey(w infoWriter, name string, pub tmcrypto.P
 func StdDeriveKey(mnemonic string, bip39Passphrase, hdPath string, algo SigningAlgo) ([]byte, error) {
 	if algo == Secp256k1 {
 		return SecpDeriveKey(mnemonic, bip39Passphrase, hdPath)
+	} else if algo == CombinedSignature {
+		return CombinedDeriveKey(mnemonic, bip39Passphrase, hdPath)
 	}
 	return nil, ErrUnsupportedSigningAlgo
 }
 
 // SecpDeriveKey derives and returns the secp256k1 private key for the given seed and HD path.
 func SecpDeriveKey(mnemonic string, bip39Passphrase, hdPath string) ([]byte, error) {
+	seed, err := bip39.NewSeedWithErrorChecking(mnemonic, bip39Passphrase)
+	if err != nil {
+		return nil, err
+	}
+
+	masterPriv, ch := hd.ComputeMastersFromSeed(seed)
+	if len(hdPath) == 0 {
+		return masterPriv[:], nil
+	}
+	derivedKey, err := hd.DerivePrivateKeyForPath(masterPriv, ch, hdPath)
+	return derivedKey[:], err
+}
+
+// CombinedDeriveKey derives and returns the bls based combined private key for the given seed and HD path.
+// TODO(HUT): fill this with the goods.
+func CombinedDeriveKey(mnemonic string, bip39Passphrase, hdPath string) ([]byte, error) {
 	seed, err := bip39.NewSeedWithErrorChecking(mnemonic, bip39Passphrase)
 	if err != nil {
 		return nil, err

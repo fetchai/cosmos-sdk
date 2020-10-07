@@ -47,7 +47,7 @@ type Keybase interface {
 	// The following operations will *only* work on locally-stored keys
 	Update(name, oldpass string, getNewpass func() (string, error)) error
 
-	// Import imports ASCII armored Info objects.
+	// Import imports ASCII armored Info objects
 	Import(name string, armor string) (err error)
 
 	// ImportPrivKey imports a private key in ASCII armor format.
@@ -81,7 +81,7 @@ type Keybase interface {
 	// SupportedAlgosLedger returns a list of signing algorithms supported by the keybase's ledger integration
 	SupportedAlgosLedger() []SigningAlgo
 
-	// CloseDB closes the database.
+	// CloseDB closes the database
 	CloseDB()
 }
 
