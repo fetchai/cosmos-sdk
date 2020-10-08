@@ -9,6 +9,7 @@ import (
 	"github.com/pkg/errors"
 	tmcrypto "github.com/tendermint/tendermint/crypto"
 	"github.com/tendermint/tendermint/crypto/secp256k1"
+	"github.com/tendermint/tendermint/crypto/bls12_381"
 
 	"github.com/cosmos/cosmos-sdk/crypto"
 	"github.com/cosmos/cosmos-sdk/crypto/keys/hd"
@@ -93,6 +94,8 @@ func newBaseKeybase(optionsFns ...KeybaseOption) baseKeybase {
 func StdPrivKeyGen(bz []byte, algo SigningAlgo) (tmcrypto.PrivKey, error) {
 	if algo == Secp256k1 {
 		return SecpPrivKeyGen(bz), nil
+	} else if algo == CombinedSignature {
+		return CombinedSignaturePrivKeyGen(bz), nil
 	}
 	return nil, ErrUnsupportedSigningAlgo
 }
@@ -102,6 +105,13 @@ func SecpPrivKeyGen(bz []byte) tmcrypto.PrivKey {
 	var bzArr [32]byte
 	copy(bzArr[:], bz)
 	return secp256k1.PrivKeySecp256k1(bzArr)
+}
+
+// CombinedSignaturePrivKeyGen generates a bls12_381-based private key from the given bytes
+func CombinedSignaturePrivKeyGen(bz []byte) tmcrypto.PrivKey {
+	var bzArr [32]byte
+	copy(bzArr[:], bz)
+	return bls12_381.PrivKeyBls(bzArr)
 }
 
 // SignWithLedger signs a binary message with the ledger device referenced by an Info object
@@ -275,7 +285,7 @@ func SecpDeriveKey(mnemonic string, bip39Passphrase, hdPath string) ([]byte, err
 }
 
 // CombinedDeriveKey derives and returns the bls based combined private key for the given seed and HD path.
-// TODO(HUT): fill this with the goods.
+// TODO(HUT): fill this with the goods. It should probably ignore the HD stuff (?)
 func CombinedDeriveKey(mnemonic string, bip39Passphrase, hdPath string) ([]byte, error) {
 	seed, err := bip39.NewSeedWithErrorChecking(mnemonic, bip39Passphrase)
 	if err != nil {
