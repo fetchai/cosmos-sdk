@@ -50,7 +50,7 @@ func (k Keeper) HandleBeaconInactivity(ctx sdk.Context, evidence types.BeaconIna
 	k.setBeaconEvidenceCount(ctx, infractionHeight, consAddr, evidenceInfo)
 	if evidenceInfo.Count <= evidenceInfo.Threshold {
 		logger.Info("BeaconEvidence: insufficient complaints", "address", fmt.Sprintf("%s", consAddr), "count",
-			evidenceInfo.Count, "threshold", evidenceInfo.Threshold)
+			evidenceInfo.Count, "required", evidenceInfo.Threshold+1)
 		return
 	}
 	// Delete evidence count info 
