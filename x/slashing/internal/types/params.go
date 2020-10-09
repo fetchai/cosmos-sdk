@@ -172,6 +172,9 @@ func validateSlashFractionDowntime(i interface{}) error {
 }
 
 func validateSlashFractionBeaconInactivity(i interface{}) error {
+	if i == nil {
+		return fmt.Errorf("slash fraction beacon inactivity nil")
+	}
 	v, ok := i.(sdk.Dec)
 	if !ok {
 		return fmt.Errorf("invalid parameter type: %T", i)

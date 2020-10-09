@@ -28,4 +28,6 @@ func BeginBlocker(ctx sdk.Context, req abci.RequestBeginBlock, k Keeper) {
 			k.Logger(ctx).Error(fmt.Sprintf("ignored unknown evidence type: %s", tmEvidence.Type))
 		}
 	}
+
+	k.PruneBeaconEvidence(ctx, req.Header.Height)
 }
