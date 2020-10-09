@@ -53,6 +53,8 @@ func (k Keeper) HandleBeaconInactivity(ctx sdk.Context, evidence types.BeaconIna
 			evidenceInfo.Count, "threshold", evidenceInfo.Threshold)
 		return
 	}
+	// Delete evidence count info 
+	k.deleteBeaconEvidenceCount(height, consAddr)
 
 	validator := k.stakingKeeper.ValidatorByConsAddr(ctx, consAddr)
 	if validator == nil || validator.IsUnbonded() {
@@ -100,6 +102,11 @@ func (k Keeper) setBeaconEvidenceCount(ctx sdk.Context, height int64, address sd
 	newInfo BeaconEvidenceInfo) {
 	store := ctx.KVStore(k.storeKey)
 	store.Set(key(height, address), k.cdc.MustMarshalBinaryLengthPrefixed(newInfo))
+}
+
+func (k Keeper) deleteBeaconEvidenceCount(ctx sdk.Context, height int64, address, sdk.ConsAddress) {
+	store := ctx.KVStore(k.storeKey)
+	store.Delete(key(height,address))
 }
 
 func key(height int64, address sdk.ConsAddress) []byte {
