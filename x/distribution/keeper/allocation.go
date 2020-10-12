@@ -8,19 +8,24 @@ import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/x/distribution/types"
 	"github.com/cosmos/cosmos-sdk/x/staking/exported"
+
+	tmtypes "github.com/tendermint/tendermint/types"
 )
 
 // AllocateTokens handles distribution of the collected fees
 func (k Keeper) AllocateTokens(
 	ctx sdk.Context, sumPreviousPrecommitPower, totalPreviousPower int64,
-	previousProposer sdk.ConsAddress, previousVotes []abci.VoteInfo,
+	previousProposer sdk.ConsAddress, req abci.RequestBeginBlock,
 ) {
 
 	logger := k.Logger(ctx)
+	previousVotes := req.LastCommitInfo.GetVotes()
+	entropy := req.Header.GetEntropy()
 
 	// fetch and clear the collected fees for distribution, since this is
 	// called in BeginBlock, collected fees will be from the previous block
-	// (and distributed to the previous proposer)
+	// (and distributed to the previous proposer). feesCollected includes the
+	// block reward and transaction fees.
 	feeCollector := k.supplyKeeper.GetModuleAccount(ctx, k.feeCollectorName)
 	feesCollectedInt := feeCollector.GetCoins()
 	feesCollected := sdk.NewDecCoinsFromCoins(feesCollectedInt...)
@@ -40,6 +45,30 @@ func (k Keeper) AllocateTokens(
 		return
 	}
 
+	remaining := feesCollected
+
+	// If block contains entropy then use proportion of block reward to reward to validators which successfully
+	// completed the dkg. If block does not contain entropy then this proportion of the fees collected goes into
+	// the community pool
+	beaconRewardMultiplier := k.GetBeaconReward(ctx)
+	vals := []*tmtypes.Validator{}
+	if len(entropy.GroupSignature) != 0 {
+		k.stakingKeeper.IterateLastValidators(ctx, func(index int64, val exported.ValidatorI) bool {
+			vals = append(vals, tmtypes.NewValidator(val.GetConsPubKey(), val.GetConsensusPower()))
+			return false
+		})
+
+		valSet := tmtypes.NewValidatorSet(vals)
+		for _, index := range entropy.SuccessfulVals {
+			addr, val := valSet.GetByIndex(int(index))
+			validator := k.stakingKeeper.ValidatorByConsAddr(ctx, sdk.ConsAddress(addr))
+			powerFraction := sdk.NewDec(val.VotingPower).QuoTruncate(sdk.NewDec(valSet.TotalVotingPower()))
+			reward := feesCollected.MulDecTruncate(beaconRewardMultiplier).MulDecTruncate(powerFraction)
+			k.AllocateTokensToValidator(ctx, validator, reward)
+			remaining = remaining.Sub(reward)
+		}
+	}
+
 	// calculate fraction votes
 	previousFractionVotes := sdk.NewDec(sumPreviousPrecommitPower).Quo(sdk.NewDec(totalPreviousPower))
 
@@ -50,7 +79,6 @@ func (k Keeper) AllocateTokens(
 	proposerReward := feesCollected.MulDecTruncate(proposerMultiplier)
 
 	// pay previous proposer
-	remaining := feesCollected
 	proposerValidator := k.stakingKeeper.ValidatorByConsAddr(ctx, previousProposer)
 
 	if proposerValidator != nil {
@@ -79,7 +107,7 @@ func (k Keeper) AllocateTokens(
 
 	// calculate fraction allocated to validators
 	communityTax := k.GetCommunityTax(ctx)
-	voteMultiplier := sdk.OneDec().Sub(proposerMultiplier).Sub(communityTax)
+	voteMultiplier := sdk.OneDec().Sub(proposerMultiplier).Sub(communityTax).Sub(beaconRewardMultiplier)
 
 	// allocate tokens proportionally to voting power
 	// TODO consider parallelizing later, ref https://github.com/cosmos/cosmos-sdk/pull/3099#discussion_r246276376
