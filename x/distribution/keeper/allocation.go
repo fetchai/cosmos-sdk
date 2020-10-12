@@ -53,11 +53,13 @@ func (k Keeper) AllocateTokens(
 	beaconRewardMultiplier := k.GetBeaconReward(ctx)
 	vals := []*tmtypes.Validator{}
 	if len(entropy.GroupSignature) != 0 {
+		// Get all validators (including those than have been jailed)
 		k.stakingKeeper.IterateLastValidators(ctx, func(index int64, val exported.ValidatorI) bool {
 			vals = append(vals, tmtypes.NewValidator(val.GetConsPubKey(), val.GetConsensusPower()))
 			return false
 		})
 
+		// Pay beacon rewards to those in qual
 		valSet := tmtypes.NewValidatorSet(vals)
 		for _, index := range entropy.SuccessfulVals {
 			addr, val := valSet.GetByIndex(int(index))
