@@ -135,6 +135,8 @@ func (app *BaseApp) BeginBlock(req abci.RequestBeginBlock) (res abci.ResponseBeg
 	}
 
 	app.deliverState.ctx = app.deliverState.ctx.WithBlockGasMeter(gasMeter)
+	// Also set consensus parameters
+	app.deliverState.ctx = app.deliverState.ctx.WithConsensusParams(app.consensusParams)
 
 	if app.beginBlocker != nil {
 		res = app.beginBlocker(app.deliverState.ctx, req)
