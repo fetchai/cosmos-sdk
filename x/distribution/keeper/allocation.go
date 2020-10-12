@@ -67,6 +67,7 @@ func (k Keeper) AllocateTokens(
 			powerFraction := sdk.NewDec(val.VotingPower).QuoTruncate(sdk.NewDec(valSet.TotalVotingPower()))
 			reward := feesCollected.MulDecTruncate(beaconRewardMultiplier).MulDecTruncate(powerFraction)
 			k.AllocateTokensToValidator(ctx, validator, reward)
+			logger.Debug("Beacon reward allocated", "val", fmt.Sprintf("%X", addr), "amount", reward.String())
 			remaining = remaining.Sub(reward)
 		}
 	}
