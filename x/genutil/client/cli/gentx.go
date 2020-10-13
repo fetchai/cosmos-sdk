@@ -111,10 +111,10 @@ func GenTxCmd(ctx *server.Context, cdc *codec.Codec, mbm module.BasicManager, sm
 			validatorName := viper.GetString(flags.FlagValidator)
 			validatorKey, err := kb.Get(validatorName)
 			if err != nil {
-				return errors.Wrap(err, fmt.Sprintf("failed to read operator name %v from keybase", name))
+				return errors.Wrap(err, fmt.Sprintf("failed to read validator name %v from keybase", name))
 			}
 
-			fmt.Printf("Operator key: %v", validatorKey)
+			fmt.Printf("Validator key: %v", validatorKey)
 
 			// Set flags for creating gentx
 			viper.Set(flags.FlagHome, viper.GetString(flagClientHome))
@@ -127,7 +127,7 @@ func GenTxCmd(ctx *server.Context, cdc *codec.Codec, mbm module.BasicManager, sm
 				return errors.Wrap(err, "failed to parse coins")
 			}
 
-			err = genutil.ValidateAccountInGenesis(genesisState, genAccIterator, operatorKey.GetAddress(), coins, cdc)
+			err = genutil.ValidateAccountInGenesis(genesisState, genAccIterator, key.GetAddress(), coins, cdc)
 			if err != nil {
 				return errors.Wrap(err, "failed to validate account in genesis")
 			}
@@ -208,7 +208,7 @@ func GenTxCmd(ctx *server.Context, cdc *codec.Codec, mbm module.BasicManager, sm
 
 	cmd.MarkFlagRequired(flags.FlagName)
 	// todo : (HUT) fix this.
-	cmd.MarkFlagRequired("operator")
+	cmd.MarkFlagRequired("validator")
 	return cmd
 }
 

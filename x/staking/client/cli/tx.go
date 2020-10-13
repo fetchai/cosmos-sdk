@@ -70,7 +70,7 @@ func GetCmdCreateValidator(cdc *codec.Codec) *cobra.Command {
 	cmd.Flags().AddFlagSet(fsDescriptionCreate)
 	cmd.Flags().AddFlagSet(FsCommissionCreate)
 	cmd.Flags().AddFlagSet(FsMinSelfDelegation)
-	cmd.Flags().AddFlagSet(FsOperator)
+	cmd.Flags().AddFlagSet(FsValidator)
 
 	cmd.Flags().String(FlagIP, "", fmt.Sprintf("The node's public IP. It takes effect only when used in combination with --%s", flags.FlagGenerateOnly))
 	cmd.Flags().String(FlagNodeID, "", "The node's ID")
@@ -285,7 +285,7 @@ func CreateValidatorMsgHelpers(ipDefault string) (fs *flag.FlagSet, nodeIDFlag, 
 	fsCreateValidator.AddFlagSet(FsMinSelfDelegation)
 	fsCreateValidator.AddFlagSet(FsAmount)
 	fsCreateValidator.AddFlagSet(FsPk)
-	fsCreateValidator.AddFlagSet(FsOperator)
+	fsCreateValidator.AddFlagSet(FsValidator)
 
 	defaultsDesc = fmt.Sprintf(`
 	delegation amount:           %s
@@ -360,7 +360,7 @@ func BuildCreateValidatorMsg(cliCtx context.CLIContext, txBldr auth.TxBuilder) (
 	pkStr := viper.GetString(FlagPubKey)
 
 	if valAddr == nil {
-		return txBldr, nil, errors.New("Required to have a validator address and an operator address when creating validators")
+		return txBldr, nil, errors.New("Required to have a from (operator) address and a validator address when creating validators")
 	}
 
 	pk, err := sdk.GetPubKeyFromBech32(sdk.Bech32PubKeyTypeConsPub, pkStr)
