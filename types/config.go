@@ -2,6 +2,7 @@ package types
 
 import (
 	"context"
+	"fmt"
 	"sync"
 
 	"github.com/cosmos/cosmos-sdk/version"
@@ -192,6 +193,7 @@ func (config *Config) GetFullFundraiserPath() string {
 }
 
 func KeyringServiceName() string {
+	fmt.Printf("Format version name %v\n", version.Name)
 	if len(version.Name) == 0 {
 		return DefaultKeyringServiceName
 	}

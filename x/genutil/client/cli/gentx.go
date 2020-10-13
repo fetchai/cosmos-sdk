@@ -93,6 +93,9 @@ func GenTxCmd(ctx *server.Context, cdc *codec.Codec, mbm module.BasicManager, sm
 			}
 
 			inBuf := bufio.NewReader(cmd.InOrStdin())
+			fmt.Printf("Backend %v", viper.GetString(flags.FlagKeyringBackend))
+			fmt.Printf("Service name %v", sdk.KeyringServiceName())
+			fmt.Printf("home name %v", viper.GetString(flagClientHome))
 			kb, err := keys.NewKeyring(sdk.KeyringServiceName(),
 				viper.GetString(flags.FlagKeyringBackend), viper.GetString(flagClientHome), inBuf)
 			if err != nil {
@@ -102,8 +105,16 @@ func GenTxCmd(ctx *server.Context, cdc *codec.Codec, mbm module.BasicManager, sm
 			name := viper.GetString(flags.FlagName)
 			key, err := kb.Get(name)
 			if err != nil {
-				return errors.Wrap(err, "failed to read from keybase")
+				return errors.Wrap(err, fmt.Sprintf("failed to read name %v from keybase", name))
 			}
+
+			validatorName := viper.GetString(flags.FlagValidator)
+			validatorKey, err := kb.Get(validatorName)
+			if err != nil {
+				return errors.Wrap(err, fmt.Sprintf("failed to read operator name %v from keybase", name))
+			}
+
+			fmt.Printf("Operator key: %v", validatorKey)
 
 			// Set flags for creating gentx
 			viper.Set(flags.FlagHome, viper.GetString(flagClientHome))
@@ -116,9 +127,14 @@ func GenTxCmd(ctx *server.Context, cdc *codec.Codec, mbm module.BasicManager, sm
 				return errors.Wrap(err, "failed to parse coins")
 			}
 
-			err = genutil.ValidateAccountInGenesis(genesisState, genAccIterator, key.GetAddress(), coins, cdc)
+			err = genutil.ValidateAccountInGenesis(genesisState, genAccIterator, operatorKey.GetAddress(), coins, cdc)
 			if err != nil {
 				return errors.Wrap(err, "failed to validate account in genesis")
+			}
+
+			// Need to also validate that the validator key type is strictly bls based combination
+			if key.GetAlgo() != keys.CombinedSignature {
+				return errors.Wrap(err, "The fetch validator key must be bls combination. See: XXX")
 			}
 
 			txBldr := auth.NewTxBuilderFromCLI(inBuf).WithTxEncoder(utils.GetTxEncoder(cdc))
@@ -191,6 +207,8 @@ func GenTxCmd(ctx *server.Context, cdc *codec.Codec, mbm module.BasicManager, sm
 	viper.BindPFlag(flags.FlagKeyringBackend, cmd.Flags().Lookup(flags.FlagKeyringBackend))
 
 	cmd.MarkFlagRequired(flags.FlagName)
+	// todo : (HUT) fix this.
+	cmd.MarkFlagRequired("operator")
 	return cmd
 }
 

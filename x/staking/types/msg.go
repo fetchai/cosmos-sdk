@@ -44,15 +44,16 @@ type msgCreateValidatorJSON struct {
 }
 
 // NewMsgCreateValidator creates a new MsgCreateValidator instance.
-// Delegator address and validator address are the same.
+// The validator address must be a bls-based combined type
+// The delegator address is the 'operating' address
 func NewMsgCreateValidator(
-	valAddr sdk.ValAddress, pubKey crypto.PubKey, selfDelegation sdk.Coin,
+	valAddr sdk.ValAddress, delAddr sdk.ValAddress, pubKey crypto.PubKey, selfDelegation sdk.Coin,
 	description Description, commission CommissionRates, minSelfDelegation sdk.Int,
 ) MsgCreateValidator {
 
 	return MsgCreateValidator{
 		Description:       description,
-		DelegatorAddress:  sdk.AccAddress(valAddr),
+		DelegatorAddress:  sdk.AccAddress(delAddr),
 		ValidatorAddress:  valAddr,
 		PubKey:            pubKey,
 		Value:             selfDelegation,

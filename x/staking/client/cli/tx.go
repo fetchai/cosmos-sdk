@@ -2,6 +2,7 @@ package cli
 
 import (
 	"bufio"
+	"errors"
 	"fmt"
 	"os"
 	"strings"
@@ -69,6 +70,7 @@ func GetCmdCreateValidator(cdc *codec.Codec) *cobra.Command {
 	cmd.Flags().AddFlagSet(fsDescriptionCreate)
 	cmd.Flags().AddFlagSet(FsCommissionCreate)
 	cmd.Flags().AddFlagSet(FsMinSelfDelegation)
+	cmd.Flags().AddFlagSet(FsOperator)
 
 	cmd.Flags().String(FlagIP, "", fmt.Sprintf("The node's public IP. It takes effect only when used in combination with --%s", flags.FlagGenerateOnly))
 	cmd.Flags().String(FlagNodeID, "", "The node's ID")
@@ -92,7 +94,9 @@ func GetCmdEditValidator(cdc *codec.Codec) *cobra.Command {
 			txBldr := auth.NewTxBuilderFromCLI(inBuf).WithTxEncoder(auth.DefaultTxEncoder(cdc))
 			cliCtx := context.NewCLIContextWithInput(inBuf).WithCodec(cdc)
 
-			valAddr := cliCtx.GetFromAddress()
+			//delAddr := cliCtx.GetFromAddress()
+			valAddr := cliCtx.GetValidatorAddress()
+
 			description := types.NewDescription(
 				viper.GetString(FlagMoniker),
 				viper.GetString(FlagIdentity),
@@ -281,6 +285,7 @@ func CreateValidatorMsgHelpers(ipDefault string) (fs *flag.FlagSet, nodeIDFlag, 
 	fsCreateValidator.AddFlagSet(FsMinSelfDelegation)
 	fsCreateValidator.AddFlagSet(FsAmount)
 	fsCreateValidator.AddFlagSet(FsPk)
+	fsCreateValidator.AddFlagSet(FsOperator)
 
 	defaultsDesc = fmt.Sprintf(`
 	delegation amount:           %s
@@ -350,8 +355,13 @@ func BuildCreateValidatorMsg(cliCtx context.CLIContext, txBldr auth.TxBuilder) (
 		return txBldr, nil, err
 	}
 
-	valAddr := cliCtx.GetFromAddress()
+	delAddr := cliCtx.GetFromAddress()
+	valAddr := cliCtx.GetValidatorAddress()
 	pkStr := viper.GetString(FlagPubKey)
+
+	if valAddr == nil {
+		return txBldr, nil, errors.New("Required to have a validator address and an operator address when creating validators")
+	}
 
 	pk, err := sdk.GetPubKeyFromBech32(sdk.Bech32PubKeyTypeConsPub, pkStr)
 	if err != nil {
@@ -383,7 +393,7 @@ func BuildCreateValidatorMsg(cliCtx context.CLIContext, txBldr auth.TxBuilder) (
 	}
 
 	msg := types.NewMsgCreateValidator(
-		sdk.ValAddress(valAddr), pk, amount, description, commissionRates, minSelfDelegation,
+		sdk.ValAddress(valAddr), sdk.ValAddress(delAddr),pk, amount, description, commissionRates, minSelfDelegation,
 	)
 
 	if viper.GetBool(flags.FlagGenerateOnly) {

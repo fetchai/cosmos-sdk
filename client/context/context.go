@@ -22,7 +22,8 @@ import (
 // CLIContext implements a typical CLI context created in SDK modules for
 // transaction handling and queries.
 type CLIContext struct {
-	FromAddress   sdk.AccAddress
+	FromAddress         sdk.AccAddress
+	ValidatorAddress    sdk.AccAddress
 	Client        rpcclient.Client
 	ChainID       string
 	Keybase       keys.Keybase
@@ -57,6 +58,10 @@ func NewCLIContextWithInputAndFrom(input io.Reader, from string) CLIContext {
 
 	genOnly := viper.GetBool(flags.FlagGenerateOnly)
 	fromAddress, fromName, err := GetFromFields(input, from, genOnly)
+	validatorAddress, validatorName, err := GetValidatorFields(input, genOnly)
+
+	fmt.Printf("%v %v !!!", validatorAddress, validatorName)
+
 	if err != nil {
 		fmt.Printf("failed to get from fields: %v\n", err)
 		os.Exit(1)
@@ -90,6 +95,7 @@ func NewCLIContextWithInputAndFrom(input io.Reader, from string) CLIContext {
 		GenerateOnly:  genOnly,
 		FromAddress:   fromAddress,
 		FromName:      fromName,
+		//ValidatorAddress:
 		Indent:        viper.GetBool(flags.FlagIndentResponse),
 		SkipConfirm:   viper.GetBool(flags.FlagSkipConfirmation),
 	}
@@ -294,4 +300,12 @@ func GetFromFields(input io.Reader, from string, genOnly bool) (sdk.AccAddress, 
 	}
 
 	return info.GetAddress(), info.GetName(), nil
+}
+
+// GetValidatorFields returns a validator account address (bls combined signature scheme)
+// and Keybase name from the given flags. If no validator address, returns empty.
+// If genOnly is true, only a valid Bech32 cosmos only a valid Bech32 cosmos address is returned.
+func GetValidatorFields(input io.Reader, genOnly bool) (sdk.AccAddress, string, error) {
+	fmt.Printf("", viper.GetString(flags.FlagValidator))
+	return sdk.AccAddress{}, "", nil
 }

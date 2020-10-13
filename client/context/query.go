@@ -73,6 +73,11 @@ func (ctx CLIContext) GetFromAddress() sdk.AccAddress {
 	return ctx.FromAddress
 }
 
+// GetFromAddress returns the validator address from the context's name.
+func (ctx CLIContext) GetValidatorAddress() sdk.AccAddress {
+	return ctx.ValidatorAddress
+}
+
 // GetFromName returns the key name for the current context.
 func (ctx CLIContext) GetFromName() string {
 	return ctx.FromName

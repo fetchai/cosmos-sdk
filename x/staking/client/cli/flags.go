@@ -28,6 +28,8 @@ const (
 
 	FlagMinSelfDelegation = "min-self-delegation"
 
+	FlagOperator = "operator"
+
 	FlagGenesisFormat = "genesis-format"
 	FlagNodeID        = "node-id"
 	FlagIP            = "ip"
@@ -45,6 +47,7 @@ var (
 	fsDescriptionEdit   = flag.NewFlagSet("", flag.ContinueOnError)
 	fsValidator         = flag.NewFlagSet("", flag.ContinueOnError)
 	fsRedelegation      = flag.NewFlagSet("", flag.ContinueOnError)
+	FsOperator          = flag.NewFlagSet("", flag.ContinueOnError)
 )
 
 func init() {
@@ -70,4 +73,5 @@ func init() {
 	fsValidator.String(FlagAddressValidator, "", "The Bech32 address of the validator")
 	fsRedelegation.String(FlagAddressValidatorSrc, "", "The Bech32 address of the source validator")
 	fsRedelegation.String(FlagAddressValidatorDst, "", "The Bech32 address of the destination validator")
+	FsOperator.String(FlagOperator, "", "The operator of the validator")
 }

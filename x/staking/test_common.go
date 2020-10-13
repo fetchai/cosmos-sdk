@@ -28,8 +28,9 @@ var (
 )
 
 func NewTestMsgCreateValidator(address sdk.ValAddress, pubKey crypto.PubKey, amt sdk.Int) MsgCreateValidator {
+	// todo (HUT): check the usage of this
 	return types.NewMsgCreateValidator(
-		address, pubKey, sdk.NewCoin(sdk.DefaultBondDenom, amt), Description{}, commissionRates, types.DefaultMinSelfDelegation,
+		address, address, pubKey, sdk.NewCoin(sdk.DefaultBondDenom, amt), Description{}, commissionRates, types.DefaultMinSelfDelegation,
 	)
 }
 
@@ -38,16 +39,20 @@ func NewTestMsgCreateValidatorWithCommission(address sdk.ValAddress, pubKey cryp
 
 	commission := NewCommissionRates(commissionRate, sdk.OneDec(), sdk.ZeroDec())
 
+	// TODO (HUT) check this once more
+
 	return types.NewMsgCreateValidator(
-		address, pubKey, sdk.NewCoin(sdk.DefaultBondDenom, amt), Description{}, commission, types.DefaultMinSelfDelegation,
+		address, address, pubKey, sdk.NewCoin(sdk.DefaultBondDenom, amt), Description{}, commission, types.DefaultMinSelfDelegation,
 	)
 }
 
 func NewTestMsgCreateValidatorWithMinSelfDelegation(address sdk.ValAddress, pubKey crypto.PubKey,
 	amt sdk.Int, minSelfDelegation sdk.Int) MsgCreateValidator {
 
+	// TODO (HUT) check
+
 	return types.NewMsgCreateValidator(
-		address, pubKey, sdk.NewCoin(sdk.DefaultBondDenom, amt), Description{}, commissionRates, minSelfDelegation,
+		address, address, pubKey, sdk.NewCoin(sdk.DefaultBondDenom, amt), Description{}, commissionRates, minSelfDelegation,
 	)
 }
 

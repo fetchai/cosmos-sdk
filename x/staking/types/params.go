@@ -55,6 +55,7 @@ type Params struct {
 	MaxEntries        uint16        `json:"max_entries" yaml:"max_entries"`                 // max entries for either unbonding delegation or redelegation (per pair/trio)
 	HistoricalEntries uint16        `json:"historical_entries" yaml:"historical_entries"`   // number of historical entries to persist
 	BondDenom         string        `json:"bond_denom" yaml:"bond_denom"`                   // bondable coin denomination
+	// todo (HUT): rename to LowestAllowedMinSelfDele
 	MinSelfDelegation sdk.Int       `json:"min_self_delegation" yaml:"min_self_delegation"` // min self delegation for validators
 }
 

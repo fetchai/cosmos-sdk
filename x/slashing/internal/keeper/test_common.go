@@ -148,8 +148,9 @@ func TestParams() types.Params {
 
 func NewTestMsgCreateValidator(address sdk.ValAddress, pubKey crypto.PubKey, amt sdk.Int) staking.MsgCreateValidator {
 	commission := staking.NewCommissionRates(sdk.ZeroDec(), sdk.ZeroDec(), sdk.ZeroDec())
+	// Todo: test/check this.
 	return staking.NewMsgCreateValidator(
-		address, pubKey, sdk.NewCoin(sdk.DefaultBondDenom, amt),
+		address, address, pubKey, sdk.NewCoin(sdk.DefaultBondDenom, amt),
 		staking.Description{}, commission, stakingTypes.DefaultMinSelfDelegation,
 	)
 }

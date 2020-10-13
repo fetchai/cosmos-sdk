@@ -147,7 +147,8 @@ func SimulateMsgCreateValidator(ak types.AccountKeeper, k keeper.Keeper) simulat
 			simulation.RandomDecAmount(r, maxCommission),
 		)
 
-		msg := types.NewMsgCreateValidator(address, simAccount.PubKey,
+		// todo (HUT): check that this is ok
+		msg := types.NewMsgCreateValidator(address, address, simAccount.PubKey,
 			selfDelegation, description, commission, sdk.OneInt())
 
 		tx := helpers.GenTx(

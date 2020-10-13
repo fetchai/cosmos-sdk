@@ -228,8 +228,9 @@ func createValidators(t *testing.T, stakingHandler sdk.Handler, ctx sdk.Context,
 	for i := 0; i < len(addrs); i++ {
 
 		valTokens := sdk.TokensFromConsensusPower(powerAmt[i])
+		// TODO (HUT): check
 		valCreateMsg := staking.NewMsgCreateValidator(
-			addrs[i], pubkeys[i], sdk.NewCoin(sdk.DefaultBondDenom, valTokens),
+			addrs[i], addrs[i], pubkeys[i], sdk.NewCoin(sdk.DefaultBondDenom, valTokens),
 			keep.TestDescription, keep.TestCommissionRates, stakingTypes.DefaultMinSelfDelegation,
 		)
 
