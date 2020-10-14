@@ -18,6 +18,7 @@ const (
 	RouteEquivocation    = "equivocation"
 	TypeEquivocation     = "equivocation"
 	TypeBeaconInactivity = "beacon_inactivity"
+	TypeDKGFailure       = "dkg_failure"
 )
 
 var _ exported.Evidence = (*Equivocation)(nil)
@@ -103,11 +104,12 @@ func ConvertDuplicateVoteEvidence(dupVote abci.Evidence) exported.Evidence {
 
 //-------------------------------------------------------------------------------
 
-var _ exported.Evidence = (*BeaconInactivity)(nil)
+var _ exported.Evidence = (*BeaconInfraction)(nil)
 
-// BeaconInactivity implements the Evidence interface and defines evidence of
-// inactivity in the random beacon
-type BeaconInactivity struct {
+// BeaconInfraction implements the Evidence interface and defines evidence of
+// an infraction related to the dkg/drb
+type BeaconInfraction struct {
+	EvidenceType     string          `json:"type" yaml:"type"`
 	Height           int64           `json:"height" yaml:"height"`
 	Time             time.Time       `json:"time" yaml:"time"`
 	Power            int64           `json:"power" yaml:"power"`
@@ -115,26 +117,26 @@ type BeaconInactivity struct {
 	Threshold        int64           `json:"threshold" yaml:"threshold"`
 }
 
-// Route returns the Evidence Handler route for an BeaconInactivity type. We do not
-// allow BeaconInactivity evidence to be submitted in transaction form. Should only
+// Route returns the Evidence Handler route for an BeaconInfraction type. We do not
+// allow BeaconInfraction evidence to be submitted in transaction form. Should only
 // be included in block evidence
-func (e BeaconInactivity) Route() string { return "unregistered_route" }
+func (e BeaconInfraction) Route() string { return "unregistered_route" }
 
-// Type returns the Evidence Handler type for an BeaconInactivity type.
-func (e BeaconInactivity) Type() string { return TypeBeaconInactivity }
+// Type returns the Evidence Handler type for an BeaconInfraction type.
+func (e BeaconInfraction) Type() string { return e.EvidenceType }
 
-func (e BeaconInactivity) String() string {
+func (e BeaconInfraction) String() string {
 	bz, _ := yaml.Marshal(e)
 	return string(bz)
 }
 
 // Hash returns the hash of an Equivocation object.
-func (e BeaconInactivity) Hash() tmbytes.HexBytes {
+func (e BeaconInfraction) Hash() tmbytes.HexBytes {
 	return tmhash.Sum(ModuleCdc.MustMarshalBinaryBare(e))
 }
 
 // ValidateBasic performs basic stateless validation checks on an Equivocation object.
-func (e BeaconInactivity) ValidateBasic() error {
+func (e BeaconInfraction) ValidateBasic() error {
 	if e.Time.IsZero() {
 		return fmt.Errorf("invalid complaint time: %s", e.Time)
 	}
@@ -156,33 +158,47 @@ func (e BeaconInactivity) ValidateBasic() error {
 
 // GetConsensusAddress returns the validator's consensus address at time of the
 // Equivocation infraction.
-func (e BeaconInactivity) GetConsensusAddress() sdk.ConsAddress {
+func (e BeaconInfraction) GetConsensusAddress() sdk.ConsAddress {
 	return e.ConsensusAddress
 }
 
 // GetHeight returns the height at time of the Equivocation infraction.
-func (e BeaconInactivity) GetHeight() int64 {
+func (e BeaconInfraction) GetHeight() int64 {
 	return e.Height
 }
 
 // GetTime returns the time at time of the Equivocation infraction.
-func (e BeaconInactivity) GetTime() time.Time {
+func (e BeaconInfraction) GetTime() time.Time {
 	return e.Time
 }
 
 // GetValidatorPower returns the validator's power at time of the Equivocation
 // infraction.
-func (e BeaconInactivity) GetValidatorPower() int64 {
+func (e BeaconInfraction) GetValidatorPower() int64 {
 	return e.Power
 }
 
-// GetTotalPower is a no-op for the BeaconInactivity type.
-func (e BeaconInactivity) GetTotalPower() int64 { return 0 }
+// GetTotalPower is a no-op for the BeaconInfraction type.
+func (e BeaconInfraction) GetTotalPower() int64 { return 0 }
 
 // ConvertBeaconInactivityEvidence converts a Tendermint concrete Evidence type to
-// SDK Evidence using BeaconInactivity as the concrete type.
+// SDK Evidence using BeaconInfraction as the concrete type.
 func ConvertBeaconInactivityEvidence(ev abci.Evidence) exported.Evidence {
-	return BeaconInactivity{
+	return BeaconInfraction{
+		EvidenceType:     TypeBeaconInactivity,
+		Height:           ev.Height,
+		Power:            ev.Validator.Power,
+		ConsensusAddress: sdk.ConsAddress(ev.Validator.Address),
+		Time:             ev.Time,
+		Threshold:        ev.Threshold,
+	}
+}
+
+// ConvertDKGFailureEvidence converts a Tendermint concrete Evidence type to
+// SDK Evidence using BeaconInfraction as the concrete type.
+func ConvertDKGFailureEvidence(ev abci.Evidence) exported.Evidence {
+	return BeaconInfraction{
+		EvidenceType:     TypeDKGFailure,
 		Height:           ev.Height,
 		Power:            ev.Validator.Power,
 		ConsensusAddress: sdk.ConsAddress(ev.Validator.Address),

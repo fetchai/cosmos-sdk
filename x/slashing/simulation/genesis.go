@@ -23,6 +23,7 @@ const (
 	SlashFractionDoubleSign       = "slash_fraction_double_sign"
 	SlashFractionDowntime         = "slash_fraction_downtime"
 	SlashFractionBeaconInactivity = "slash_fraction_beacon_inactivity"
+	SlashFractionDKGFailure       = "slash_fraction_dkg_failure"
 )
 
 // GenSignedBlocksWindow randomized SignedBlocksWindow
@@ -93,9 +94,16 @@ func RandomizedGenState(simState *module.SimulationState) {
 		func(r *rand.Rand) { slashFractionBeaconInactivity = GenSlashFractionDowntime(r) },
 	)
 
+	var slashFractionDKGFailure sdk.Dec
+	simState.AppParams.GetOrGenerate(
+		simState.Cdc, SlashFractionDKGFailure, &slashFractionDKGFailure, simState.Rand,
+		func(r *rand.Rand) { slashFractionDKGFailure = GenSlashFractionDowntime(r) },
+	)
+
 	params := types.NewParams(
 		signedBlocksWindow, minSignedPerWindow, downtimeJailDuration,
 		slashFractionDoubleSign, slashFractionDowntime, slashFractionBeaconInactivity,
+		slashFractionDKGFailure,
 	)
 
 	slashingGenesis := types.NewGenesisState(params, nil, nil)

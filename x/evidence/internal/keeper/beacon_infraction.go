@@ -21,27 +21,28 @@ type BeaconEvidenceInfo struct {
 	Count     int64
 }
 
-// HandleBeaconInactivity keeps track of the number of complaints against a validator for each height
+// HandleBeaconInfraction keeps track of the number of complaints against a validator for each height
 // and triggers slashing of the validators stake if over threshold number of complaints is reached
-func (k Keeper) HandleBeaconInactivity(ctx sdk.Context, evidence types.BeaconInactivity) {
+func (k Keeper) HandleBeaconInfraction(ctx sdk.Context, evidence types.BeaconInfraction) {
 	logger := k.Logger(ctx)
 	consAddr := evidence.GetConsensusAddress()
 	infractionHeight := evidence.GetHeight()
+	evidenceType := evidence.Type()
 
 	// Add to evidence count and check threshold
-	evidenceInfo := k.getBeaconEvidenceCount(ctx, infractionHeight, consAddr)
+	evidenceInfo := k.getBeaconEvidenceCount(ctx, infractionHeight, consAddr, evidenceType)
 	if evidenceInfo.Count == 0 {
 		evidenceInfo.Threshold = evidence.Threshold
 	}
 	evidenceInfo.Count++
-	k.setBeaconEvidenceCount(ctx, infractionHeight, consAddr, evidenceInfo)
+	k.setBeaconEvidenceCount(ctx, infractionHeight, consAddr, evidenceType, evidenceInfo)
 	if evidenceInfo.Count <= evidenceInfo.Threshold {
-		logger.Info("BeaconEvidence: insufficient complaints", "address", fmt.Sprintf("%s", consAddr), "count",
+		logger.Info("BeaconEvidence: insufficient complaints", "type", evidenceType, "address", fmt.Sprintf("%s", consAddr), "count",
 			evidenceInfo.Count, "required", evidenceInfo.Threshold+1)
 		return
 	}
 	// Delete evidence count info
-	k.deleteBeaconEvidenceCount(ctx, infractionHeight, consAddr)
+	k.deleteBeaconEvidenceCount(ctx, infractionHeight, consAddr, evidenceType)
 
 	validator := k.stakingKeeper.ValidatorByConsAddr(ctx, consAddr)
 	if validator == nil || validator.IsUnbonded() {
@@ -63,16 +64,26 @@ func (k Keeper) HandleBeaconInactivity(ctx sdk.Context, evidence types.BeaconIna
 		return
 	}
 
-	logger.Info("BeaconEvidence: complaint successful", "height", infractionHeight, "address", fmt.Sprintf("%s", consAddr))
+	logger.Info("BeaconEvidence: complaint successful", "type", evidenceType, "height", infractionHeight, "address", fmt.Sprintf("%s", consAddr))
 
 	// We need to retrieve the stake distribution which signed the block, so we
 	// subtract ValidatorUpdateDelay from the evidence height.
 	distributionHeight := infractionHeight - sdk.ValidatorUpdateDelay
 
+	var slashFraction sdk.Dec
+	switch evidenceType {
+	case types.TypeBeaconInactivity:
+		slashFraction = k.slashingKeeper.SlashFractionBeaconInactivity(ctx)
+	case types.TypeDKGFailure:
+		slashFraction = k.slashingKeeper.SlashFractionDoubleSign(ctx)
+	default:
+		panic(fmt.Sprintf("Unknown beacon evidence type %s", evidenceType))
+	}
+
 	k.slashingKeeper.Slash(
 		ctx,
 		consAddr,
-		k.slashingKeeper.SlashFractionBeaconInactivity(ctx),
+		slashFraction,
 		evidence.GetValidatorPower(), distributionHeight,
 	)
 }
@@ -90,30 +101,30 @@ func (k Keeper) setKeysList(ctx sdk.Context, keysList []string) {
 	store.Set(keysListKey, k.cdc.MustMarshalBinaryLengthPrefixed(keysList))
 }
 
-func (k Keeper) getBeaconEvidenceCount(ctx sdk.Context, height int64, address sdk.ConsAddress) BeaconEvidenceInfo {
+func (k Keeper) getBeaconEvidenceCount(ctx sdk.Context, height int64, address sdk.ConsAddress, evType string) BeaconEvidenceInfo {
 	store := ctx.KVStore(k.storeKey)
-	countBytes := store.Get(key(height, address))
+	countBytes := store.Get(key(height, address, evType))
 	evidenceCount := BeaconEvidenceInfo{}
 	k.cdc.UnmarshalBinaryLengthPrefixed(countBytes, &evidenceCount)
 	return evidenceCount
 }
 
 func (k Keeper) setBeaconEvidenceCount(ctx sdk.Context, height int64, address sdk.ConsAddress,
-	newInfo BeaconEvidenceInfo) {
+	evType string, newInfo BeaconEvidenceInfo) {
 	store := ctx.KVStore(k.storeKey)
-	infoKey := key(height, address)
+	infoKey := key(height, address, evType)
 	// If key is new then save it
 	if !store.Has(infoKey) {
 		keysList := k.getKeysList(ctx)
 		keysList = append(keysList, string(infoKey))
 		k.setKeysList(ctx, keysList)
 	}
-	store.Set(key(height, address), k.cdc.MustMarshalBinaryLengthPrefixed(newInfo))
+	store.Set(key(height, address, evType), k.cdc.MustMarshalBinaryLengthPrefixed(newInfo))
 }
 
-func (k Keeper) deleteBeaconEvidenceCount(ctx sdk.Context, height int64, address sdk.ConsAddress) {
+func (k Keeper) deleteBeaconEvidenceCount(ctx sdk.Context, height int64, address sdk.ConsAddress, evType string) {
 	store := ctx.KVStore(k.storeKey)
-	infoKey := key(height, address)
+	infoKey := key(height, address, evType)
 	store.Delete(infoKey)
 	// Remove from keys list
 	keysList := k.getKeysList(ctx)
@@ -126,8 +137,8 @@ func (k Keeper) deleteBeaconEvidenceCount(ctx sdk.Context, height int64, address
 	}
 }
 
-func key(height int64, address sdk.ConsAddress) []byte {
-	return []byte(fmt.Sprintf("%s/%v/%s", beaconEvidenceCountKey, height, address))
+func key(height int64, address sdk.ConsAddress, evType string) []byte {
+	return []byte(fmt.Sprintf("%s/%v/%s/%s", beaconEvidenceCountKey, height, address, evType))
 }
 
 // PruneBeaconEvidence prunes the evidence counts stored

@@ -15,7 +15,7 @@ func RegisterCodec(cdc *codec.Codec) {
 	cdc.RegisterInterface((*exported.Evidence)(nil), nil)
 	cdc.RegisterConcrete(MsgSubmitEvidence{}, "cosmos-sdk/MsgSubmitEvidence", nil)
 	cdc.RegisterConcrete(Equivocation{}, "cosmos-sdk/Equivocation", nil)
-	cdc.RegisterConcrete(BeaconInactivity{}, "cosmos-sdk/BeaconInactivity", nil)
+	cdc.RegisterConcrete(BeaconInfraction{}, "cosmos-sdk/BeaconInfraction", nil)
 }
 
 // RegisterEvidenceTypeCodec registers an external concrete Evidence type defined
