@@ -16,7 +16,7 @@ import (
 	tmtypes "github.com/tendermint/tendermint/types"
 
 	"github.com/cosmos/cosmos-sdk/codec"
-	sdk "github.com/cosmos/cosmos-sdk/types"
+	//sdk "github.com/cosmos/cosmos-sdk/types"
 	authexported "github.com/cosmos/cosmos-sdk/x/auth/exported"
 	authtypes "github.com/cosmos/cosmos-sdk/x/auth/types"
 	"github.com/cosmos/cosmos-sdk/x/genutil/types"
@@ -131,7 +131,7 @@ func CollectStdTxs(cdc *codec.Codec, moniker, genTxsDir string,
 		msg := msgs[0].(stakingtypes.MsgCreateValidator)
 		// validate delegator and validator addresses and funds against the accounts in the state
 		delAddr := msg.DelegatorAddress.String()
-		valAddr := sdk.AccAddress(msg.ValidatorAddress).String()
+		//valAddr := sdk.AccAddress(msg.ValidatorAddress).String()
 
 		delAcc, delOk := addrMap[delAddr]
 		if !delOk {
@@ -139,11 +139,12 @@ func CollectStdTxs(cdc *codec.Codec, moniker, genTxsDir string,
 				"account %v not in genesis.json: %+v", delAddr, addrMap)
 		}
 
-		_, valOk := addrMap[valAddr]
-		if !valOk {
-			return appGenTxs, persistentPeers, fmt.Errorf(
-				"account %v not in genesis.json: %+v", valAddr, addrMap)
-		}
+		// The validator address will not have an account henceforth.
+		//_, valOk := addrMap[valAddr]
+		//if !valOk {
+		//	return appGenTxs, persistentPeers, fmt.Errorf(
+		//		"account %v not in genesis.json: %+v", valAddr, addrMap)
+		//}
 
 		if delAcc.GetCoins().AmountOf(msg.Value.Denom).LT(msg.Value.Amount) {
 			return appGenTxs, persistentPeers, fmt.Errorf(

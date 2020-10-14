@@ -32,6 +32,28 @@ import (
 	"github.com/cosmos/cosmos-sdk/x/genutil/types"
 )
 
+// Convenience function to return the same keyring every time to avoid
+// the user having to input their password multiple times for a single command
+// Should not return a nil keybase if err is nil
+var keyRingGlobal keys.Keybase
+
+func getKeyring(appName, backend, rootDir string, userInput io.Reader, opts ...keys.KeybaseOption) (keys.Keybase, error) {
+
+	if keyRingGlobal != nil {
+		return keyRingGlobal, nil
+	}
+
+	keyRing, err := keys.NewKeyring(appName, backend, rootDir, userInput, opts...)
+
+	if err != nil {
+		return nil, err
+	}
+
+	keyRingGlobal = keyRing
+
+	return keyRingGlobal, nil
+}
+
 // StakingMsgBuildingHelpers helpers for message building gen-tx command
 type StakingMsgBuildingHelpers interface {
 	CreateValidatorMsgHelpers(ipDefault string) (fs *flag.FlagSet, nodeIDFlag, pubkeyFlag, amountFlag, defaultsDesc string)
@@ -96,7 +118,7 @@ func GenTxCmd(ctx *server.Context, cdc *codec.Codec, mbm module.BasicManager, sm
 			fmt.Printf("Backend %v", viper.GetString(flags.FlagKeyringBackend))
 			fmt.Printf("Service name %v", sdk.KeyringServiceName())
 			fmt.Printf("home name %v", viper.GetString(flagClientHome))
-			kb, err := keys.NewKeyring(sdk.KeyringServiceName(),
+			kb, err := getKeyring(sdk.KeyringServiceName(),
 				viper.GetString(flags.FlagKeyringBackend), viper.GetString(flagClientHome), inBuf)
 			if err != nil {
 				return errors.Wrap(err, "failed to initialize keybase")
@@ -115,6 +137,7 @@ func GenTxCmd(ctx *server.Context, cdc *codec.Codec, mbm module.BasicManager, sm
 			}
 
 			fmt.Printf("Validator key: %v", validatorKey)
+			fmt.Printf("Operator key: %v", key)
 
 			// Set flags for creating gentx
 			viper.Set(flags.FlagHome, viper.GetString(flagClientHome))
@@ -133,7 +156,7 @@ func GenTxCmd(ctx *server.Context, cdc *codec.Codec, mbm module.BasicManager, sm
 			}
 
 			// Need to also validate that the validator key type is strictly bls based combination
-			if key.GetAlgo() != keys.CombinedSignature {
+			if validatorKey.GetAlgo() != keys.CombinedSignature {
 				return errors.Wrap(err, "The fetch validator key must be bls combination. See: XXX")
 			}
 

@@ -12,7 +12,7 @@ import (
 // REF: https://github.com/cosmos/cosmos-sdk/issues/5450
 var (
 	ErrEmptyValidatorAddr              = sdkerrors.Register(ModuleName, 1, "empty validator address")
-	ErrBadValidatorAddr                = sdkerrors.Register(ModuleName, 2, "validator address is invalid")
+	ErrBadValidatorAddr                = sdkerrors.Register(ModuleName, 2, "validator address is invalid - it must be a combined signature (not the same as operating address)")
 	ErrNoValidatorFound                = sdkerrors.Register(ModuleName, 3, "validator does not exist")
 	ErrValidatorOwnerExists            = sdkerrors.Register(ModuleName, 4, "validator already exist for this operator address; must use new validator operator address")
 	ErrValidatorPubKeyExists           = sdkerrors.Register(ModuleName, 5, "validator already exist for this pubkey; must use new validator pubkey")

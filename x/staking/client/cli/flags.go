@@ -28,7 +28,7 @@ const (
 
 	FlagMinSelfDelegation = "min-self-delegation"
 
-	FlagValidator = "validator"
+	//FlagValidator = "validator"
 
 	FlagGenesisFormat = "genesis-format"
 	FlagNodeID        = "node-id"
@@ -47,7 +47,7 @@ var (
 	fsDescriptionEdit   = flag.NewFlagSet("", flag.ContinueOnError)
 	fsValidator         = flag.NewFlagSet("", flag.ContinueOnError)
 	fsRedelegation      = flag.NewFlagSet("", flag.ContinueOnError)
-	FsValidator         = flag.NewFlagSet("", flag.ContinueOnError)
+	//FsValidator         = flag.NewFlagSet("", flag.ContinueOnError)
 )
 
 func init() {

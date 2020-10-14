@@ -58,7 +58,7 @@ func NewCLIContextWithInputAndFrom(input io.Reader, from string) CLIContext {
 
 	genOnly := viper.GetBool(flags.FlagGenerateOnly)
 	fromAddress, fromName, err := GetFromFields(input, from, genOnly)
-	validatorAddress, validatorName, err := GetValidatorFields(input, genOnly)
+	validatorAddress, validatorName := GetValidatorFields(input, genOnly)
 
 	fmt.Printf("%v %v !!!", validatorAddress, validatorName)
 
@@ -95,7 +95,7 @@ func NewCLIContextWithInputAndFrom(input io.Reader, from string) CLIContext {
 		GenerateOnly:  genOnly,
 		FromAddress:   fromAddress,
 		FromName:      fromName,
-		//ValidatorAddress:
+		ValidatorAddress: validatorAddress,
 		Indent:        viper.GetBool(flags.FlagIndentResponse),
 		SkipConfirm:   viper.GetBool(flags.FlagSkipConfirmation),
 	}
@@ -303,9 +303,25 @@ func GetFromFields(input io.Reader, from string, genOnly bool) (sdk.AccAddress, 
 }
 
 // GetValidatorFields returns a validator account address (bls combined signature scheme)
-// and Keybase name from the given flags. If no validator address, returns empty.
-// If genOnly is true, only a valid Bech32 cosmos only a valid Bech32 cosmos address is returned.
-func GetValidatorFields(input io.Reader, genOnly bool) (sdk.AccAddress, string, error) {
+// and Keybase name from the given flags. If no validator name was provided, returns empty.
+func GetValidatorFields(input io.Reader, genOnly bool) (addr sdk.AccAddress, str string) {
 	fmt.Printf("", viper.GetString(flags.FlagValidator))
-	return sdk.AccAddress{}, "", nil
+
+	// Get the validator name if it was passed in
+	validatorName := viper.GetString(flags.FlagValidator)
+
+	if validatorName == "" {
+		return
+	}
+
+	keybase, err := keys.NewKeyring(sdk.KeyringServiceName(),
+		viper.GetString(flags.FlagKeyringBackend), viper.GetString(flags.FlagHome), input)
+
+	validatorKey, err := keybase.Get(validatorName)
+
+	if err != nil {
+		return
+	}
+
+	return validatorKey.GetAddress(), validatorName
 }

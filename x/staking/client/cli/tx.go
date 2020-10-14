@@ -70,7 +70,7 @@ func GetCmdCreateValidator(cdc *codec.Codec) *cobra.Command {
 	cmd.Flags().AddFlagSet(fsDescriptionCreate)
 	cmd.Flags().AddFlagSet(FsCommissionCreate)
 	cmd.Flags().AddFlagSet(FsMinSelfDelegation)
-	cmd.Flags().AddFlagSet(FsValidator)
+	cmd.Flags().AddFlagSet(fsValidator)
 
 	cmd.Flags().String(FlagIP, "", fmt.Sprintf("The node's public IP. It takes effect only when used in combination with --%s", flags.FlagGenerateOnly))
 	cmd.Flags().String(FlagNodeID, "", "The node's ID")
@@ -285,7 +285,7 @@ func CreateValidatorMsgHelpers(ipDefault string) (fs *flag.FlagSet, nodeIDFlag, 
 	fsCreateValidator.AddFlagSet(FsMinSelfDelegation)
 	fsCreateValidator.AddFlagSet(FsAmount)
 	fsCreateValidator.AddFlagSet(FsPk)
-	fsCreateValidator.AddFlagSet(FsValidator)
+	fsCreateValidator.AddFlagSet(fsValidator)
 
 	defaultsDesc = fmt.Sprintf(`
 	delegation amount:           %s

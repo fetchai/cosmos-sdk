@@ -1,7 +1,7 @@
 package types
 
 import (
-	"bytes"
+	//"bytes"
 	"encoding/json"
 
 	"github.com/tendermint/tendermint/crypto"
@@ -76,9 +76,9 @@ func (msg MsgCreateValidator) GetSigners() []sdk.AccAddress {
 	// delegator is first signer so delegator pays fees
 	addrs := []sdk.AccAddress{msg.DelegatorAddress}
 
-	if !bytes.Equal(msg.DelegatorAddress.Bytes(), msg.ValidatorAddress.Bytes()) {
-		addrs = append(addrs, sdk.AccAddress(msg.ValidatorAddress))
-	}
+	//if !bytes.Equal(msg.DelegatorAddress.Bytes(), msg.ValidatorAddress.Bytes()) {
+	//	addrs = append(addrs, sdk.AccAddress(msg.ValidatorAddress))
+	//}
 	return addrs
 }
 
@@ -161,7 +161,7 @@ func (msg MsgCreateValidator) ValidateBasic() error {
 	if msg.ValidatorAddress.Empty() {
 		return ErrEmptyValidatorAddr
 	}
-	if !sdk.AccAddress(msg.ValidatorAddress).Equals(msg.DelegatorAddress) {
+	if sdk.AccAddress(msg.ValidatorAddress).Equals(msg.DelegatorAddress) {
 		return ErrBadValidatorAddr
 	}
 	if !msg.Value.Amount.IsPositive() {
