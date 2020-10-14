@@ -27,20 +27,20 @@ var (
 	NewKeeper  = keeper.NewKeeper
 	NewQuerier = keeper.NewQuerier
 
-	NewMsgSubmitEvidence            = types.NewMsgSubmitEvidence
-	NewRouter                       = types.NewRouter
-	NewQueryEvidenceParams          = types.NewQueryEvidenceParams
-	NewQueryAllEvidenceParams       = types.NewQueryAllEvidenceParams
-	RegisterCodec                   = types.RegisterCodec
-	RegisterEvidenceTypeCodec       = types.RegisterEvidenceTypeCodec
-	ModuleCdc                       = types.ModuleCdc
-	NewGenesisState                 = types.NewGenesisState
-	DefaultGenesisState             = types.DefaultGenesisState
-	ConvertDuplicateVoteEvidence    = types.ConvertDuplicateVoteEvidence
-	ConvertBeaconInactivityEvidence = types.ConvertBeaconInactivityEvidence
-	KeyMaxEvidenceAge               = types.KeyMaxEvidenceAge
-	DoubleSignJailEndTime           = types.DoubleSignJailEndTime
-	ParamKeyTable                   = types.ParamKeyTable
+	NewMsgSubmitEvidence         = types.NewMsgSubmitEvidence
+	NewRouter                    = types.NewRouter
+	NewQueryEvidenceParams       = types.NewQueryEvidenceParams
+	NewQueryAllEvidenceParams    = types.NewQueryAllEvidenceParams
+	RegisterCodec                = types.RegisterCodec
+	RegisterEvidenceTypeCodec    = types.RegisterEvidenceTypeCodec
+	ModuleCdc                    = types.ModuleCdc
+	NewGenesisState              = types.NewGenesisState
+	DefaultGenesisState          = types.DefaultGenesisState
+	ConvertDuplicateVoteEvidence = types.ConvertDuplicateVoteEvidence
+	ConvertBeaconEvidence        = types.ConvertBeaconEvidence
+	KeyMaxEvidenceAge            = types.KeyMaxEvidenceAge
+	DoubleSignJailEndTime        = types.DoubleSignJailEndTime
+	ParamKeyTable                = types.ParamKeyTable
 )
 
 type (
@@ -51,5 +51,5 @@ type (
 	Handler           = types.Handler
 	Router            = types.Router
 	Equivocation      = types.Equivocation
-	BeaconInactivity  = types.BeaconInactivity
+	BeaconInfraction  = types.BeaconInfraction
 )

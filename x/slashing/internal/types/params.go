@@ -20,6 +20,7 @@ var (
 	DefaultSlashFractionDoubleSign       = sdk.NewDec(1).Quo(sdk.NewDec(20))
 	DefaultSlashFractionDowntime         = sdk.NewDec(1).Quo(sdk.NewDec(100))
 	DefaultSlashFractionBeaconInactivity = sdk.NewDec(1).Quo(sdk.NewDec(100))
+	DefaultSlashFractionDKGFailure       = sdk.NewDec(1).Quo(sdk.NewDec(100))
 )
 
 // Parameter store keys
@@ -30,6 +31,7 @@ var (
 	KeySlashFractionDoubleSign       = []byte("SlashFractionDoubleSign")
 	KeySlashFractionDowntime         = []byte("SlashFractionDowntime")
 	KeySlashFractionBeaconInactivity = []byte("SlashFractionBeaconInactivity")
+	KeySlashFractionDKGFailure       = []byte("SlashFractionDKGFailure")
 )
 
 // ParamKeyTable for slashing module
@@ -45,12 +47,14 @@ type Params struct {
 	SlashFractionDoubleSign       sdk.Dec       `json:"slash_fraction_double_sign" yaml:"slash_fraction_double_sign"`
 	SlashFractionDowntime         sdk.Dec       `json:"slash_fraction_downtime" yaml:"slash_fraction_downtime"`
 	SlashFractionBeaconInactivity sdk.Dec       `json:"slash_fraction_beacon_inactivty" yaml:"slash_fraction_beacon_inactivity"`
+	SlashFractionDKGFailure       sdk.Dec       `json:"slash_fraction_dkg_failure" yaml:"slash_fraction_dkg_failure"`
 }
 
 // NewParams creates a new Params object
 func NewParams(
 	signedBlocksWindow int64, minSignedPerWindow sdk.Dec, downtimeJailDuration time.Duration,
 	slashFractionDoubleSign, slashFractionDowntime sdk.Dec, slashFractionBeaconInactivity sdk.Dec,
+	slashFractionDKGFailure sdk.Dec,
 ) Params {
 
 	return Params{
@@ -60,6 +64,7 @@ func NewParams(
 		SlashFractionDoubleSign:       slashFractionDoubleSign,
 		SlashFractionDowntime:         slashFractionDowntime,
 		SlashFractionBeaconInactivity: slashFractionBeaconInactivity,
+		SlashFractionDKGFailure:       slashFractionDKGFailure,
 	}
 }
 
@@ -71,10 +76,12 @@ func (p Params) String() string {
   DowntimeJailDuration:          %s
   SlashFractionDoubleSign:       %s
   SlashFractionDowntime:         %s
-  SlashFractionBeaconInactivity: %s`,
+  SlashFractionBeaconInactivity: %s
+  SlashFractionDKGFailure:       %s`,
 		p.SignedBlocksWindow, p.MinSignedPerWindow,
 		p.DowntimeJailDuration, p.SlashFractionDoubleSign,
-		p.SlashFractionDowntime, p.SlashFractionBeaconInactivity)
+		p.SlashFractionDowntime, p.SlashFractionBeaconInactivity,
+		p.SlashFractionDKGFailure)
 }
 
 // ParamSetPairs - Implements params.ParamSet
@@ -86,6 +93,7 @@ func (p *Params) ParamSetPairs() params.ParamSetPairs {
 		params.NewParamSetPair(KeySlashFractionDoubleSign, &p.SlashFractionDoubleSign, validateSlashFractionDoubleSign),
 		params.NewParamSetPair(KeySlashFractionDowntime, &p.SlashFractionDowntime, validateSlashFractionDowntime),
 		params.NewParamSetPair(KeySlashFractionBeaconInactivity, &p.SlashFractionBeaconInactivity, validateSlashFractionBeaconInactivity),
+		params.NewParamSetPair(KeySlashFractionDKGFailure, &p.SlashFractionDKGFailure, validateSlashFractionDKGFailure),
 	}
 }
 
@@ -94,6 +102,7 @@ func DefaultParams() Params {
 	return NewParams(
 		DefaultSignedBlocksWindow, DefaultMinSignedPerWindow, DefaultDowntimeJailDuration,
 		DefaultSlashFractionDoubleSign, DefaultSlashFractionDowntime, DefaultSlashFractionBeaconInactivity,
+		DefaultSlashFractionDKGFailure,
 	)
 }
 
@@ -174,6 +183,25 @@ func validateSlashFractionDowntime(i interface{}) error {
 func validateSlashFractionBeaconInactivity(i interface{}) error {
 	if i == nil {
 		return fmt.Errorf("slash fraction beacon inactivity nil")
+	}
+	v, ok := i.(sdk.Dec)
+	if !ok {
+		return fmt.Errorf("invalid parameter type: %T", i)
+	}
+
+	if v.IsNegative() {
+		return fmt.Errorf("downtime slash fraction cannot be negative: %s", v)
+	}
+	if v.GT(sdk.OneDec()) {
+		return fmt.Errorf("downtime slash fraction too large: %s", v)
+	}
+
+	return nil
+}
+
+func validateSlashFractionDKGFailure(i interface{}) error {
+	if i == nil {
+		return fmt.Errorf("slash fraction dkg failure nil")
 	}
 	v, ok := i.(sdk.Dec)
 	if !ok {
