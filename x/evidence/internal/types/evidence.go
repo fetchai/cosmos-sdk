@@ -15,10 +15,8 @@ import (
 
 // Evidence type constants
 const (
-	RouteEquivocation    = "equivocation"
-	TypeEquivocation     = "equivocation"
-	TypeBeaconInactivity = "beacon_inactivity"
-	TypeDKGFailure       = "dkg_failure"
+	RouteEquivocation = "equivocation"
+	TypeEquivocation  = "equivocation"
 )
 
 var _ exported.Evidence = (*Equivocation)(nil)
@@ -181,24 +179,11 @@ func (e BeaconInfraction) GetValidatorPower() int64 {
 // GetTotalPower is a no-op for the BeaconInfraction type.
 func (e BeaconInfraction) GetTotalPower() int64 { return 0 }
 
-// ConvertBeaconInactivityEvidence converts a Tendermint concrete Evidence type to
-// SDK Evidence using BeaconInfraction as the concrete type.
-func ConvertBeaconInactivityEvidence(ev abci.Evidence) exported.Evidence {
+// ConvertBeaconEvidence converts a Tendermint concrete Evidence type to
+// SDK Evidence using BeaconEvidence as the concrete type.
+func ConvertBeaconEvidence(ev abci.Evidence, tmEvidenceType string) exported.Evidence {
 	return BeaconInfraction{
-		EvidenceType:     TypeBeaconInactivity,
-		Height:           ev.Height,
-		Power:            ev.Validator.Power,
-		ConsensusAddress: sdk.ConsAddress(ev.Validator.Address),
-		Time:             ev.Time,
-		Threshold:        ev.Threshold,
-	}
-}
-
-// ConvertDKGFailureEvidence converts a Tendermint concrete Evidence type to
-// SDK Evidence using BeaconInfraction as the concrete type.
-func ConvertDKGFailureEvidence(ev abci.Evidence) exported.Evidence {
-	return BeaconInfraction{
-		EvidenceType:     TypeDKGFailure,
+		EvidenceType:     tmEvidenceType,
 		Height:           ev.Height,
 		Power:            ev.Validator.Power,
 		ConsensusAddress: sdk.ConsAddress(ev.Validator.Address),

@@ -17,15 +17,14 @@ func BeginBlocker(ctx sdk.Context, req abci.RequestBeginBlock, k Keeper) {
 	defer telemetry.ModuleMeasureSince(ModuleName, time.Now(), telemetry.MetricKeyBeginBlocker)
 
 	for _, tmEvidence := range req.ByzantineValidators {
-		switch tmEvidence.Type {
+		switch tmEvidenceType := tmEvidence.Type; tmEvidenceType {
 		case tmtypes.ABCIEvidenceTypeDuplicateVote:
 			evidence := ConvertDuplicateVoteEvidence(tmEvidence)
 			k.HandleDoubleSign(ctx, evidence.(Equivocation))
 		case tmtypes.ABCIEvidenceTypeBeaconInactivity:
-			evidence := ConvertBeaconInactivityEvidence(tmEvidence)
-			k.HandleBeaconInfraction(ctx, evidence.(BeaconInfraction))
+			fallthrough
 		case tmtypes.ABCIEvidenceTypeDKG:
-			evidence := ConvertDKGFailureEvidence(tmEvidence)
+			evidence := ConvertBeaconEvidence(tmEvidence, tmEvidenceType)
 			k.HandleBeaconInfraction(ctx, evidence.(BeaconInfraction))
 		default:
 			k.Logger(ctx).Error(fmt.Sprintf("ignored unknown evidence type: %s", tmEvidence.Type))
