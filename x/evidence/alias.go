@@ -37,6 +37,7 @@ var (
 	NewGenesisState              = types.NewGenesisState
 	DefaultGenesisState          = types.DefaultGenesisState
 	ConvertDuplicateVoteEvidence = types.ConvertDuplicateVoteEvidence
+	ConvertBeaconEvidence        = types.ConvertBeaconEvidence
 	KeyMaxEvidenceAge            = types.KeyMaxEvidenceAge
 	DoubleSignJailEndTime        = types.DoubleSignJailEndTime
 	ParamKeyTable                = types.ParamKeyTable
@@ -50,4 +51,5 @@ type (
 	Handler           = types.Handler
 	Router            = types.Router
 	Equivocation      = types.Equivocation
+	BeaconInfraction  = types.BeaconInfraction
 )

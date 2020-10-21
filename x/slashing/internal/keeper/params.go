@@ -36,6 +36,18 @@ func (k Keeper) SlashFractionDoubleSign(ctx sdk.Context) (res sdk.Dec) {
 	return
 }
 
+// SlashBeaconInactivity - fraction of power slashed in case of beacon inactivity
+func (k Keeper) SlashFractionBeaconInactivity(ctx sdk.Context) (res sdk.Dec) {
+	k.paramspace.Get(ctx, types.KeySlashFractionBeaconInactivity, &res)
+	return
+}
+
+// SlashBeaconInactivity - fraction of power slashed in case of beacon inactivity
+func (k Keeper) SlashFractioDKGFailure(ctx sdk.Context) (res sdk.Dec) {
+	k.paramspace.Get(ctx, types.KeySlashFractionDKGFailure, &res)
+	return
+}
+
 // SlashFractionDowntime - fraction of power slashed for downtime
 func (k Keeper) SlashFractionDowntime(ctx sdk.Context) (res sdk.Dec) {
 	k.paramspace.Get(ctx, types.KeySlashFractionDowntime, &res)

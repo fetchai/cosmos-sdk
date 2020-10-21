@@ -103,21 +103,27 @@ func TestAllocateTokensToManyValidators(t *testing.T) {
 			SignedLastBlock: true,
 		},
 	}
-	k.AllocateTokens(ctx, 200, 200, valConsAddr2, votes)
+	req := abci.RequestBeginBlock{
+		LastCommitInfo: abci.LastCommitInfo{
+			Round: 0,
+			Votes: votes,
+		},
+	}
+	k.AllocateTokens(ctx, 200, 200, valConsAddr2, req)
 
-	// 98 outstanding rewards (100 less 2 to community pool)
-	require.Equal(t, sdk.DecCoins{{Denom: sdk.DefaultBondDenom, Amount: sdk.NewDecWithPrec(465, 1)}}, k.GetValidatorOutstandingRewards(ctx, valOpAddr1))
-	require.Equal(t, sdk.DecCoins{{Denom: sdk.DefaultBondDenom, Amount: sdk.NewDecWithPrec(515, 1)}}, k.GetValidatorOutstandingRewards(ctx, valOpAddr2))
-	// 2 community pool coins
-	require.Equal(t, sdk.DecCoins{{Denom: sdk.DefaultBondDenom, Amount: sdk.NewDec(2)}}, k.GetFeePool(ctx).CommunityPool)
-	// 50% commission for first proposer, (0.5 * 93%) * 100 / 2 = 23.25
-	require.Equal(t, sdk.DecCoins{{Denom: sdk.DefaultBondDenom, Amount: sdk.NewDecWithPrec(2325, 2)}}, k.GetValidatorAccumulatedCommission(ctx, valOpAddr1))
+	// 97 outstanding rewards (100 less 3 to community pool (1 from non-distributed beacon reward))
+	require.Equal(t, sdk.DecCoins{{Denom: sdk.DefaultBondDenom, Amount: sdk.NewDecWithPrec(460, 1)}}, k.GetValidatorOutstandingRewards(ctx, valOpAddr1))
+	require.Equal(t, sdk.DecCoins{{Denom: sdk.DefaultBondDenom, Amount: sdk.NewDecWithPrec(510, 1)}}, k.GetValidatorOutstandingRewards(ctx, valOpAddr2))
+	// 3 community pool coins
+	require.Equal(t, sdk.DecCoins{{Denom: sdk.DefaultBondDenom, Amount: sdk.NewDec(3)}}, k.GetFeePool(ctx).CommunityPool)
+	// 50% commission for first proposer, (0.5 * 92%) * 100 / 2 = 23.00
+	require.Equal(t, sdk.DecCoins{{Denom: sdk.DefaultBondDenom, Amount: sdk.NewDecWithPrec(2300, 2)}}, k.GetValidatorAccumulatedCommission(ctx, valOpAddr1))
 	// zero commission for second proposer
 	require.True(t, k.GetValidatorAccumulatedCommission(ctx, valOpAddr2).IsZero())
-	// just staking.proportional for first proposer less commission = (0.5 * 93%) * 100 / 2 = 23.25
-	require.Equal(t, sdk.DecCoins{{Denom: sdk.DefaultBondDenom, Amount: sdk.NewDecWithPrec(2325, 2)}}, k.GetValidatorCurrentRewards(ctx, valOpAddr1).Rewards)
-	// proposer reward + staking.proportional for second proposer = (5 % + 0.5 * (93%)) * 100 = 51.5
-	require.Equal(t, sdk.DecCoins{{Denom: sdk.DefaultBondDenom, Amount: sdk.NewDecWithPrec(515, 1)}}, k.GetValidatorCurrentRewards(ctx, valOpAddr2).Rewards)
+	// just staking.proportional for first proposer less commission = (0.5 * 92%) * 100 / 2 = 23.00
+	require.Equal(t, sdk.DecCoins{{Denom: sdk.DefaultBondDenom, Amount: sdk.NewDecWithPrec(2300, 2)}}, k.GetValidatorCurrentRewards(ctx, valOpAddr1).Rewards)
+	// proposer reward + staking.proportional for second proposer = (5 % + 0.5 * (92%)) * 100 = 51.0
+	require.Equal(t, sdk.DecCoins{{Denom: sdk.DefaultBondDenom, Amount: sdk.NewDecWithPrec(510, 1)}}, k.GetValidatorCurrentRewards(ctx, valOpAddr2).Rewards)
 }
 
 func TestAllocateTokensTruncation(t *testing.T) {
@@ -197,7 +203,13 @@ func TestAllocateTokensTruncation(t *testing.T) {
 			SignedLastBlock: true,
 		},
 	}
-	k.AllocateTokens(ctx, 31, 31, valConsAddr2, votes)
+	req := abci.RequestBeginBlock{
+		LastCommitInfo: abci.LastCommitInfo{
+			Round: 0,
+			Votes: votes,
+		},
+	}
+	k.AllocateTokens(ctx, 31, 31, valConsAddr2, req)
 
 	require.True(t, k.GetValidatorOutstandingRewards(ctx, valOpAddr1).IsValid())
 	require.True(t, k.GetValidatorOutstandingRewards(ctx, valOpAddr2).IsValid())

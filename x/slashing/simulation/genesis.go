@@ -17,11 +17,13 @@ import (
 
 // Simulation parameter constants
 const (
-	SignedBlocksWindow      = "signed_blocks_window"
-	MinSignedPerWindow      = "min_signed_per_window"
-	DowntimeJailDuration    = "downtime_jail_duration"
-	SlashFractionDoubleSign = "slash_fraction_double_sign"
-	SlashFractionDowntime   = "slash_fraction_downtime"
+	SignedBlocksWindow            = "signed_blocks_window"
+	MinSignedPerWindow            = "min_signed_per_window"
+	DowntimeJailDuration          = "downtime_jail_duration"
+	SlashFractionDoubleSign       = "slash_fraction_double_sign"
+	SlashFractionDowntime         = "slash_fraction_downtime"
+	SlashFractionBeaconInactivity = "slash_fraction_beacon_inactivity"
+	SlashFractionDKGFailure       = "slash_fraction_dkg_failure"
 )
 
 // GenSignedBlocksWindow randomized SignedBlocksWindow
@@ -46,6 +48,11 @@ func GenSlashFractionDoubleSign(r *rand.Rand) sdk.Dec {
 
 // GenSlashFractionDowntime randomized SlashFractionDowntime
 func GenSlashFractionDowntime(r *rand.Rand) sdk.Dec {
+	return sdk.NewDec(1).Quo(sdk.NewDec(int64(r.Intn(200) + 1)))
+}
+
+// GenSlashFractionBeaconInactivity randomized SlashFractionBeaconInactivity
+func GenSlashFractionBeaconInactivity(r *rand.Rand) sdk.Dec {
 	return sdk.NewDec(1).Quo(sdk.NewDec(int64(r.Intn(200) + 1)))
 }
 
@@ -81,9 +88,22 @@ func RandomizedGenState(simState *module.SimulationState) {
 		func(r *rand.Rand) { slashFractionDowntime = GenSlashFractionDowntime(r) },
 	)
 
+	var slashFractionBeaconInactivity sdk.Dec
+	simState.AppParams.GetOrGenerate(
+		simState.Cdc, SlashFractionBeaconInactivity, &slashFractionBeaconInactivity, simState.Rand,
+		func(r *rand.Rand) { slashFractionBeaconInactivity = GenSlashFractionDowntime(r) },
+	)
+
+	var slashFractionDKGFailure sdk.Dec
+	simState.AppParams.GetOrGenerate(
+		simState.Cdc, SlashFractionDKGFailure, &slashFractionDKGFailure, simState.Rand,
+		func(r *rand.Rand) { slashFractionDKGFailure = GenSlashFractionDowntime(r) },
+	)
+
 	params := types.NewParams(
 		signedBlocksWindow, minSignedPerWindow, downtimeJailDuration,
-		slashFractionDoubleSign, slashFractionDowntime,
+		slashFractionDoubleSign, slashFractionDowntime, slashFractionBeaconInactivity,
+		slashFractionDKGFailure,
 	)
 
 	slashingGenesis := types.NewGenesisState(params, nil, nil)

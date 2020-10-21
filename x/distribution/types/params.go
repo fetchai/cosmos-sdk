@@ -20,6 +20,7 @@ var (
 	ParamStoreKeyBaseProposerReward  = []byte("baseproposerreward")
 	ParamStoreKeyBonusProposerReward = []byte("bonusproposerreward")
 	ParamStoreKeyWithdrawAddrEnabled = []byte("withdrawaddrenabled")
+	ParamStoreKeyBeaconReward        = []byte("beaconreward")
 )
 
 // Params defines the set of distribution parameters.
@@ -28,6 +29,7 @@ type Params struct {
 	BaseProposerReward  sdk.Dec `json:"base_proposer_reward" yaml:"base_proposer_reward"`
 	BonusProposerReward sdk.Dec `json:"bonus_proposer_reward" yaml:"bonus_proposer_reward"`
 	WithdrawAddrEnabled bool    `json:"withdraw_addr_enabled" yaml:"withdraw_addr_enabled"`
+	BeaconReward        sdk.Dec `json:"beacon_reward" yaml:"beacon_reward"`
 }
 
 // ParamKeyTable returns the parameter key table.
@@ -42,6 +44,7 @@ func DefaultParams() Params {
 		BaseProposerReward:  sdk.NewDecWithPrec(1, 2), // 1%
 		BonusProposerReward: sdk.NewDecWithPrec(4, 2), // 4%
 		WithdrawAddrEnabled: true,
+		BeaconReward:        sdk.NewDecWithPrec(1, 2), // 1%
 	}
 }
 
@@ -57,6 +60,7 @@ func (p *Params) ParamSetPairs() params.ParamSetPairs {
 		params.NewParamSetPair(ParamStoreKeyBaseProposerReward, &p.BaseProposerReward, validateBaseProposerReward),
 		params.NewParamSetPair(ParamStoreKeyBonusProposerReward, &p.BonusProposerReward, validateBonusProposerReward),
 		params.NewParamSetPair(ParamStoreKeyWithdrawAddrEnabled, &p.WithdrawAddrEnabled, validateWithdrawAddrEnabled),
+		params.NewParamSetPair(ParamStoreKeyBeaconReward, &p.BeaconReward, validateBeaconReward),
 	}
 }
 
@@ -80,6 +84,11 @@ func (p Params) ValidateBasic() error {
 	if v := p.BaseProposerReward.Add(p.BonusProposerReward); v.GT(sdk.OneDec()) {
 		return fmt.Errorf(
 			"sum of base and bonus proposer reward cannot greater than one: %s", v,
+		)
+	}
+	if p.BeaconReward.IsNegative() {
+		return fmt.Errorf(
+			"beacon reward should be positive: %s", p.BeaconReward,
 		)
 	}
 
@@ -147,6 +156,28 @@ func validateWithdrawAddrEnabled(i interface{}) error {
 	_, ok := i.(bool)
 	if !ok {
 		return fmt.Errorf("invalid parameter type: %T", i)
+	}
+
+	return nil
+}
+
+func validateBeaconReward(i interface{}) error {
+	if i == nil {
+		return fmt.Errorf("nil interface received")
+	}
+	v, ok := i.(sdk.Dec)
+	if !ok {
+		return fmt.Errorf("invalid parameter type: %T", i)
+	}
+
+	if v.IsNil() {
+		return fmt.Errorf("beacon reward must be not nil")
+	}
+	if v.IsNegative() {
+		return fmt.Errorf("beacon reward must be positive: %s", v)
+	}
+	if v.GT(sdk.OneDec()) {
+		return fmt.Errorf("beacon reward too large: %s", v)
 	}
 
 	return nil

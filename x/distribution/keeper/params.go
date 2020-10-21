@@ -41,3 +41,10 @@ func (k Keeper) GetWithdrawAddrEnabled(ctx sdk.Context) (enabled bool) {
 	k.paramSpace.Get(ctx, types.ParamStoreKeyWithdrawAddrEnabled, &enabled)
 	return enabled
 }
+
+// GetBeaconReward returns the current distribution beacon reward
+// rate.
+func (k Keeper) GetBeaconReward(ctx sdk.Context) (percent sdk.Dec) {
+	k.paramSpace.Get(ctx, types.ParamStoreKeyBeaconReward, &percent)
+	return percent
+}
