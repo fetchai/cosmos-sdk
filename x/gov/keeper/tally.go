@@ -27,7 +27,7 @@ func (keeper Keeper) Tally(ctx sdk.Context, proposal types.Proposal) (passes boo
 			validator.GetBondedTokens(),
 			validator.GetDelegatorShares(),
 			sdk.ZeroDec(),
-			types.OptionEmpty,
+			types.SubVotes{},
 		)
 
 		return false
@@ -43,7 +43,7 @@ func (keeper Keeper) Tally(ctx sdk.Context, proposal types.Proposal) (passes boo
 
 		valAddrStr := sdk.ValAddress(voter.Bytes()).String()
 		if val, ok := currValidators[valAddrStr]; ok {
-			val.Vote = vote.Option
+			val.Vote = vote.SubVotes
 			currValidators[valAddrStr] = val
 		}
 
@@ -60,8 +60,17 @@ func (keeper Keeper) Tally(ctx sdk.Context, proposal types.Proposal) (passes boo
 				// delegation shares * bonded / total shares
 				votingPower := delegation.GetShares().MulInt(val.BondedTokens).Quo(val.DelegatorShares)
 
-				results[vote.Option] = results[vote.Option].Add(votingPower)
-				totalVotingPower = totalVotingPower.Add(votingPower)
+				totalRates := sdk.NewDec(0)
+				for _, subvote := range vote.SubVotes {
+					totalRates = totalRates.Add(subvote.Rate)
+				}
+				for _, subvote := range vote.SubVotes {
+					subPower := sdk.NewDecFromBigInt(votingPower.BigInt().Div(votingPower.Mul(subvote.Rate).BigInt(), totalRates.BigInt()))
+					results[subvote.Option] = results[subvote.Option].Add(subPower)
+					totalVotingPower = totalVotingPower.Add(subPower)
+				}
+				// TODO how should handle remainder?
+				// TODO how should handle when totalRates == 0
 			}
 
 			return false
@@ -73,15 +82,24 @@ func (keeper Keeper) Tally(ctx sdk.Context, proposal types.Proposal) (passes boo
 
 	// iterate over the validators again to tally their voting power
 	for _, val := range currValidators {
-		if val.Vote == types.OptionEmpty {
+		if len(val.Vote) == 0 {
 			continue
 		}
 
 		sharesAfterDeductions := val.DelegatorShares.Sub(val.DelegatorDeductions)
 		votingPower := sharesAfterDeductions.MulInt(val.BondedTokens).Quo(val.DelegatorShares)
 
-		results[val.Vote] = results[val.Vote].Add(votingPower)
-		totalVotingPower = totalVotingPower.Add(votingPower)
+		totalRates := sdk.NewDec(0)
+		for _, subvote := range val.Vote {
+			totalRates = totalRates.Add(subvote.Rate)
+		}
+		for _, subvote := range val.Vote {
+			subPower := sdk.NewDecFromBigInt(votingPower.BigInt().Div(votingPower.Mul(subvote.Rate).BigInt(), totalRates.BigInt()))
+			results[subvote.Option] = results[subvote.Option].Add(subPower)
+			totalVotingPower = totalVotingPower.Add(subPower)
+			// TODO how should handle remainder?
+			// TODO how should handle when totalRates == 0
+		}
 	}
 
 	tallyParams := keeper.GetTallyParams(ctx)
