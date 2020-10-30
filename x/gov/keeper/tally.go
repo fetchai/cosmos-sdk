@@ -60,17 +60,11 @@ func (keeper Keeper) Tally(ctx sdk.Context, proposal types.Proposal) (passes boo
 				// delegation shares * bonded / total shares
 				votingPower := delegation.GetShares().MulInt(val.BondedTokens).Quo(val.DelegatorShares)
 
-				totalRates := sdk.NewDec(0)
 				for _, option := range vote.Options {
-					totalRates = totalRates.Add(option.Weight)
-				}
-				for _, option := range vote.Options {
-					subPower := sdk.NewDecFromBigInt(votingPower.BigInt().Div(votingPower.Mul(option.Weight).BigInt(), totalRates.BigInt()))
+					subPower := votingPower.Mul(option.Weight)
 					results[option.Option] = results[option.Option].Add(subPower)
-					totalVotingPower = totalVotingPower.Add(subPower)
 				}
-				// TODO how should handle remainder?
-				// TODO how should handle when totalRates == 0
+				totalVotingPower = totalVotingPower.Add(votingPower)
 			}
 
 			return false
@@ -89,17 +83,11 @@ func (keeper Keeper) Tally(ctx sdk.Context, proposal types.Proposal) (passes boo
 		sharesAfterDeductions := val.DelegatorShares.Sub(val.DelegatorDeductions)
 		votingPower := sharesAfterDeductions.MulInt(val.BondedTokens).Quo(val.DelegatorShares)
 
-		totalRates := sdk.NewDec(0)
 		for _, option := range val.Vote {
-			totalRates = totalRates.Add(option.Weight)
-		}
-		for _, option := range val.Vote {
-			subPower := sdk.NewDecFromBigInt(votingPower.BigInt().Div(votingPower.Mul(option.Weight).BigInt(), totalRates.BigInt()))
+			subPower := votingPower.Mul(option.Weight)
 			results[option.Option] = results[option.Option].Add(subPower)
-			totalVotingPower = totalVotingPower.Add(subPower)
-			// TODO how should handle remainder?
-			// TODO how should handle when totalRates == 0
 		}
+		totalVotingPower = totalVotingPower.Add(votingPower)
 	}
 
 	tallyParams := keeper.GetTallyParams(ctx)
