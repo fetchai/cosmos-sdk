@@ -112,7 +112,7 @@ func QueryVotesByTxQuery(clientCtx client.Context, params types.QueryProposalVot
 					votes = append(votes, types.Vote{
 						Voter:      voteMsg.Voter,
 						ProposalId: params.ProposalID,
-						SubVotes:   voteMsg.SubVotes,
+						Options:    voteMsg.Options,
 					})
 				}
 			}
@@ -159,7 +159,7 @@ func QueryVoteByTxQuery(clientCtx client.Context, params types.QueryVoteParams) 
 				vote := types.Vote{
 					Voter:      voteMsg.Voter,
 					ProposalId: params.ProposalID,
-					SubVotes:   voteMsg.SubVotes,
+					Options:    voteMsg.Options,
 				}
 
 				bz, err := clientCtx.JSONMarshaler.MarshalJSON(&vote)
