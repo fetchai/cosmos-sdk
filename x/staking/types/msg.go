@@ -3,8 +3,10 @@ package types
 import (
 	"bytes"
 	"encoding/json"
+	"fmt"
 
 	"github.com/tendermint/tendermint/crypto"
+	"github.com/tendermint/tendermint/crypto/bls12_381"
 	yaml "gopkg.in/yaml.v2"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
@@ -49,6 +51,10 @@ func NewMsgCreateValidator(
 	valAddr sdk.ValAddress, pubKey crypto.PubKey, selfDelegation sdk.Coin,
 	description Description, commission CommissionRates, minSelfDelegation sdk.Int,
 ) MsgCreateValidator {
+
+	if _, ok := pubKey.(bls12_381.PubKeyBls); !ok {
+		panic(fmt.Sprintf("Attempt to create validator with non bls based public key is invalid!\n"))
+	}
 
 	return MsgCreateValidator{
 		Description:       description,
