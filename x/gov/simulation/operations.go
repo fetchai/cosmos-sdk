@@ -303,7 +303,7 @@ func operationSimulateMsgVote(ak types.AccountKeeper, bk types.BankKeeper, k kee
 			return simtypes.NoOpMsg(types.ModuleName, msg.Type(), "unable to generate fees"), nil, err
 		}
 
-		txGen := simappparams.MakeEncodingConfig().TxConfig
+		txGen := simappparams.MakeTestEncodingConfig().TxConfig
 		tx, err := helpers.GenTx(
 			txGen,
 			[]sdk.Msg{msg},
