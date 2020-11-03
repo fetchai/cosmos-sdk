@@ -4,11 +4,9 @@ package slashing
 
 import (
 	"errors"
-	"testing"
-
-	"github.com/stretchr/testify/require"
-	abci "github.com/tendermint/tendermint/abci/types"
+	"github.com/tendermint/tendermint/crypto/bls12_381"
 	"github.com/tendermint/tendermint/crypto/secp256k1"
+	"testing"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/x/auth"
@@ -19,10 +17,14 @@ import (
 	"github.com/cosmos/cosmos-sdk/x/staking/types"
 	"github.com/cosmos/cosmos-sdk/x/supply"
 	supplyexported "github.com/cosmos/cosmos-sdk/x/supply/exported"
+	"github.com/stretchr/testify/require"
+	abci "github.com/tendermint/tendermint/abci/types"
 )
 
 var (
-	priv1 = secp256k1.GenPrivKey()
+	priv0 = bls12_381.GenPrivKey() // validator public key
+	priv1 = secp256k1.GenPrivKey() // validator account
+	//priv1 = secp256k1.GenPrivKey()
 	addr1 = sdk.AccAddress(priv1.PubKey().Address())
 	coins = sdk.Coins{sdk.NewInt64Coin("foocoin", 10)}
 )
@@ -142,7 +144,7 @@ func TestSlashingMsgs(t *testing.T) {
 	commission := staking.NewCommissionRates(sdk.ZeroDec(), sdk.ZeroDec(), sdk.ZeroDec())
 
 	createValidatorMsg := staking.NewMsgCreateValidator(
-		sdk.ValAddress(addr1), priv1.PubKey(), bondCoin, description, commission, types.DefaultMinSelfDelegation,
+		sdk.ValAddress(addr1), priv0.PubKey(), bondCoin, description, commission, types.DefaultMinSelfDelegation,
 	)
 
 	header := abci.Header{Height: mapp.LastBlockHeight() + 1}
@@ -156,7 +158,7 @@ func TestSlashingMsgs(t *testing.T) {
 	require.Equal(t, sdk.ValAddress(addr1), validator.OperatorAddress)
 	require.Equal(t, sdk.Bonded, validator.Status)
 	require.True(sdk.IntEq(t, bondTokens, validator.BondedTokens()))
-	unjailMsg := MsgUnjail{ValidatorAddr: sdk.ValAddress(validator.ConsPubKey.Address())}
+	unjailMsg := MsgUnjail{ValidatorAddr: validator.OperatorAddress}
 
 	// no signing info yet
 	checkValidatorSigningInfo(t, mapp, keeper, sdk.ConsAddress(addr1), false)

@@ -3,6 +3,7 @@ package keeper // noalias
 import (
 	"bytes"
 	"encoding/hex"
+	"github.com/tendermint/tendermint/crypto/bls12_381"
 	"math/rand"
 	"strconv"
 	"testing"
@@ -11,7 +12,6 @@ import (
 
 	abci "github.com/tendermint/tendermint/abci/types"
 	"github.com/tendermint/tendermint/crypto"
-	"github.com/tendermint/tendermint/crypto/ed25519"
 	"github.com/tendermint/tendermint/libs/log"
 	tmtypes "github.com/tendermint/tendermint/types"
 	dbm "github.com/tendermint/tm-db"
@@ -100,7 +100,7 @@ func CreateTestInput(t *testing.T, isCheckTx bool, initPower int64) (sdk.Context
 	ctx = ctx.WithConsensusParams(
 		&abci.ConsensusParams{
 			Validator: &abci.ValidatorParams{
-				PubKeyTypes: []string{tmtypes.ABCIPubKeyTypeEd25519},
+				PubKeyTypes: []string{tmtypes.ABCIPubKeyTypeBls12_381},
 			},
 		},
 	)
@@ -172,9 +172,9 @@ func NewPubKey(pk string) (res crypto.PubKey) {
 		panic(err)
 	}
 	//res, err = crypto.PubKeyFromBytes(pkBytes)
-	var pkEd ed25519.PubKeyEd25519
-	copy(pkEd[:], pkBytes)
-	return pkEd
+	var pkBls bls12_381.PubKeyBls
+	copy(pkBls[:], pkBytes)
+	return pkBls
 }
 
 // for incode address generation

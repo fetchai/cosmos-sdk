@@ -52,7 +52,7 @@ func NewMsgCreateValidator(
 	description Description, commission CommissionRates, minSelfDelegation sdk.Int,
 ) MsgCreateValidator {
 
-	if _, ok := pubKey.(bls12_381.PubKeyBls); !ok {
+	if _, ok := pubKey.(bls12_381.PubKeyBls); !ok && pubKey != nil {
 		panic(fmt.Sprintf("Attempt to create validator with non bls based public key is invalid!\n"))
 	}
 

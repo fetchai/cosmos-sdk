@@ -1,6 +1,7 @@
 package keeper
 
 import (
+	"github.com/tendermint/tendermint/crypto/bls12_381"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -41,9 +42,9 @@ var (
 	valAccAddr2 = sdk.AccAddress(valOpPk2.Address())
 	valAccAddr3 = sdk.AccAddress(valOpPk3.Address())
 
-	valConsPk1   = ed25519.GenPrivKey().PubKey()
-	valConsPk2   = ed25519.GenPrivKey().PubKey()
-	valConsPk3   = ed25519.GenPrivKey().PubKey()
+	valConsPk1   = bls12_381.GenPrivKey().PubKey()
+	valConsPk2   = bls12_381.GenPrivKey().PubKey()
+	valConsPk3   = bls12_381.GenPrivKey().PubKey()
 	valConsAddr1 = sdk.ConsAddress(valConsPk1.Address())
 	valConsAddr2 = sdk.ConsAddress(valConsPk2.Address())
 

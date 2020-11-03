@@ -5,6 +5,7 @@ package keeper
 
 import (
 	"encoding/hex"
+	"github.com/tendermint/tendermint/crypto/bls12_381"
 	"testing"
 	"time"
 
@@ -12,7 +13,6 @@ import (
 
 	abci "github.com/tendermint/tendermint/abci/types"
 	"github.com/tendermint/tendermint/crypto"
-	"github.com/tendermint/tendermint/crypto/ed25519"
 	"github.com/tendermint/tendermint/libs/log"
 	dbm "github.com/tendermint/tm-db"
 
@@ -132,9 +132,9 @@ func newPubKey(pk string) (res crypto.PubKey) {
 	if err != nil {
 		panic(err)
 	}
-	var pkEd ed25519.PubKeyEd25519
-	copy(pkEd[:], pkBytes)
-	return pkEd
+	var pkBls bls12_381.PubKeyBls
+	copy(pkBls[:], pkBytes)
+	return pkBls
 }
 
 // Have to change these parameters for tests

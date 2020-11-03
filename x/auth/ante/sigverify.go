@@ -3,6 +3,7 @@ package ante
 import (
 	"bytes"
 	"encoding/hex"
+	"github.com/tendermint/tendermint/crypto/bls12_381"
 
 	"github.com/tendermint/tendermint/crypto"
 	"github.com/tendermint/tendermint/crypto/ed25519"
@@ -299,6 +300,10 @@ func DefaultSigVerificationGasConsumer(
 	case ed25519.PubKeyEd25519:
 		meter.ConsumeGas(params.SigVerifyCostED25519, "ante verify: ed25519")
 		return sdkerrors.Wrap(sdkerrors.ErrInvalidPubKey, "ED25519 public keys are unsupported")
+
+	case bls12_381.PubKeyBls:
+		meter.ConsumeGas(params.SigVerifyCostED25519, "ante verify: bls12_381")
+		return sdkerrors.Wrap(sdkerrors.ErrInvalidPubKey, "Bls12_381 public keys are unsupported")
 
 	case secp256k1.PubKeySecp256k1:
 		meter.ConsumeGas(params.SigVerifyCostSecp256k1, "ante verify: secp256k1")
