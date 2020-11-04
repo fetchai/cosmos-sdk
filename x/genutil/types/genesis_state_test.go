@@ -1,19 +1,18 @@
 package types
 
 import (
+	"github.com/tendermint/tendermint/crypto/bls12_381"
 	"testing"
-
-	"github.com/stretchr/testify/require"
-	"github.com/tendermint/tendermint/crypto/ed25519"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	authtypes "github.com/cosmos/cosmos-sdk/x/auth/types"
 	stakingtypes "github.com/cosmos/cosmos-sdk/x/staking/types"
+	"github.com/stretchr/testify/require"
 )
 
 var (
-	pk1 = ed25519.GenPrivKey().PubKey()
-	pk2 = ed25519.GenPrivKey().PubKey()
+	pk1 = bls12_381.GenPrivKey().PubKey()
+	pk2 = bls12_381.GenPrivKey().PubKey()
 )
 
 func TestValidateGenesisMultipleMessages(t *testing.T) {

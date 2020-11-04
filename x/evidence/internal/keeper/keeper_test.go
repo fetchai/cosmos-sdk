@@ -2,6 +2,7 @@ package keeper_test
 
 import (
 	"encoding/hex"
+	"github.com/tendermint/tendermint/crypto/bls12_381"
 	"testing"
 
 	"github.com/cosmos/cosmos-sdk/simapp"
@@ -41,7 +42,7 @@ func newPubKey(pk string) (res crypto.PubKey) {
 		panic(err)
 	}
 
-	var pubkey ed25519.PubKeyEd25519
+	var pubkey bls12_381.PubKeyBls
 	copy(pubkey[:], pkBytes)
 
 	return pubkey

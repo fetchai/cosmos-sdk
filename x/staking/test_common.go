@@ -2,6 +2,7 @@ package staking
 
 import (
 	"github.com/tendermint/tendermint/crypto"
+	"github.com/tendermint/tendermint/crypto/bls12_381"
 	"github.com/tendermint/tendermint/crypto/secp256k1"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
@@ -11,6 +12,7 @@ import (
 
 // nolint:deadcode,unused,varcheck
 var (
+	priv0 = bls12_381.GenPrivKey()
 	priv1 = secp256k1.GenPrivKey()
 	addr1 = sdk.AccAddress(priv1.PubKey().Address())
 	priv2 = secp256k1.GenPrivKey()
