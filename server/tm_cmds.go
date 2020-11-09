@@ -41,7 +41,7 @@ func ShowNodeIDCmd() *cobra.Command {
 	}
 }
 
-// ShowValidator - ported from Tendermint, show this node's validator info
+// ShowValidatorCmd - ported from Tendermint, show this node's validator info
 func ShowValidatorCmd() *cobra.Command {
 	cmd := cobra.Command{
 		Use:   "show-validator",
@@ -61,12 +61,16 @@ func ShowValidatorCmd() *cobra.Command {
 				return printlnJSON(valPubKey)
 			}
 
-			pubkey, err := sdk.Bech32ifyPubKey(sdk.Bech32PubKeyTypeConsPub, valPubKey)
+			pubkey, err := cryptocodec.FromTmPubKeyInterface(valPubKey)
+			if err != nil {
+				return err
+			}
+			pubkeyBech32, err := sdk.Bech32ifyPubKey(sdk.Bech32PubKeyTypeConsPub, pubkey)
 			if err != nil {
 				return err
 			}
 
-			fmt.Println(pubkey)
+			fmt.Println(pubkeyBech32)
 			return nil
 		},
 	}
