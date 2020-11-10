@@ -39,4 +39,4 @@ require (
 
 replace github.com/keybase/go-keychain => github.com/99designs/go-keychain v0.0.0-20191008050251-8e49817e8af4
 
-replace github.com/tendermint/tendermint => github.com/n-hutton/cosmos-consensus v0.5.2-0.20201110110224-b4509a3953aa
+replace github.com/tendermint/tendermint => github.com/n-hutton/cosmos-consensus v0.5.2-0.20201110111840-36a0916aaba4
