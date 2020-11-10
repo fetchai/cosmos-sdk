@@ -56,6 +56,10 @@ func NewMsgCreateValidator(
 		panic(fmt.Sprintf("Attempt to create validator with non bls based public key is invalid!\n"))
 	}
 
+	if asBls, ok := pubKey.(bls12_381.PubKeyBls); ok && asBls.VerifyPubkey() == false {
+		panic(fmt.Sprintf("Attempt to create validator with invalid bls based public key!\n"))
+	}
+
 	return MsgCreateValidator{
 		Description:       description,
 		DelegatorAddress:  sdk.AccAddress(valAddr),
@@ -187,7 +191,9 @@ func (msg MsgCreateValidator) ValidateBasic() error {
 	if msg.Value.Amount.LT(msg.MinSelfDelegation) {
 		return ErrSelfDelegationBelowMinimum
 	}
-
+	if asBls, ok := msg.PubKey.(bls12_381.PubKeyBls); ok && asBls.VerifyPubkey() == false {
+		return sdkerrors.Wrap(sdkerrors.ErrInvalidRequest, "Invalid bls based pubkey")
+	}
 	return nil
 }
 
