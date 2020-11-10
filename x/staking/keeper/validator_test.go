@@ -2,6 +2,7 @@ package keeper
 
 import (
 	"fmt"
+	//"reflect"
 	"testing"
 	"time"
 
@@ -906,6 +907,13 @@ func TestApplyAndReturnValidatorSetUpdatesNewValidator(t *testing.T) {
 
 
 	fmt.Sprintf("val updates %v %v %v ", validators[0].ABCIValidatorUpdate(), updates[0], updates[1])
+
+	//firstUpdate :=validators[0].ABCIValidatorUpdate()
+
+	//if !reflect.DeepEqual(firstUpdate, updates[0])  {
+	//	panic(fmt.Sprintf("val updates %v\n %v\n %v\n ", validators[0].ABCIValidatorUpdate(), updates[0], updates[1]))
+	//}
+
 	require.Equal(t, validators[0].ABCIValidatorUpdate(), updates[0])
 	require.Equal(t, validators[1].ABCIValidatorUpdate(), updates[1])
 
