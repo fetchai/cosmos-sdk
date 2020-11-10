@@ -210,7 +210,7 @@ func GenTx(msgs []sdk.Msg, accnums []uint64, seq []uint64, priv ...crypto.PrivKe
 	// Make the transaction free
 	fee := auth.StdFee{
 		Amount: sdk.NewCoins(sdk.NewInt64Coin("foocoin", 0)),
-		Gas:    100000,
+		Gas:    150000,
 	}
 
 	sigs := make([]auth.StdSignature, len(priv))

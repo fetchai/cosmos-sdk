@@ -2,7 +2,6 @@ package keeper // noalias
 
 import (
 	"bytes"
-	"encoding/hex"
 	"github.com/tendermint/tendermint/crypto/bls12_381"
 	"math/rand"
 	"strconv"
@@ -167,14 +166,9 @@ func CreateTestInput(t *testing.T, isCheckTx bool, initPower int64) (sdk.Context
 }
 
 func NewPubKey(pk string) (res crypto.PubKey) {
-	pkBytes, err := hex.DecodeString(pk)
-	if err != nil {
-		panic(err)
-	}
-	//res, err = crypto.PubKeyFromBytes(pkBytes)
-	var pkBls bls12_381.PubKeyBls
-	copy(pkBls[:], pkBytes)
-	return pkBls
+	var privkBls bls12_381.PrivKeyBls
+	privkBls = bls12_381.GenPrivKey()
+	return privkBls.PubKey()
 }
 
 // for incode address generation

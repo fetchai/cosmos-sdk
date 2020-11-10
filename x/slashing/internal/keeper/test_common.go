@@ -4,7 +4,6 @@
 package keeper
 
 import (
-	"encoding/hex"
 	"github.com/tendermint/tendermint/crypto/bls12_381"
 	"testing"
 	"time"
@@ -32,9 +31,9 @@ import (
 
 var (
 	Pks = []crypto.PubKey{
-		newPubKey("0B485CFC0EECC619440448436F8FC9DF40566F2369E72400281454CB552AFB50"),
-		newPubKey("0B485CFC0EECC619440448436F8FC9DF40566F2369E72400281454CB552AFB51"),
-		newPubKey("0B485CFC0EECC619440448436F8FC9DF40566F2369E72400281454CB552AFB52"),
+		newPubKey(),
+		newPubKey(),
+		newPubKey(),
 	}
 	Addrs = []sdk.ValAddress{
 		sdk.ValAddress(Pks[0].Address()),
@@ -127,14 +126,8 @@ func CreateTestInput(t *testing.T, defaults types.Params) (sdk.Context, bank.Kee
 	return ctx, bk, sk, paramstore, keeper
 }
 
-func newPubKey(pk string) (res crypto.PubKey) {
-	pkBytes, err := hex.DecodeString(pk)
-	if err != nil {
-		panic(err)
-	}
-	var pkBls bls12_381.PubKeyBls
-	copy(pkBls[:], pkBytes)
-	return pkBls
+func newPubKey() (res crypto.PubKey) {
+	return bls12_381.GenPrivKey().PubKey()
 }
 
 // Have to change these parameters for tests

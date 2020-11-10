@@ -1,7 +1,6 @@
 package keeper_test
 
 import (
-	"encoding/hex"
 	"github.com/tendermint/tendermint/crypto/bls12_381"
 	"testing"
 
@@ -37,15 +36,17 @@ var (
 )
 
 func newPubKey(pk string) (res crypto.PubKey) {
-	pkBytes, err := hex.DecodeString(pk)
-	if err != nil {
-		panic(err)
+	if len(pk) != bls12_381.PrivKeyBlsSize {
+		panic("incorrect priv key size for bls!")
 	}
 
-	var pubkey bls12_381.PubKeyBls
-	copy(pubkey[:], pkBytes)
+	var privkey bls12_381.PrivKeyBls
+	copy(privkey[:], pk)
 
-	return pubkey
+	//var pubkey bls12_381.PubKeyBls
+	//copy(pubkey[:], pkBytes)
+
+	return privkey.PubKey()
 }
 
 type KeeperTestSuite struct {
