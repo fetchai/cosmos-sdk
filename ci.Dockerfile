@@ -1,14 +1,7 @@
-#syntax = docker/dockerfile:experimental
-#export DOCKER_BUILDKIT=1
-
 FROM golang:buster
 
-ENV GOPRIVATE="github.com/fetchai/*"
-
 WORKDIR /workspace/mcl
-RUN --mount=type=ssh \
-  apt-get update && \
-  apt-get upgrade -y && \
+RUN apt-get update && \
   apt-get install -y \
     curl \
     wget \
@@ -21,14 +14,11 @@ RUN --mount=type=ssh \
     g++ \
     swig \
     libboost-serialization-dev && \
-  git clone https://github.com/herumi/mcl && cd mcl && make install && ldconfig && \
-  mkdir -m 700 /root/.ssh && \
-  touch -m 600 /root/.ssh/known_hosts && \
-  git config --global url."git@github.com:".insteadOf https://github.com/ && \
-  ssh-keyscan github.com > /root/.ssh/known_hosts
+  wget https://github.com/herumi/mcl/archive/v1.05.tar.gz && \
+  tar xvf v1.05.tar.gz && cd mcl-1.05 && make install && ldconfig
 
 WORKDIR /workspace/cosmos-sdk
+
 COPY . .
-RUN --mount=type=ssh \
-  make go-mod-cache && \
-  make build
+
+RUN make go-mod-cache && make build
