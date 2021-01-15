@@ -37,7 +37,7 @@ require (
 	github.com/prometheus/common v0.23.0
 	github.com/rakyll/statik v0.1.7
 	github.com/regen-network/cosmos-proto v0.3.1
-	github.com/rs/zerolog v1.21.0
+	github.com/rs/zerolog v1.20.0
 	github.com/spf13/afero v1.3.4 // indirect
 	github.com/spf13/cast v1.3.1
 	github.com/spf13/cobra v1.1.3
@@ -52,18 +52,10 @@ require (
 	github.com/tendermint/tendermint v0.34.2
 	github.com/tendermint/tm-db v0.6.3
 	golang.org/x/crypto v0.0.0-20201221181555-eec23a3978ad
-	golang.org/x/sys v0.0.0-20210510120138-977fb7262007 // indirect
 	google.golang.org/genproto v0.0.0-20210114201628-6edceaf6022f
-	google.golang.org/grpc v1.37.0
-	google.golang.org/protobuf v1.26.0
-	gopkg.in/ini.v1 v1.61.0 // indirect
+	google.golang.org/grpc v1.33.2
+	google.golang.org/protobuf v1.25.0
 	gopkg.in/yaml.v2 v2.4.0
 )
 
-replace google.golang.org/grpc => google.golang.org/grpc v1.33.2
-
 replace github.com/gogo/protobuf => github.com/regen-network/protobuf v1.3.3-alpha.regen.1
-
-replace github.com/tendermint/tendermint => github.com/fetchai/tendermint v1.0.0
-
-replace github.com/99designs/keyring => github.com/cosmos/keyring v1.1.7-0.20210622111912-ef00f8ac3d76
