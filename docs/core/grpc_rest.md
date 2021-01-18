@@ -43,9 +43,9 @@ The `grpc.Server` is a concrete gRPC server, which spawns and serves any gRPC re
 - `grpc.enable = true|false` field defines if the gRPC server should be enabled. Defaults to `true`.
 - `grpc.address = {string}` field defines the address (really, the port, since the host should be kept at `0.0.0.0`) the server should bind to. Defaults to `0.0.0.0:9090`.
 
-:::tip
+::tip
 `~/.simapp` is the directory where the node's configuration and databases are stored. By default, it's set to `~/.{app_name}`.
-:::
+::
 
 Once the gRPC server is started, you can send requests to it using a gRPC client. Some examples are given in our [Interact with the Node](../run-node/interact-node.md#using-grpc) tutorial.
 
