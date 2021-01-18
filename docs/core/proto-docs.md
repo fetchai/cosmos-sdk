@@ -1627,6 +1627,69 @@ method.
 
 
 
+<a name="cosmos.bank.v1beta1.QueryDenomMetadataRequest"></a>
+
+### QueryDenomMetadataRequest
+QueryDenomMetadataRequest is the request type for the Query/DenomMetadata RPC method.
+
+
+| Field | Type | Label | Description |
+| ----- | ---- | ----- | ----------- |
+| `denom` | [string](#string) |  | denom is the coin denom to query the metadata for. |
+
+
+
+
+
+
+<a name="cosmos.bank.v1beta1.QueryDenomMetadataResponse"></a>
+
+### QueryDenomMetadataResponse
+QueryDenomMetadataResponse is the response type for the Query/DenomMetadata RPC
+method.
+
+
+| Field | Type | Label | Description |
+| ----- | ---- | ----- | ----------- |
+| `metadata` | [Metadata](#cosmos.bank.v1beta1.Metadata) |  | metadata describes and provides all the client information for the requested token. |
+
+
+
+
+
+
+<a name="cosmos.bank.v1beta1.QueryDenomsMetadataRequest"></a>
+
+### QueryDenomsMetadataRequest
+QueryDenomsMetadataRequest is the request type for the Query/DenomsMetadata RPC method.
+
+
+| Field | Type | Label | Description |
+| ----- | ---- | ----- | ----------- |
+| `pagination` | [cosmos.base.query.v1beta1.PageRequest](#cosmos.base.query.v1beta1.PageRequest) |  | pagination defines an optional pagination for the request. |
+
+
+
+
+
+
+<a name="cosmos.bank.v1beta1.QueryDenomsMetadataResponse"></a>
+
+### QueryDenomsMetadataResponse
+QueryDenomsMetadataResponse is the response type for the Query/DenomsMetadata RPC
+method.
+
+
+| Field | Type | Label | Description |
+| ----- | ---- | ----- | ----------- |
+| `metadatas` | [Metadata](#cosmos.bank.v1beta1.Metadata) | repeated | metadata provides the client information for all the registered tokens. |
+| `pagination` | [cosmos.base.query.v1beta1.PageResponse](#cosmos.base.query.v1beta1.PageResponse) |  | pagination defines the pagination in the response. |
+
+
+
+
+
+
 <a name="cosmos.bank.v1beta1.QueryParamsRequest"></a>
 
 ### QueryParamsRequest
