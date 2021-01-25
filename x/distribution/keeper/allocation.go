@@ -50,32 +50,32 @@ func (k Keeper) AllocateTokens(
 	// If block contains entropy then use proportion of block reward to reward to validators which successfully
 	// completed the dkg. If block does not contain entropy then this proportion of the fees collected goes into
 	// the community pool
-	beaconRewardMultiplier := k.GetBeaconReward(ctx)
-	vals := []*tmtypes.Validator{}
-	if len(entropy.GroupSignature) != 0 {
-		// Get all validators (including those than have been jailed)
-		k.stakingKeeper.IterateLastValidators(ctx, func(index int64, val exported.ValidatorI) bool {
-			vals = append(vals, tmtypes.NewValidator(val.GetConsPubKey(), val.GetConsensusPower()))
-			return false
-		})
-
-		// Pay beacon rewards to those in qual
-		valSet := &tmtypes.ValidatorSet{}
-		err = valSet.UpdateWithChangeSet(vals)
-		if err != nil {
-			panic(err)
-		}
-
-		for _, index := range entropy.SuccessfulVals {
-			addr, val := valSet.GetByIndex(int(index))
-			validator := k.stakingKeeper.ValidatorByConsAddr(ctx, sdk.ConsAddress(addr))
-			powerFraction := sdk.NewDec(val.VotingPower).QuoTruncate(sdk.NewDec(valSet.TotalVotingPower()))
-			reward := feesCollected.MulDecTruncate(beaconRewardMultiplier).MulDecTruncate(powerFraction)
-			k.AllocateTokensToValidator(ctx, validator, reward)
-			logger.Debug("Beacon reward allocated", "val", fmt.Sprintf("%X", addr), "amount", reward.String())
-			remaining = remaining.Sub(reward)
-		}
-	}
+	//beaconRewardMultiplier := k.GetBeaconReward(ctx)
+	//vals := []*tmtypes.Validator{}
+	//if len(entropy.GroupSignature) != 0 {
+	//	// Get all validators (including those than have been jailed)
+	//	k.stakingKeeper.IterateLastValidators(ctx, func(index int64, val exported.ValidatorI) bool {
+	//		vals = append(vals, tmtypes.NewValidator(val.GetConsPubKey(), val.GetConsensusPower()))
+	//		return false
+	//	})
+	//
+	//	// Pay beacon rewards to those in qual
+	//	valSet := &tmtypes.ValidatorSet{}
+	//	err = valSet.UpdateWithChangeSet(vals)
+	//	if err != nil {
+	//		panic(err)
+	//	}
+	//
+	//	for _, index := range entropy.SuccessfulVals {
+	//		addr, val := valSet.GetByIndex(int(index))
+	//		validator := k.stakingKeeper.ValidatorByConsAddr(ctx, sdk.ConsAddress(addr))
+	//		powerFraction := sdk.NewDec(val.VotingPower).QuoTruncate(sdk.NewDec(valSet.TotalVotingPower()))
+	//		reward := feesCollected.MulDecTruncate(beaconRewardMultiplier).MulDecTruncate(powerFraction)
+	//		k.AllocateTokensToValidator(ctx, validator, reward)
+	//		logger.Debug("Beacon reward allocated", "val", fmt.Sprintf("%X", addr), "amount", reward.String())
+	//		remaining = remaining.Sub(reward)
+	//	}
+	//}
 
 	// calculate fraction votes
 	previousFractionVotes := sdk.NewDec(sumPreviousPrecommitPower).Quo(sdk.NewDec(totalPreviousPower))
@@ -115,7 +115,7 @@ func (k Keeper) AllocateTokens(
 
 	// calculate fraction allocated to validators
 	communityTax := k.GetCommunityTax(ctx)
-	voteMultiplier := sdk.OneDec().Sub(proposerMultiplier).Sub(communityTax).Sub(beaconRewardMultiplier)
+	voteMultiplier := sdk.OneDec().Sub(proposerMultiplier).Sub(communityTax) //.Sub(beaconRewardMultiplier)
 
 	// allocate tokens proportionally to voting power
 	// TODO consider parallelizing later, ref https://github.com/cosmos/cosmos-sdk/pull/3099#discussion_r246276376
