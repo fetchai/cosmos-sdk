@@ -55,7 +55,10 @@ func (k Keeper) AllocateTokens(
 	if len(entropy.GroupSignature) != 0 {
 		// Get all validators (including those than have been jailed)
 		k.stakingKeeper.IterateLastValidators(ctx, func(index int64, val exported.ValidatorI) bool {
-			vals = append(vals, tmtypes.NewValidator(val.GetConsPubKey(), val.GetConsensusPower()))
+			// filter validators with a zero consensus power
+			if val.GetConsensusPower() != 0 {
+				vals = append(vals, tmtypes.NewValidator(val.GetConsPubKey(), val.GetConsensusPower()))
+			}
 			return false
 		})
 
