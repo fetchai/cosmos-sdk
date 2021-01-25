@@ -55,15 +55,17 @@ func (k Keeper) AllocateTokens(
 	if len(entropy.GroupSignature) != 0 {
 		// Get all validators (including those than have been jailed)
 		k.stakingKeeper.IterateLastValidators(ctx, func(index int64, val exported.ValidatorI) bool {
-			// filter validators with a zero consensus power
-			if val.GetConsensusPower() != 0 {
-				vals = append(vals, tmtypes.NewValidator(val.GetConsPubKey(), val.GetConsensusPower()))
-			}
+			vals = append(vals, tmtypes.NewValidator(val.GetConsPubKey(), val.GetConsensusPower()))
 			return false
 		})
 
 		// Pay beacon rewards to those in qual
-		valSet := tmtypes.NewValidatorSet(vals)
+		valSet := &tmtypes.ValidatorSet{}
+		err = valSet.UpdateWithChangeSet(vals)
+		if err != nil {
+			panic(err)
+		}
+
 		for _, index := range entropy.SuccessfulVals {
 			addr, val := valSet.GetByIndex(int(index))
 			validator := k.stakingKeeper.ValidatorByConsAddr(ctx, sdk.ConsAddress(addr))
