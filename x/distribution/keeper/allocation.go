@@ -9,7 +9,7 @@ import (
 	"github.com/cosmos/cosmos-sdk/x/distribution/types"
 	"github.com/cosmos/cosmos-sdk/x/staking/exported"
 
-	tmtypes "github.com/tendermint/tendermint/types"
+	//tmtypes "github.com/tendermint/tendermint/types"
 )
 
 // AllocateTokens handles distribution of the collected fees
@@ -20,7 +20,7 @@ func (k Keeper) AllocateTokens(
 
 	logger := k.Logger(ctx)
 	previousVotes := req.LastCommitInfo.GetVotes()
-	entropy := req.Header.GetEntropy()
+	//entropy := req.Header.GetEntropy()
 
 	// fetch and clear the collected fees for distribution, since this is
 	// called in BeginBlock, collected fees will be from the previous block
