@@ -18,7 +18,15 @@ and defines overall functioning of the staking module.
 
 - Params: `Paramsspace("staking") -> legacy_amino(params)`
 
-+++ https://github.com/cosmos/cosmos-sdk/blob/v0.40.1/proto/cosmos/staking/v1beta1/staking.proto#L230-L241
+```go
+type Params struct {
+    UnbondingTime  time.Duration // time duration of unbonding
+    MaxValidators  uint16        // maximum number of validators
+    MaxEntries     uint16        // max entries for either unbonding delegation or redelegation (per pair/trio)
+    BondDenom      string        // bondable coin denomination
+    PowerReduction sdk.Int       // power reduction on-chain param
+}
+```
 
 ## Validator
 
