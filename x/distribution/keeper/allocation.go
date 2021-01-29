@@ -95,8 +95,10 @@ func (k Keeper) AllocateTokens(
 	proposerMultiplier := baseProposerReward.Add(bonusProposerReward.MulTruncate(previousFractionVotes))
 	proposerReward := feesCollected.MulDecTruncate(proposerMultiplier)
 
+	logger.Error("### [AllocateTokens]", "feesCollected", feesCollected)
 	logger.Error("### [AllocateTokens]", "previousProposer", previousProposer)
 	logger.Error("### [AllocateTokens]", "bonusProposerReward", bonusProposerReward)
+	logger.Error("### [AllocateTokens]", "previousFractionVotes", previousFractionVotes)
 	logger.Error("### [AllocateTokens]", "proposerMultiplier", proposerMultiplier)
 	logger.Error("### [AllocateTokens]", "proposerReward", proposerReward)
 
@@ -131,6 +133,7 @@ func (k Keeper) AllocateTokens(
 	communityTax := k.GetCommunityTax(ctx)
 	voteMultiplier := sdk.OneDec().Sub(proposerMultiplier).Sub(communityTax) //.Sub(beaconRewardMultiplier)
 
+	logger.Error("### [AllocateTokens]", "oneDec", sdk.OneDec())
 	logger.Error("### [AllocateTokens]", "communityTax", communityTax)
 	logger.Error("### [AllocateTokens]", "voteMultiplier", voteMultiplier)
 
@@ -144,18 +147,16 @@ func (k Keeper) AllocateTokens(
 		powerFraction := sdk.NewDec(vote.Validator.Power).QuoTruncate(sdk.NewDec(totalPreviousPower))
 		reward := feesCollected.MulDecTruncate(voteMultiplier).MulDecTruncate(powerFraction)
 
-		logger.Error("### [AllocateTokens]", "voteIdx", idx, "fraction", vote.Validator.Address, "powerFraction", powerFraction, "reward", reward)
+		logger.Error("### [AllocateTokens]", "voteIdx", idx, "powerFraction", powerFraction, "reward", reward)
 		k.AllocateTokensToValidator(ctx, validator, reward)
 
 		remaining = remaining.Sub(reward)
-
-		logger.Error("### [AllocateTokens]", "voteIdx", idx, "remaining", remaining)
 	}
-
-	logger.Error("### [AllocateTokens]", "final-remaining", remaining)
 
 	// allocate community funding
 	feePool.CommunityPool = feePool.CommunityPool.Add(remaining...)
+	logger.Error("### [AllocateTokens]", "communityPool", remaining, "total", feePool.CommunityPool)
+
 	k.SetFeePool(ctx, feePool)
 }
 
@@ -178,7 +179,7 @@ func (k Keeper) AllocateTokensToValidator(ctx sdk.Context, val exported.Validato
 	currentCommission := k.GetValidatorAccumulatedCommission(ctx, val.GetOperator())
 	currentCommission = currentCommission.Add(commission...)
 
-	logger.Error("### [AllocateTokensToValidator]", "currentCommission", currentCommission)
+	logger.Error("### [AllocateTokensToValidator]", "commission", commission, "total", currentCommission)
 
 	k.SetValidatorAccumulatedCommission(ctx, val.GetOperator(), currentCommission)
 
@@ -186,7 +187,7 @@ func (k Keeper) AllocateTokensToValidator(ctx sdk.Context, val exported.Validato
 	currentRewards := k.GetValidatorCurrentRewards(ctx, val.GetOperator())
 	currentRewards.Rewards = currentRewards.Rewards.Add(shared...)
 
-	logger.Error("### [AllocateTokensToValidator]", "currentRewards.Rewards", currentRewards.Rewards)
+	logger.Error("### [AllocateTokensToValidator]", "shared", shared, "total", currentRewards.Rewards)
 
 	k.SetValidatorCurrentRewards(ctx, val.GetOperator(), currentRewards)
 
@@ -201,7 +202,7 @@ func (k Keeper) AllocateTokensToValidator(ctx sdk.Context, val exported.Validato
 	outstanding := k.GetValidatorOutstandingRewards(ctx, val.GetOperator())
 	outstanding = outstanding.Add(tokens...)
 
-	logger.Error("### [AllocateTokensToValidator]", "outstanding", outstanding)
+	logger.Error("### [AllocateTokensToValidator]", "outstanding", tokens, "total", outstanding)
 
 	k.SetValidatorOutstandingRewards(ctx, val.GetOperator(), outstanding)
 }
