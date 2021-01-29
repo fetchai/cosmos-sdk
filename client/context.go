@@ -47,7 +47,7 @@ type Context struct {
 	TxConfig          TxConfig
 	AccountRetriever  AccountRetriever
 	NodeURI           string
-	Viper             *viper.Viper
+	FeeGranter        sdk.AccAddress
 
 	// TODO: Deprecated (remove).
 	LegacyAmino *codec.LegacyAmino
@@ -172,6 +172,13 @@ func (ctx Context) WithFromName(name string) Context {
 // address.
 func (ctx Context) WithFromAddress(addr sdk.AccAddress) Context {
 	ctx.FromAddress = addr
+	return ctx
+}
+
+// WithFeeGranterAddress returns a copy of the context with an updated fee granter account
+// address.
+func (ctx Context) WithFeeGranterAddress(addr sdk.AccAddress) Context {
+	ctx.FeeGranter = addr
 	return ctx
 }
 
