@@ -30,6 +30,12 @@ func (k Keeper) AllocateTokens(
 	feesCollectedInt := feeCollector.GetCoins()
 	feesCollected := sdk.NewDecCoinsFromCoins(feesCollectedInt...)
 
+	// DEBUG: Total block rewards
+	fmt.Printf("### Allocation Tokens: Collector: %s\n", k.feeCollectorName)
+	for _, feeDemon := range feesCollected {
+		fmt.Printf("### Allocate Tokens: %s (%s)\n", feeDemon.Amount, feeDemon.Denom)
+	}
+
 	// transfer collected fees to the distribution module account
 	err := k.supplyKeeper.SendCoinsFromModuleToModule(ctx, k.feeCollectorName, types.ModuleName, feesCollectedInt)
 	if err != nil {
@@ -77,6 +83,8 @@ func (k Keeper) AllocateTokens(
 	//	}
 	//}
 
+	fmt.Printf("### Allocate Tokens: sumPreviousPrecommitPower = %d totalPreviousPower = %d\n", sumPreviousPrecommitPower, totalPreviousPower)
+
 	// calculate fraction votes
 	previousFractionVotes := sdk.NewDec(sumPreviousPrecommitPower).Quo(sdk.NewDec(totalPreviousPower))
 
@@ -85,6 +93,11 @@ func (k Keeper) AllocateTokens(
 	bonusProposerReward := k.GetBonusProposerReward(ctx)
 	proposerMultiplier := baseProposerReward.Add(bonusProposerReward.MulTruncate(previousFractionVotes))
 	proposerReward := feesCollected.MulDecTruncate(proposerMultiplier)
+
+	fmt.Printf("### Allocate Tokens: previousProposer = %s\n", previousProposer)
+	fmt.Printf("### Allocate Tokens: bonusProposerReward = %s\n", bonusProposerReward)
+	fmt.Printf("### Allocate Tokens: proposerMultiplier = %s\n", proposerMultiplier)
+	fmt.Printf("### Allocate Tokens: proposerReward = %s\n", proposerReward)
 
 	// pay previous proposer
 	proposerValidator := k.stakingKeeper.ValidatorByConsAddr(ctx, previousProposer)
@@ -117,18 +130,28 @@ func (k Keeper) AllocateTokens(
 	communityTax := k.GetCommunityTax(ctx)
 	voteMultiplier := sdk.OneDec().Sub(proposerMultiplier).Sub(communityTax) //.Sub(beaconRewardMultiplier)
 
+	fmt.Printf("### Allocate Tokens: communityTax = %s\n", communityTax)
+	fmt.Printf("### Allocate Tokens: voteMultiplier = %s\n", voteMultiplier)
+
 	// allocate tokens proportionally to voting power
 	// TODO consider parallelizing later, ref https://github.com/cosmos/cosmos-sdk/pull/3099#discussion_r246276376
-	for _, vote := range previousVotes {
+	for idx, vote := range previousVotes {
 		validator := k.stakingKeeper.ValidatorByConsAddr(ctx, vote.Validator.Address)
 
 		// TODO consider microslashing for missing votes.
 		// ref https://github.com/cosmos/cosmos-sdk/issues/2525#issuecomment-430838701
 		powerFraction := sdk.NewDec(vote.Validator.Power).QuoTruncate(sdk.NewDec(totalPreviousPower))
 		reward := feesCollected.MulDecTruncate(voteMultiplier).MulDecTruncate(powerFraction)
+
+		fmt.Printf("### Allocate Tokens: [%d] %s fraction = %s reward = %s\n", idx, string(vote.Validator.Address), powerFraction, reward)
 		k.AllocateTokensToValidator(ctx, validator, reward)
+
 		remaining = remaining.Sub(reward)
+
+		fmt.Printf("### Allocate Tokens: [%d] remaining = %s\n", idx, remaining)
 	}
+
+	fmt.Printf("### Allocate Tokens: remaining = %s\n", remaining)
 
 	// allocate community funding
 	feePool.CommunityPool = feePool.CommunityPool.Add(remaining...)
@@ -151,11 +174,17 @@ func (k Keeper) AllocateTokensToValidator(ctx sdk.Context, val exported.Validato
 	)
 	currentCommission := k.GetValidatorAccumulatedCommission(ctx, val.GetOperator())
 	currentCommission = currentCommission.Add(commission...)
+
+	fmt.Printf("### AllocateTokensToValidator: currentCommission = %s\n", currentCommission)
+
 	k.SetValidatorAccumulatedCommission(ctx, val.GetOperator(), currentCommission)
 
 	// update current rewards
 	currentRewards := k.GetValidatorCurrentRewards(ctx, val.GetOperator())
 	currentRewards.Rewards = currentRewards.Rewards.Add(shared...)
+
+	fmt.Printf("### AllocateTokensToValidator: currentRewards.Rewards = %s\n", currentRewards.Rewards)
+
 	k.SetValidatorCurrentRewards(ctx, val.GetOperator(), currentRewards)
 
 	// update outstanding rewards
@@ -168,5 +197,8 @@ func (k Keeper) AllocateTokensToValidator(ctx sdk.Context, val exported.Validato
 	)
 	outstanding := k.GetValidatorOutstandingRewards(ctx, val.GetOperator())
 	outstanding = outstanding.Add(tokens...)
+
+	fmt.Printf("### AllocateTokensToValidator: outstanding = %s\n", outstanding)
+
 	k.SetValidatorOutstandingRewards(ctx, val.GetOperator(), outstanding)
 }
