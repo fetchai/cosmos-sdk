@@ -12,6 +12,8 @@ import (
 func BeginBlocker(ctx sdk.Context, k Keeper) {
 	defer telemetry.ModuleMeasureSince(ModuleName, time.Now(), telemetry.MetricKeyBeginBlocker)
 
+	logger := k.Logger(ctx)
+
 	// fetch stored minter & params
 	minter := k.GetMinter(ctx)
 	params := k.GetParams(ctx)
@@ -22,6 +24,8 @@ func BeginBlocker(ctx sdk.Context, k Keeper) {
 	minter.Inflation = minter.NextInflationRate(params, bondedRatio)
 	minter.AnnualProvisions = minter.NextAnnualProvisions(params, totalStakingSupply)
 	k.SetMinter(ctx, minter)
+
+	logger.Error("[Minting]", "inflation", minter.Inflation, "annualProvisions", minter.AnnualProvisions)
 
 	// mint coins, update supply
 	mintedCoin := minter.BlockProvision(params)

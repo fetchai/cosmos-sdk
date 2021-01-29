@@ -95,6 +95,7 @@ func (k Keeper) AllocateTokens(
 	proposerMultiplier := baseProposerReward.Add(bonusProposerReward.MulTruncate(previousFractionVotes))
 	proposerReward := feesCollected.MulDecTruncate(proposerMultiplier)
 
+	logger.Error("### [AllocateTokens]", "baseProposerReward", baseProposerReward)
 	logger.Error("### [AllocateTokens]", "feesCollected", feesCollected)
 	logger.Error("### [AllocateTokens]", "previousProposer", previousProposer)
 	logger.Error("### [AllocateTokens]", "bonusProposerReward", bonusProposerReward)
