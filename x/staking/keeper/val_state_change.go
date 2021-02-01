@@ -110,7 +110,9 @@ func (k Keeper) BlockValidatorUpdates(ctx sdk.Context) []abci.ValidatorUpdate {
 // at the previous block height or were removed from the validator set entirely
 // are returned to Tendermint.
 func (k Keeper) ApplyAndReturnValidatorSetUpdates(ctx sdk.Context) (updates []abci.ValidatorUpdate, err error) {
-	maxValidators := k.GetParams(ctx).MaxValidators
+	params := k.GetParams(ctx)
+	maxValidators := params.MaxValidators
+	powerReduction := params.PowerReduction
 	totalPower := sdk.ZeroInt()
 	amtFromBondedToNotBonded, amtFromNotBondedToBonded := sdk.ZeroInt(), sdk.ZeroInt()
 
@@ -163,17 +165,16 @@ func (k Keeper) ApplyAndReturnValidatorSetUpdates(ctx sdk.Context) (updates []ab
 		}
 
 		// fetch the old power bytes
-		valAddrStr, err := sdk.Bech32ifyAddressBytes(sdk.Bech32PrefixValAddr, valAddr)
-		if err != nil {
-			return nil, err
-		}
-		oldPowerBytes, found := last[valAddrStr]
-		newPower := validator.ConsensusPower()
+		var valAddrBytes [sdk.AddrLen]byte
+
+		copy(valAddrBytes[:], valAddr[:])
+		oldPowerBytes, found := last[valAddrBytes]
+		newPower := validator.ConsensusPower(powerReduction)
 		newPowerBytes := k.cdc.MustMarshalBinaryBare(&gogotypes.Int64Value{Value: newPower})
 
 		// update the validator set if power has changed
 		if !found || !bytes.Equal(oldPowerBytes, newPowerBytes) {
-			updates = append(updates, validator.ABCIValidatorUpdate(k.PowerReduction(ctx)))
+			updates = append(updates, validator.ABCIValidatorUpdate(powerReduction))
 
 			k.SetLastValidatorPower(ctx, valAddr, newPower)
 		}
