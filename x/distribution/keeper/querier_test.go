@@ -119,7 +119,6 @@ func TestQueries(t *testing.T) {
 		BaseProposerReward:  sdk.NewDecWithPrec(2, 1),
 		BonusProposerReward: sdk.NewDecWithPrec(1, 1),
 		WithdrawAddrEnabled: true,
-		BeaconReward:        sdk.NewDecWithPrec(1, 1),
 	}
 
 	keeper.SetParams(ctx, params)
