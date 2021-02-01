@@ -18,15 +18,7 @@ and defines overall functioning of the staking module.
 
 - Params: `Paramsspace("staking") -> legacy_amino(params)`
 
-```go
-type Params struct {
-    UnbondingTime  time.Duration // time duration of unbonding
-    MaxValidators  uint16        // maximum number of validators
-    MaxEntries     uint16        // max entries for either unbonding delegation or redelegation (per pair/trio)
-    BondDenom      string        // bondable coin denomination
-    PowerReduction sdk.Int       // power reduction on-chain param
-}
-```
++++ https://github.com/cosmos/cosmos-sdk/blob/v0.40.1/proto/cosmos/staking/v1beta1/staking.proto#L230-L241
 
 ## Validator
 
@@ -38,10 +30,10 @@ Validators can have one of three statuses
   active set during [`EndBlock`](./05_end_block.md#validator-set-changes) and their status is updated to `Bonded`.
   They are signing blocks and receiving rewards. They can receive further delegations.
   They can be slashed for misbehavior. Delegators to this validator who unbond their delegation
-  must wait the duration of the UnbondingTime, a chain-specific param, during which time
+  must wait the duration of the UnbondingTime, a chain-specific param. during which time
   they are still slashable for offences of the source validator if those offences were committed
   during the period of time that the tokens were bonded.
-- `Unbonding`: When a validator leaves the active set, either by choice or due to slashing, jailing or
+- `Unbonding`: When a validator leaves the active set, either by choice or due to slashing or
   tombstoning, an unbonding of all their delegations begins. All delegations must then wait the UnbondingTime
   before their tokens are moved to their accounts from the `BondedPool`.
 
@@ -70,8 +62,8 @@ address which can be derived from the validator's `ConsPubKey`.
 
 `ValidatorsByPower` is an additional index that provides a sorted list of
 potential validators to quickly determine the current active set. Here
-ConsensusPower is validator.Tokens/10^6 by default. Note that all validators
-where `Jailed` is true are not stored within this index.
+ConsensusPower is validator.Tokens/10^6. Note that all validators where
+`Jailed` is true are not stored within this index.
 
 `LastValidatorsPower` is a special index that provides a historical list of the
 last-block's bonded validators. This index remains constant during a block but
@@ -160,7 +152,7 @@ A redelegation object is created every time a redelegation occurs. To prevent
 - the (re)delegator already has another immature redelegation in progress
   with a destination to a validator (let's call it `Validator X`)
 - and, the (re)delegator is attempting to create a _new_ redelegation
-  where the source validator for this new redelegation is `Validator X`.
+  where the source validator for this new redelegation is `Validator-X`.
 
 +++ https://github.com/cosmos/cosmos-sdk/blob/v0.40.0/proto/cosmos/staking/v1beta1/staking.proto#L200-L228
 
