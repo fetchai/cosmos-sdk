@@ -93,9 +93,9 @@ func runMigrateCmd(cmd *cobra.Command, args []string) error {
 		return nil
 	}
 
-	for _, oldInfo := range oldKeys {
-		keyName := oldInfo.GetName()
-		keyType := oldInfo.GetType()
+	for _, key := range oldKeys {
+		keyName := key.GetName()
+		keyType := key.GetType()
 
 		cmd.PrintErrf("Migrating key: '%s (%s)' ...\n", keyName, keyType)
 
@@ -111,12 +111,12 @@ func runMigrateCmd(cmd *cobra.Command, args []string) error {
 		// TypeLocal needs an additional step to ask password.
 		// The other keyring types are handled by ImportInfo.
 		if keyType != keyring.TypeLocal {
-			infoImporter, ok := migrator.(keyring.LegacyInfoImporter)
-			if !ok {
-				return fmt.Errorf("the Keyring implementation does not support import operations of Info types")
+			pubkeyArmor, err := legacyKb.ExportPubKey(keyName)
+			if err != nil {
+				return err
 			}
 
-			if err = infoImporter.ImportInfo(oldInfo); err != nil {
+			if err := migrator.ImportPubKey(keyName, pubkeyArmor); err != nil {
 				return err
 			}
 
@@ -141,7 +141,7 @@ func runMigrateCmd(cmd *cobra.Command, args []string) error {
 		}
 
 	}
-	cmd.PrintErrln("Migration complete.")
+	cmd.Print("Migration Complete")
 
 	return err
 }
