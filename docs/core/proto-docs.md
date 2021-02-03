@@ -270,16 +270,15 @@
     - [ExpiresAt](#cosmos.feegrant.v1beta1.ExpiresAt)
     - [FeeAllowanceGrant](#cosmos.feegrant.v1beta1.FeeAllowanceGrant)
     - [PeriodicFeeAllowance](#cosmos.feegrant.v1beta1.PeriodicFeeAllowance)
-  
+
 - [cosmos/feegrant/v1beta1/genesis.proto](#cosmos/feegrant/v1beta1/genesis.proto)
     - [GenesisState](#cosmos.feegrant.v1beta1.GenesisState)
-  
+
 - [cosmos/feegrant/v1beta1/query.proto](#cosmos/feegrant/v1beta1/query.proto)
     - [QueryFeeAllowanceRequest](#cosmos.feegrant.v1beta1.QueryFeeAllowanceRequest)
     - [QueryFeeAllowanceResponse](#cosmos.feegrant.v1beta1.QueryFeeAllowanceResponse)
     - [QueryFeeAllowancesRequest](#cosmos.feegrant.v1beta1.QueryFeeAllowancesRequest)
     - [QueryFeeAllowancesResponse](#cosmos.feegrant.v1beta1.QueryFeeAllowancesResponse)
-  
     - [Query](#cosmos.feegrant.v1beta1.Query)
 
 - [cosmos/feegrant/v1beta1/tx.proto](#cosmos/feegrant/v1beta1/tx.proto)

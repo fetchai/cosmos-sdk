@@ -165,10 +165,11 @@ func (k Keeper) ApplyAndReturnValidatorSetUpdates(ctx sdk.Context) (updates []ab
 		}
 
 		// fetch the old power bytes
-		var valAddrBytes [sdk.AddrLen]byte
-
-		copy(valAddrBytes[:], valAddr[:])
-		oldPowerBytes, found := last[valAddrBytes]
+		valAddrStr, err := sdk.Bech32ifyAddressBytes(sdk.Bech32PrefixValAddr, valAddr)
+		if err != nil {
+			return nil, err
+		}
+		oldPowerBytes, found := last[valAddrStr]
 		newPower := validator.ConsensusPower(powerReduction)
 		newPowerBytes := k.cdc.MustMarshalBinaryBare(&gogotypes.Int64Value{Value: newPower})
 
