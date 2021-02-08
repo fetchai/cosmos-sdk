@@ -26,7 +26,7 @@ require (
 	github.com/grpc-ecosystem/go-grpc-middleware v1.3.0
 	github.com/grpc-ecosystem/grpc-gateway v1.16.0
 	github.com/hashicorp/golang-lru v0.5.4
-	github.com/improbable-eng/grpc-web v0.13.0
+	github.com/improbable-eng/grpc-web v0.14.0
 	github.com/magiconair/properties v1.8.4
 	github.com/mattn/go-isatty v0.0.12
 	github.com/otiai10/copy v1.4.2
@@ -57,6 +57,7 @@ require (
 	google.golang.org/protobuf v1.25.0
 	gopkg.in/ini.v1 v1.61.0 // indirect
 	gopkg.in/yaml.v2 v2.4.0
+	nhooyr.io/websocket v1.8.6 // indirect
 )
 
 replace google.golang.org/grpc => google.golang.org/grpc v1.33.2
