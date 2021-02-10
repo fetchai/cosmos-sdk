@@ -218,7 +218,7 @@ $ %s tx gov vote 1 yes --from mykey
 				return err
 			}
 
-			// Get voting address
+			// Get voter address
 			from := clientCtx.GetFromAddress()
 
 			// validate that the proposal id is a uint
