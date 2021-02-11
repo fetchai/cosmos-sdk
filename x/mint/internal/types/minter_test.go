@@ -12,10 +12,6 @@ import (
 func TestNextInflation(t *testing.T) {
 	minter := DefaultInitialMinter()
 	params := DefaultParams()
-	//blocksPerYr := sdk.NewDec(int64(params.BlocksPerYear))
-
-	// Governing Mechanism:
-	//    inflationRateChangePerYear = (1- BondedRatio/ GoalBonded) * MaxInflationRateChange
 
 	tests := []struct {
 		setInflation, expChange sdk.Dec

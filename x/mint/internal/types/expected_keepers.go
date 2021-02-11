@@ -13,8 +13,6 @@ type StakingKeeper interface {
 
 // SupplyKeeper defines the expected supply keeper
 type SupplyKeeper interface {
-	GetSupply(ctx sdk.Context) exported.SupplyI
-
 	GetModuleAddress(name string) sdk.AccAddress
 
 	// TODO remove with genesis 2-phases refactor https://github.com/cosmos/cosmos-sdk/issues/2862
