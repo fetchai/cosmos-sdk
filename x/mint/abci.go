@@ -27,8 +27,6 @@ func BeginBlocker(ctx sdk.Context, k Keeper) {
 	mintedCoin := minter.BlockProvision(params)
 	mintedCoins := sdk.NewCoins(mintedCoin)
 
-	fmt.Printf("Minting tokens supply: %s inflation: %s amount: %s\n", totalStakingSupply, minter.Inflation, mintedCoin)
-
 	err := k.MintCoins(ctx, mintedCoins)
 	if err != nil {
 		panic(err)
