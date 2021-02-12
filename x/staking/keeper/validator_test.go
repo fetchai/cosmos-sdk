@@ -49,8 +49,8 @@ func initValidators(t testing.TB, power int64, numAddrs int, powers []int64) (*s
 
 	vs := make([]types.Validator, len(powers))
 	for i, power := range powers {
-		vs[i] = teststaking.NewValidator(t, sdk.ValAddress(addrs[i]), PKs[i])
-		tokens := app.StakingKeeper.TokensFromConsensusPower(ctx, power)
+		vs[i] = teststaking.NewValidator(t, sdk.ValAddress(addrs[i]), pks[i])
+		tokens := sdk.TokensFromConsensusPower(power)
 		vs[i], _ = vs[i].AddTokensFromDel(tokens)
 	}
 	return app, ctx, addrs, valAddrs, vs
