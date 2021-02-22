@@ -200,7 +200,10 @@ func interceptConfigs(rootViper *viper.Viper) (*tmcfg.Config, error) {
 		conf.P2P.RecvRate = 5120000
 		conf.P2P.SendRate = 5120000
 		conf.Consensus.TimeoutCommit = 5 * time.Second
+		// Custom Fetch.ai config
 		conf.P2P.AllowDuplicateIP = true
+		// --------
+
 		tmcfg.WriteConfigFile(tmCfgFile, conf)
 
 	case err != nil:
@@ -212,7 +215,7 @@ func interceptConfigs(rootViper *viper.Viper) (*tmcfg.Config, error) {
 		rootViper.AddConfigPath(configPath)
 
 		if err := rootViper.ReadInConfig(); err != nil {
-			return nil, fmt.Errorf("failed to read in config.toml: %w", err)
+			return nil, fmt.Errorf("failed to read in %s: %w", tmCfgFile, err)
 		}
 	}
 
