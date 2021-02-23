@@ -1,5 +1,4 @@
 // DONTCOVER
-
 package v036
 
 import (
