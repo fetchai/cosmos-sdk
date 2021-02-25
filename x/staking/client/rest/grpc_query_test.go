@@ -9,6 +9,8 @@ import (
 	"net/http"
 	"testing"
 
+	"github.com/cosmos/cosmos-sdk/client/flags"
+
 	"github.com/gogo/protobuf/proto"
 	"github.com/stretchr/testify/suite"
 
@@ -51,8 +53,15 @@ func (s *IntegrationTestSuite) SetupSuite() {
 	val2 := s.network.Validators[1]
 
 	// redelegate
-	out, err := stakingtestutil.MsgRedelegateExec(val.ClientCtx, val.Address, val.ValAddress, val2.ValAddress, unbond)
-	s.T().Log(out)
+	_, err = stakingtestutil.MsgRedelegateExec(
+		val.ClientCtx,
+		val.Address,
+		val.ValAddress,
+		val2.ValAddress,
+		unbond,
+		fmt.Sprintf("--%s=%d", flags.FlagGas, 254000),
+	) // expected gas is 202987
+
 	s.Require().NoError(err)
 	_, err = s.network.WaitForHeight(1)
 	s.Require().NoError(err)
@@ -337,7 +346,7 @@ func (s *IntegrationTestSuite) TestQueryDelegationGRPC() {
 		s.Run(tc.name, func() {
 			resp, err := rest.GetRequest(tc.url)
 			s.Require().NoError(err)
-
+			s.T().Logf("%s", resp)
 			err = val.ClientCtx.JSONMarshaler.UnmarshalJSON(resp, tc.respType)
 
 			if tc.error {
