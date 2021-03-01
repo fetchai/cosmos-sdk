@@ -14,7 +14,7 @@ import (
 	"github.com/cosmos/cosmos-sdk/types/query"
 	"github.com/cosmos/cosmos-sdk/types/rest"
 	"github.com/cosmos/cosmos-sdk/version"
-	authclient "github.com/cosmos/cosmos-sdk/x/auth/client"
+	authtx "github.com/cosmos/cosmos-sdk/x/auth/tx"
 	"github.com/cosmos/cosmos-sdk/x/auth/types"
 )
 
@@ -196,7 +196,7 @@ $ %s query txs --%s 'message.sender=cosmos1...&message.action=withdraw_delegator
 			page, _ := cmd.Flags().GetInt(flags.FlagPage)
 			limit, _ := cmd.Flags().GetInt(flags.FlagLimit)
 
-			txs, err := authclient.QueryTxsByEvents(clientCtx, tmEvents, page, limit, "")
+			txs, err := authtx.QueryTxsByEvents(clientCtx, tmEvents, page, limit, "")
 			if err != nil {
 				return err
 			}
@@ -232,6 +232,10 @@ $ %s query tx --%s=%s <sig1_base64>,<sig2_base64...>
 		Args: cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			clientCtx, err := client.GetClientQueryContext(cmd)
+			if err != nil {
+				return err
+			}
+			output, err := authtx.QueryTx(clientCtx, args[0])
 			if err != nil {
 				return err
 			}

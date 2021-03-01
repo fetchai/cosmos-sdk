@@ -59,12 +59,12 @@ func (s txServer) GetTxsEvent(ctx context.Context, req *txtypes.GetTxsEventReque
 	}
 
 	for _, event := range req.Events {
-		if strings.Count(event, "=") != 1 {
+		if !strings.Contains(event, "=") || strings.Count(event, "=") > 1 {
 			return nil, status.Error(codes.InvalidArgument, fmt.Sprintf("invalid event; event %s should be of the format: %s", event, eventFormat))
 		}
 	}
 
-	result, err := queryTxsByEvents(ctx, s.clientCtx, req.Events, page, limit, orderBy)
+	result, err := QueryTxsByEvents(s.clientCtx, req.Events, page, limit, "")
 	if err != nil {
 		return nil, err
 	}
@@ -124,7 +124,7 @@ func (s txServer) GetTx(ctx context.Context, req *txtypes.GetTxRequest) (*txtype
 
 	// TODO We should also check the proof flag in gRPC header.
 	// https://github.com/cosmos/cosmos-sdk/issues/7036.
-	result, err := queryTx(ctx, s.clientCtx, req.Hash)
+	result, err := QueryTx(s.clientCtx, req.Hash)
 	if err != nil {
 		return nil, err
 	}
@@ -161,15 +161,4 @@ func RegisterTxService(
 // given Mux.
 func RegisterGRPCGatewayRoutes(clientConn gogogrpc.ClientConn, mux *runtime.ServeMux) {
 	txtypes.RegisterServiceHandlerClient(context.Background(), mux, txtypes.NewServiceClient(clientConn))
-}
-
-func parseOrderBy(orderBy txtypes.OrderBy) string {
-	switch orderBy {
-	case txtypes.OrderBy_ORDER_BY_ASC:
-		return "asc"
-	case txtypes.OrderBy_ORDER_BY_DESC:
-		return "desc"
-	default:
-		return "" // Defaults to Tendermint's default, which is `asc` now.
-	}
 }

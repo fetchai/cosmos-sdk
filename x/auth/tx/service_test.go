@@ -184,14 +184,14 @@ func (s IntegrationTestSuite) TestGetTxEvents_GRPC() {
 		{
 			"without pagination",
 			&tx.GetTxsEventRequest{
-				Events: []string{"message.action=/cosmos.bank.v1beta1.Msg/Send"},
+				Events: []string{"message.action='/cosmos.bank.v1beta1.Msg/Send'"},
 			},
 			false, "",
 		},
 		{
 			"with pagination",
 			&tx.GetTxsEventRequest{
-				Events: []string{"message.action=/cosmos.bank.v1beta1.Msg/Send"},
+				Events: []string{"message.action='/cosmos.bank.v1beta1.Msg/Send'"},
 				Pagination: &query.PageRequest{
 					CountTotal: false,
 					Offset:     0,
@@ -203,7 +203,7 @@ func (s IntegrationTestSuite) TestGetTxEvents_GRPC() {
 		{
 			"with multi events",
 			&tx.GetTxsEventRequest{
-				Events: []string{"message.action=/cosmos.bank.v1beta1.Msg/Send", "message.module=bank"},
+				Events: []string{"message.action='/cosmos.bank.v1beta1.Msg/Send'", "message.module='bank'"},
 			},
 			false, "",
 		},
@@ -246,13 +246,13 @@ func (s IntegrationTestSuite) TestGetTxEvents_GRPCGateway() {
 		},
 		{
 			"without pagination",
-			fmt.Sprintf("%s/cosmos/tx/v1beta1/txs?events=%s", val.APIAddress, "message.action=/cosmos.bank.v1beta1.Msg/Send"),
+			fmt.Sprintf("%s/cosmos/tx/v1beta1/txs?events=%s", val.APIAddress, "message.action='/cosmos.bank.v1beta1.Msg/Send'"),
 			false,
 			"",
 		},
 		{
 			"with pagination",
-			fmt.Sprintf("%s/cosmos/tx/v1beta1/txs?events=%s&pagination.offset=%d&pagination.limit=%d", val.APIAddress, "message.action=/cosmos.bank.v1beta1.Msg/Send", 0, 10),
+			fmt.Sprintf("%s/cosmos/tx/v1beta1/txs?events=%s&pagination.offset=%d&pagination.limit=%d", val.APIAddress, "message.action='/cosmos.bank.v1beta1.Msg/Send'", 0, 10),
 			false,
 			"",
 		},
@@ -264,13 +264,13 @@ func (s IntegrationTestSuite) TestGetTxEvents_GRPCGateway() {
 		},
 		{
 			"expect pass with multiple-events",
-			fmt.Sprintf("%s/cosmos/tx/v1beta1/txs?events=%s&events=%s", val.APIAddress, "message.action=/cosmos.bank.v1beta1.Msg/Send", "message.module=bank"),
+			fmt.Sprintf("%s/cosmos/tx/v1beta1/txs?events=%s&events=%s", val.APIAddress, "message.action='/cosmos.bank.v1beta1.Msg/Send'", "message.module='bank'"),
 			false,
 			"",
 		},
 		{
 			"expect pass with escape event",
-			fmt.Sprintf("%s/cosmos/tx/v1beta1/txs?events=%s", val.APIAddress, "message.action%3D%2Fcosmos.bank.v1beta1.Msg%2FSend"),
+			fmt.Sprintf("%s/cosmos/tx/v1beta1/txs?events=%s", val.APIAddress, "message.action%3D'%2Fcosmos.bank.v1beta1.Msg%2FSend'"),
 			false,
 			"",
 		},
