@@ -5,8 +5,7 @@ import (
 
 	"github.com/cosmos/cosmos-sdk/client"
 	sdk "github.com/cosmos/cosmos-sdk/types"
-	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
-	authclient "github.com/cosmos/cosmos-sdk/x/auth/client"
+	authtx "github.com/cosmos/cosmos-sdk/x/auth/tx"
 	"github.com/cosmos/cosmos-sdk/x/gov/types"
 )
 
@@ -373,7 +372,7 @@ func combineEvents(clientCtx client.Context, page int, eventGroups ...[]string) 
 	// Only the Txs field will be populated in the final SearchTxsResult.
 	allTxs := []*sdk.TxResponse{}
 	for _, events := range eventGroups {
-		res, err := authclient.QueryTxsByEvents(clientCtx, events, page, defaultLimit, "")
+		res, err := authtx.QueryTxsByEvents(clientCtx, events, page, defaultLimit, "")
 		if err != nil {
 			return nil, err
 		}
