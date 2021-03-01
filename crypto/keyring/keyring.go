@@ -116,8 +116,8 @@ type Importer interface {
 	ImportPubKey(uid string, armor string) error
 }
 
-// LegacyInfoImporter is implemented by key stores that support import of Info types.
-type LegacyInfoImporter interface {
+// InfoImporter is implemented by key stores that support import of Info types.
+type InfoImporter interface {
 	// ImportInfo import a keyring.Info into the current keyring.
 	// It is used to migrate multisig, ledger, and public key Info structure.
 	ImportInfo(oldInfo Info) error
