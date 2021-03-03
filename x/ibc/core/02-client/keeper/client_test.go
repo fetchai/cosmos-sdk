@@ -603,8 +603,8 @@ func (suite *KeeperTestSuite) TestUpdateClientEventEmission() {
 
 	result, err := suite.chainA.SendMsgs(msg)
 	suite.Require().NoError(err)
-	// first 3 event type are "tx.signature", "tx.acc_seq", and "message"
-	updateEvent := result.Events[3]
+	// first event type is "message"
+	updateEvent := result.Events[1]
 
 	suite.Require().Equal(clienttypes.EventTypeUpdateClient, updateEvent.Type)
 
