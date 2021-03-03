@@ -11,12 +11,12 @@ import (
 
 // Parameter store keys
 var (
-	KeyMintDenom           = []byte("MintDenom")
-	KeyInflationRateChange = []byte("InflationRateChange")
-	KeyInflationMax        = []byte("InflationMax")
-	KeyInflationMin        = []byte("InflationMin")
-	KeyGoalBonded          = []byte("GoalBonded")
-	KeyBlocksPerYear       = []byte("BlocksPerYear")
+	KeyMintDenom      = []byte("MintDenom")
+	KeyInflationRate  = []byte("InflationRate")
+	KeyInflationMax   = []byte("InflationMax")
+	KeyInflationMin   = []byte("InflationMin")
+	KeyGoalBonded     = []byte("GoalBonded")
+	KeyBlocksPerYear  = []byte("BlocksPerYear")
 )
 
 // mint parameters
@@ -81,7 +81,7 @@ func (p Params) String() string {
 func (p *Params) ParamSetPairs() params.ParamSetPairs {
 	return params.ParamSetPairs{
 		params.NewParamSetPair(KeyMintDenom, &p.MintDenom, validateMintDenom),
-		params.NewParamSetPair(KeyInflationRateChange, &p.InflationRate, validateInflationRate),
+		params.NewParamSetPair(KeyInflationRate, &p.InflationRate, validateInflationRate),
 		params.NewParamSetPair(KeyBlocksPerYear, &p.BlocksPerYear, validateBlocksPerYear),
 	}
 }
