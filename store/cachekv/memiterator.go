@@ -10,7 +10,29 @@ import (
 // if key is nil, means it was deleted.
 // Implements Iterator.
 type memIterator struct {
-	types.Iterator
+	start, end []byte
+	items      []*kv.Pair
+	ascending  bool
+}
+
+func newMemIterator(start, end []byte, items *list.List, ascending bool) *memIterator {
+	itemsInDomain := make([]*kv.Pair, 0, items.Len())
+
+	var entered bool
+
+	for e := items.Front(); e != nil; e = e.Next() {
+		item := e.Value.(*kv.Pair)
+		if !dbm.IsKeyInDomain(item.Key, start, end) {
+			if entered {
+				break
+			}
+
+			continue
+		}
+
+		itemsInDomain = append(itemsInDomain, item)
+		entered = true
+	}
 
 	deleted map[string]struct{}
 }
