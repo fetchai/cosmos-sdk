@@ -29,7 +29,7 @@ type Store struct {
 	cache         map[string]*cValue
 	deleted       map[string]struct{}
 	unsortedCache map[string]struct{}
-	sortedCache   *dbm.MemDB // always ascending sorted
+	sortedCache   *kv.List // always ascending sorted
 	parent        types.KVStore
 }
 
@@ -41,7 +41,7 @@ func NewStore(parent types.KVStore) *Store {
 		cache:         make(map[string]*cValue),
 		deleted:       make(map[string]struct{}),
 		unsortedCache: make(map[string]struct{}),
-		sortedCache:   dbm.NewMemDB(),
+		sortedCache:   kv.NewList(),
 		parent:        parent,
 	}
 }
@@ -133,7 +133,7 @@ func (store *Store) Write() {
 	store.cache = make(map[string]*cValue)
 	store.deleted = make(map[string]struct{})
 	store.unsortedCache = make(map[string]struct{})
-	store.sortedCache = dbm.NewMemDB()
+	store.sortedCache = kv.NewList()
 }
 
 // CacheWrap implements CacheWrapper.
@@ -203,16 +203,22 @@ func (store *Store) dirtyItems(start, end []byte) {
 		return bytes.Compare(unsorted[i].Key, unsorted[j].Key) < 0
 	})
 
-	for _, item := range unsorted {
-		if item.Value == nil {
-			// deleted element, tracked by store.deleted
-			// setting arbitrary value
-			store.sortedCache.Set(item.Key, []byte{})
-			continue
-		}
-		err := store.sortedCache.Set(item.Key, item.Value)
-		if err != nil {
-			panic(err)
+	for e := store.sortedCache.Front(); e != nil && len(unsorted) != 0; {
+		uitem := unsorted[0]
+		sitem := e.Value
+		comp := bytes.Compare(uitem.Key, sitem.Key)
+
+		switch comp {
+		case -1:
+			unsorted = unsorted[1:]
+
+			store.sortedCache.InsertBefore(uitem, e)
+		case 1:
+			e = e.Next()
+		case 0:
+			unsorted = unsorted[1:]
+			e.Value = uitem
+			e = e.Next()
 		}
 	}
 }
