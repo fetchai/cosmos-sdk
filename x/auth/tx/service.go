@@ -64,7 +64,7 @@ func (s txServer) GetTxsEvent(ctx context.Context, req *txtypes.GetTxsEventReque
 		}
 	}
 
-	result, err := QueryTxsByEvents(s.clientCtx, req.Events, page, limit, "")
+	result, err := QueryTxsByEvents(s.clientCtx, req.Events, page, limit, orderBy)
 	if err != nil {
 		return nil, err
 	}
@@ -161,4 +161,15 @@ func RegisterTxService(
 // given Mux.
 func RegisterGRPCGatewayRoutes(clientConn gogogrpc.ClientConn, mux *runtime.ServeMux) {
 	txtypes.RegisterServiceHandlerClient(context.Background(), mux, txtypes.NewServiceClient(clientConn))
+}
+
+func parseOrderBy(orderBy txtypes.OrderBy) string {
+	switch orderBy {
+	case txtypes.OrderBy_ORDER_BY_ASC:
+		return "asc"
+	case txtypes.OrderBy_ORDER_BY_DESC:
+		return "desc"
+	default:
+		return "asc"
+	}
 }
