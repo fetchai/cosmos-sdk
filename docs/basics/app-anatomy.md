@@ -125,7 +125,7 @@ NOTE: this function is marked deprecated and should only be used to create an ap
 
 See an example of a `MakeTestEncodingConfig` from `simapp`:
 
-+++ https://github.com/cosmos/cosmos-sdk/blob/v0.40.0-rc3/simapp/simd/cmd/root.go#L179-196
++++ https://github.com/cosmos/cosmos-sdk/blob/590358652cc1cbc13872ea1659187e073ea38e75/simapp/encoding.go#L8-L19
 
 ## Modules
 
