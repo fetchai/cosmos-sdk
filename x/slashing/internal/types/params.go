@@ -19,8 +19,8 @@ var (
 	DefaultMinSignedPerWindow            = sdk.NewDecWithPrec(5, 1)
 	DefaultSlashFractionDoubleSign       = sdk.NewDec(1).Quo(sdk.NewDec(20))
 	DefaultSlashFractionDowntime         = sdk.NewDec(1).Quo(sdk.NewDec(100))
-	DefaultSlashFractionBeaconInactivity = sdk.NewDec(1).Quo(sdk.NewDec(100))
-	DefaultSlashFractionDKGFailure       = sdk.NewDec(1).Quo(sdk.NewDec(100))
+	DefaultSlashFractionBeaconInactivity = sdk.NewDec(0)
+	DefaultSlashFractionDKGFailure       = sdk.NewDec(0)
 )
 
 // Parameter store keys
