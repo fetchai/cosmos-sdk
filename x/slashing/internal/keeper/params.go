@@ -42,8 +42,8 @@ func (k Keeper) SlashFractionBeaconInactivity(ctx sdk.Context) (res sdk.Dec) {
 	return
 }
 
-// SlashBeaconInactivity - fraction of power slashed in case of beacon inactivity
-func (k Keeper) SlashFractioDKGFailure(ctx sdk.Context) (res sdk.Dec) {
+// SlashFractionDKGFailure - fraction of power slashed in case of DKG failure
+func (k Keeper) SlashFractionDKGFailure(ctx sdk.Context) (res sdk.Dec) {
 	k.paramspace.Get(ctx, types.KeySlashFractionDKGFailure, &res)
 	return
 }
