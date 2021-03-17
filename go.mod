@@ -3,7 +3,7 @@ go 1.13
 module github.com/cosmos/cosmos-sdk
 
 require (
-	github.com/99designs/keyring v1.1.5
+	github.com/99designs/keyring v1.1.6
 	github.com/armon/go-metrics v0.3.3
 	github.com/bartekn/go-bip39 v0.0.0-20171116152956-a05967ea095d
 	github.com/bgentry/speakeasy v0.1.0
