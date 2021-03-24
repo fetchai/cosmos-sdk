@@ -122,14 +122,10 @@ func (suite *IntegrationTestSuite) TestSendCoinsFromModuleToAccount_Blacklist() 
 		app.GetSubspace(types.ModuleName), map[string]bool{addr1.String(): true},
 	)
 
-	baseAcc := authKeeper.NewAccountWithAddress(ctx, authtypes.NewModuleAddress("baseAcc"))
-	suite.Require().NoError(keeper.SetBalances(ctx, holderAcc.GetAddress(), initCoins))
-
-	keeper.SetSupply(ctx, types.NewSupply(initCoins))
-	authKeeper.SetModuleAccount(ctx, holderAcc)
-	authKeeper.SetAccount(ctx, baseAcc)
-
-	suite.Require().Error(keeper.SendCoinsFromModuleToAccount(ctx, holderAcc.GetName(), addr1, initCoins))
+	suite.Require().NoError(keeper.MintCoins(ctx, minttypes.ModuleName, initCoins))
+	suite.Require().Error(keeper.SendCoinsFromModuleToAccount(
+		ctx, minttypes.ModuleName, addr1, initCoins,
+	))
 }
 
 func (suite *IntegrationTestSuite) TestSupply_SendCoins() {
