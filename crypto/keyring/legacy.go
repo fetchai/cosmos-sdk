@@ -86,7 +86,7 @@ func (kb dbKeybase) List() ([]Info, error) {
 
 // Get returns the public information about one key.
 func (kb dbKeybase) Get(name string) (Info, error) {
-	bs, err := kb.db.Get(infoKey(name))
+	bs, err := kb.db.Get(infoKeyBz(name))
 	if err != nil {
 		return nil, err
 	}
@@ -130,7 +130,7 @@ func (kb dbKeybase) ExportPrivateKeyObject(name string, passphrase string) (type
 }
 
 func (kb dbKeybase) Export(name string) (armor string, err error) {
-	bz, err := kb.db.Get(infoKey(name))
+	bz, err := kb.db.Get(infoKeyBz(name))
 	if err != nil {
 		return "", err
 	}
@@ -145,7 +145,7 @@ func (kb dbKeybase) Export(name string) (armor string, err error) {
 // ExportPubKey returns public keys in ASCII armored format. It retrieves a Info
 // object by its name and return the public key in a portable format.
 func (kb dbKeybase) ExportPubKey(name string) (armor string, err error) {
-	bz, err := kb.db.Get(infoKey(name))
+	bz, err := kb.db.Get(infoKeyBz(name))
 	if err != nil {
 		return "", err
 	}
@@ -183,7 +183,8 @@ func (kb dbKeybase) ExportPrivKey(name string, decryptPassphrase string,
 // Close the underlying storage.
 func (kb dbKeybase) Close() error { return kb.db.Close() }
 
-func infoKey(name string) []byte { return []byte(fmt.Sprintf("%s.%s", name, infoSuffix)) }
+func infoKey(name string) string   { return fmt.Sprintf("%s.%s", name, infoSuffix) }
+func infoKeyBz(name string) []byte { return []byte(infoKey(name)) }
 
 // KeybaseOption overrides options for the db.
 type KeybaseOption func(*kbOptions)
