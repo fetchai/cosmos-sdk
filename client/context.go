@@ -49,6 +49,7 @@ type Context struct {
 	AccountRetriever  AccountRetriever
 	NodeURI           string
 	FeeGranter        sdk.AccAddress
+	Viper             *viper.Viper
 
 	// TODO: Deprecated (remove).
 	LegacyAmino *codec.LegacyAmino
@@ -230,10 +231,8 @@ func (ctx Context) WithInterfaceRegistry(interfaceRegistry codectypes.InterfaceR
 
 // WithViper returns the context with Viper field. This Viper instance is used to read
 // client-side config from the config file.
-func (ctx Context) WithViper(prefix string) Context {
+func (ctx Context) WithViper() Context {
 	v := viper.New()
-	v.SetEnvPrefix(prefix)
-	v.AutomaticEnv()
 	ctx.Viper = v
 	return ctx
 }
@@ -348,7 +347,8 @@ func GetFromFields(kr keyring.Keyring, from string, genOnly bool) (sdk.AccAddres
 	return info.GetAddress(), info.GetName(), info.GetType(), nil
 }
 
-func newKeyringFromFlags(ctx Context, backend string) (keyring.Keyring, error) {
+// NewKeyringFromBackend gets a Keyring object from a backend
+func NewKeyringFromBackend(ctx Context, backend string) (keyring.Keyring, error) {
 	if ctx.GenerateOnly || ctx.Simulate {
 		return keyring.New(sdk.KeyringServiceName(), keyring.BackendMemory, ctx.KeyringDir, ctx.Input, ctx.KeyringOptions...)
 	}

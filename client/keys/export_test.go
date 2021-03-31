@@ -1,7 +1,6 @@
 package keys
 
 import (
-	"bufio"
 	"context"
 	"fmt"
 	"testing"
@@ -43,48 +42,30 @@ func Test_runExportCmd(t *testing.T) {
 		fmt.Sprintf("--%s=%s", flags.FlagKeyringBackend, keyring.BackendTest),
 	}
 
-	for _, tc := range testCases {
-		t.Run(tc.name, func(t *testing.T) {
-			kbHome := t.TempDir()
-			defaultArgs := []string{
-				"keyname1",
-				fmt.Sprintf("--%s=%s", flags.FlagHome, kbHome),
-				fmt.Sprintf("--%s=%s", flags.FlagKeyringBackend, tc.keyringBackend),
-			}
+	mockIn.Reset("123456789\n123456789\n")
+	cmd.SetArgs(args)
 
-			cmd := ExportKeyCommand()
-			cmd.Flags().AddFlagSet(Commands("home").PersistentFlags())
+	clientCtx := client.Context{}.
+		WithKeyringDir(kbHome).
+		WithKeyring(kb)
+	ctx := context.WithValue(context.Background(), client.ClientContextKey, &clientCtx)
 
-			cmd.SetArgs(append(defaultArgs, tc.extraArgs...))
-			mockIn, mockOut := testutil.ApplyMockIO(cmd)
+	require.NoError(t, cmd.ExecuteContext(ctx))
 
-			mockIn.Reset(tc.userInput)
-			mockInBuf := bufio.NewReader(mockIn)
+	argsUnsafeOnly := append(args, "--unsafe")
+	cmd.SetArgs(argsUnsafeOnly)
+	require.Error(t, cmd.ExecuteContext(ctx))
 
-			// create a key
-			kb, err := keyring.New(sdk.KeyringServiceName(), tc.keyringBackend, kbHome, bufio.NewReader(mockInBuf))
-			require.NoError(t, err)
-			t.Cleanup(func() {
-				kb.Delete("keyname1") // nolint:errcheck
-			})
+	argsUnarmoredHexOnly := append(args, "--unarmored-hex")
+	cmd.SetArgs(argsUnarmoredHexOnly)
+	require.Error(t, cmd.ExecuteContext(ctx))
 
-			path := sdk.GetConfig().GetFullFundraiserPath()
-			_, err = kb.NewAccount("keyname1", testutil.TestMnemonic, "", path, hd.Secp256k1)
-			require.NoError(t, err)
+	argsUnsafeUnarmoredHex := append(args, "--unsafe", "--unarmored-hex")
+	cmd.SetArgs(argsUnsafeUnarmoredHex)
+	require.Error(t, cmd.ExecuteContext(ctx))
 
-			clientCtx := client.Context{}.
-				WithKeyringDir(kbHome).
-				WithKeyring(kb).
-				WithInput(mockInBuf)
-			ctx := context.WithValue(context.Background(), client.ClientContextKey, &clientCtx)
-
-			err = cmd.ExecuteContext(ctx)
-			if tc.mustFail {
-				require.Error(t, err)
-			} else {
-				require.NoError(t, err)
-				require.Equal(t, tc.expectedOutput, mockOut.String())
-			}
-		})
-	}
+	mockIn, mockOut := testutil.ApplyMockIO(cmd)
+	mockIn.Reset("y\n")
+	require.NoError(t, cmd.ExecuteContext(ctx))
+	require.Equal(t, "2485e33678db4175dc0ecef2d6e1fc493d4a0d7f7ce83324b6ed70afe77f3485\n", mockOut.String())
 }

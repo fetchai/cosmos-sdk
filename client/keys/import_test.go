@@ -62,6 +62,21 @@ func Test_runImportCmd(t *testing.T) {
 		},
 	}
 
+	// Now add a temporary keybase
+	kbHome := t.TempDir()
+	kb, err := keyring.New(sdk.KeyringServiceName(), keyring.BackendTest, kbHome, mockIn)
+
+	clientCtx := client.Context{}.
+		WithKeyringDir(kbHome).
+		WithKeyring(kb)
+	ctx := context.WithValue(context.Background(), client.ClientContextKey, &clientCtx)
+
+	require.NoError(t, err)
+	t.Cleanup(func() {
+		kb.Delete("keyname1") // nolint:errcheck
+	})
+
+	keyfile := filepath.Join(kbHome, "key.asc")
 	armoredKey := `-----BEGIN TENDERMINT PRIVATE KEY-----
 salt: A790BB721D1C094260EA84F5E5B72289
 kdf: bcrypt
