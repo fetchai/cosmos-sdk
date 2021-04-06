@@ -1,3 +1,4 @@
+//go:build norace
 // +build norace
 
 package rest_test
@@ -10,6 +11,7 @@ import (
 
 	"github.com/cosmos/cosmos-sdk/testutil/network"
 	sdk "github.com/cosmos/cosmos-sdk/types"
+	"github.com/cosmos/cosmos-sdk/types/query"
 	"github.com/cosmos/cosmos-sdk/types/rest"
 	"github.com/cosmos/cosmos-sdk/x/bank/types"
 )
@@ -155,11 +157,14 @@ func (s *IntegrationTestSuite) TestTotalSupplyHandlerFn() {
 		{
 			"total supply",
 			fmt.Sprintf("%s/bank/total?height=1", baseURL),
-			&sdk.Coins{},
-			sdk.NewCoins(
-				sdk.NewCoin(fmt.Sprintf("%stoken", val.Moniker), s.cfg.AccountTokens),
-				sdk.NewCoin(s.cfg.BondDenom, s.cfg.StakingTokens.Add(sdk.NewInt(2))),
-			),
+			&types.QueryTotalSupplyResponse{},
+			&types.QueryTotalSupplyResponse{
+				Supply: sdk.NewCoins(
+					sdk.NewCoin(fmt.Sprintf("%stoken", val.Moniker), s.cfg.AccountTokens),
+					sdk.NewCoin(s.cfg.BondDenom, s.cfg.StakingTokens.Add(sdk.NewInt(10))),
+				),
+				Pagination: &query.PageResponse{Total: 2},
+			},
 		},
 		{
 			"total supply of a specific denom",
