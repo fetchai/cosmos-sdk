@@ -26,7 +26,7 @@ func NewApp(rootDir string, logger log.Logger) (abci.Application, error) {
 	}
 
 	// Capabilities key to access the main KVStore.
-	capKeyMainStore := sdk.NewKVStoreKey(bam.MainStoreKey)
+	capKeyMainStore := sdk.NewKVStoreKey("main")
 
 	// Create BaseApp.
 	baseApp := bam.NewBaseApp("kvstore", logger, db, decodeTx)
@@ -36,11 +36,11 @@ func NewApp(rootDir string, logger log.Logger) (abci.Application, error) {
 
 	baseApp.SetInitChainer(InitChainer(capKeyMainStore))
 
-	// Set a handler Route.
-	baseApp.Router().AddRoute("kvstore", KVStoreHandler(capKeyMainStore))
+	// Set a Route.
+	baseApp.Router().AddRoute(sdk.NewRoute("kvstore", KVStoreHandler(capKeyMainStore)))
 
 	// Load latest version.
-	if err := baseApp.LoadLatestVersion(capKeyMainStore); err != nil {
+	if err := baseApp.LoadLatestVersion(); err != nil {
 		return nil, err
 	}
 
@@ -103,7 +103,7 @@ func InitChainer(key sdk.StoreKey) func(sdk.Context, abci.RequestInitChain) abci
 
 // AppGenState can be passed into InitCmd, returns a static string of a few
 // key-values that can be parsed by InitChainer
-func AppGenState(_ *codec.Codec, _ types.GenesisDoc, _ []json.RawMessage) (appState json.
+func AppGenState(_ *codec.LegacyAmino, _ types.GenesisDoc, _ []json.RawMessage) (appState json.
 	RawMessage, err error) {
 	appState = json.RawMessage(`{
   "values": [
@@ -121,7 +121,7 @@ func AppGenState(_ *codec.Codec, _ types.GenesisDoc, _ []json.RawMessage) (appSt
 }
 
 // AppGenStateEmpty returns an empty transaction state for mocking.
-func AppGenStateEmpty(_ *codec.Codec, _ types.GenesisDoc, _ []json.RawMessage) (
+func AppGenStateEmpty(_ *codec.LegacyAmino, _ types.GenesisDoc, _ []json.RawMessage) (
 	appState json.RawMessage, err error) {
 	appState = json.RawMessage(``)
 	return

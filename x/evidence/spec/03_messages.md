@@ -8,10 +8,12 @@ order: 3
 
 Evidence is submitted through a `MsgSubmitEvidence` message:
 
-```go
-type MsgSubmitEvidence struct {
-  Evidence  Evidence
-  Submitter AccAddress
+```protobuf
+// MsgSubmitEvidence represents a message that supports submitting arbitrary
+// Evidence of misbehavior such as equivocation or counterfactual signing.
+message MsgSubmitEvidence {
+  string              submitter = 1;
+  google.protobuf.Any evidence  = 2;
 }
 ```
 
@@ -25,16 +27,23 @@ as follows:
 ```go
 func SubmitEvidence(ctx Context, evidence Evidence) error {
   if _, ok := GetEvidence(ctx, evidence.Hash()); ok {
-    return ErrEvidenceExists(codespace, evidence.Hash().String())
+    return sdkerrors.Wrap(types.ErrEvidenceExists, evidence.Hash().String())
   }
   if !router.HasRoute(evidence.Route()) {
-    return ErrNoEvidenceHandlerExists(codespace, evidence.Route())
+    return sdkerrors.Wrap(types.ErrNoEvidenceHandlerExists, evidence.Route())
   }
 
   handler := router.GetRoute(evidence.Route())
   if err := handler(ctx, evidence); err != nil {
-    return ErrInvalidEvidence(codespace, err.Error())
+    return sdkerrors.Wrap(types.ErrInvalidEvidence, err.Error())
   }
+
+  ctx.EventManager().EmitEvent(
+		sdk.NewEvent(
+			types.EventTypeSubmitEvidence,
+			sdk.NewAttribute(types.AttributeKeyEvidenceHash, evidence.Hash().String()),
+		),
+	)
 
   SetEvidence(ctx, evidence)
   return nil
@@ -43,4 +52,4 @@ func SubmitEvidence(ctx Context, evidence Evidence) error {
 
 First, there must not already exist valid submitted `Evidence` of the exact same
 type. Secondly, the `Evidence` is routed to the `Handler` and executed. Finally,
-if there is no error in handling the `Evidence`, it is persisted to state.
+if there is no error in handling the `Evidence`, an event is emitted and it is persisted to state.

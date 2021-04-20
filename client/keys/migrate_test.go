@@ -1,36 +1,42 @@
 package keys
 
 import (
+	"context"
+	"fmt"
 	"testing"
 
-	"github.com/cosmos/cosmos-sdk/client/flags"
-	"github.com/cosmos/cosmos-sdk/tests"
+	"github.com/cosmos/cosmos-sdk/client"
 
-	"github.com/spf13/viper"
+	"github.com/stretchr/testify/require"
+
+	"github.com/otiai10/copy"
 	"github.com/stretchr/testify/assert"
 
-	"github.com/tendermint/tendermint/libs/cli"
+	"github.com/cosmos/cosmos-sdk/client/flags"
+	"github.com/cosmos/cosmos-sdk/crypto/keyring"
+	"github.com/cosmos/cosmos-sdk/testutil"
 )
 
 func Test_runMigrateCmd(t *testing.T) {
-	cmd := AddKeyCommand()
-	assert.NotNil(t, cmd)
-	mockIn, _, _ := tests.ApplyMockIO(cmd)
+	kbHome := t.TempDir()
+	clientCtx := client.Context{}.WithKeyringDir(kbHome)
+	ctx := context.WithValue(context.Background(), client.ClientContextKey, &clientCtx)
 
-	kbHome, kbCleanUp := tests.NewTestCaseDir(t)
-	assert.NotNil(t, kbHome)
-	defer kbCleanUp()
-	viper.Set(flags.FlagHome, kbHome)
+	require.NoError(t, copy.Copy("testdata", kbHome))
 
-	viper.Set(cli.OutputFlag, OutputFormatText)
+	cmd := MigrateCommand()
+	cmd.Flags().AddFlagSet(Commands("home").PersistentFlags())
+	//mockIn := testutil.ApplyMockIODiscardOutErr(cmd)
+	mockIn, mockOut := testutil.ApplyMockIO(cmd)
 
-	mockIn.Reset("test1234\ntest1234\n")
-	err := runAddCmd(cmd, []string{"keyname1"})
-	assert.NoError(t, err)
+	cmd.SetArgs([]string{
+		kbHome,
+		//fmt.Sprintf("--%s=%s", flags.FlagHome, kbHome),
+		fmt.Sprintf("--%s=true", flags.FlagDryRun),
+		fmt.Sprintf("--%s=%s", flags.FlagKeyringBackend, keyring.BackendTest),
+	})
 
-	viper.Set(flags.FlagDryRun, true)
-	cmd = MigrateCommand()
-	mockIn, _, _ = tests.ApplyMockIO(cmd)
-	mockIn.Reset("test1234\n")
-	assert.NoError(t, runMigrateCmd(cmd, []string{}))
+	mockIn.Reset("\n12345678\n\n\n\n\n")
+	t.Log(mockOut.String())
+	assert.NoError(t, cmd.ExecuteContext(ctx))
 }
