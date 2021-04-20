@@ -15,12 +15,9 @@ type (
 
 	// mint parameters
 	Params struct {
-		MintDenom           string  `json:"mint_denom" yaml:"mint_denom"`                       // type of coin to mint
-		InflationRateChange sdk.Dec `json:"inflation_rate_change" yaml:"inflation_rate_change"` // maximum annual change in inflation rate
-		InflationMax        sdk.Dec `json:"inflation_max" yaml:"inflation_max"`                 // maximum inflation rate
-		InflationMin        sdk.Dec `json:"inflation_min" yaml:"inflation_min"`                 // minimum inflation rate
-		GoalBonded          sdk.Dec `json:"goal_bonded" yaml:"goal_bonded"`                     // goal of percent bonded atoms
-		BlocksPerYear       uint64  `json:"blocks_per_year" yaml:"blocks_per_year"`             // expected blocks per year
+		MintDenom     string  `json:"mint_denom" yaml:"mint_denom"`           // type of coin to mint
+		InflationRate sdk.Dec `json:"inflation_rate" yaml:"inflation_rate"`   // maximum annual change in inflation rate
+		BlocksPerYear uint64  `json:"blocks_per_year" yaml:"blocks_per_year"` // expected blocks per year
 	}
 
 	// GenesisState - minter state
