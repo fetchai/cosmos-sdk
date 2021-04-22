@@ -79,7 +79,7 @@ func (s *IntegrationTestSuite) TestQueryGRPC() {
 			map[string]string{},
 			&minttypes.QueryInflationResponse{},
 			&minttypes.QueryInflationResponse{
-				Inflation: sdk.NewDec(0.03),
+				Inflation: sdk.NewDecWithPrec(3, 2),
 			},
 		},
 		{
