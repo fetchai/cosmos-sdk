@@ -13,9 +13,10 @@ jobs:
       - uses: actions/checkout@master
       - name: lint
         run: make proto-lint
-  breakage:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@master
-      - name: check-breakage
-        run: make proto-check-breaking
+  # disabled until stargate land on master
+  # breakage:
+  #   runs-on: ubuntu-latest
+  #   steps:
+  #     - uses: actions/checkout@master
+  #     - name: check-breakage
+  #       run: make proto-check-breaking
