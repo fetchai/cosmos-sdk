@@ -332,7 +332,7 @@ func TestPaginatedVotesQuery(t *testing.T) {
 	for i := range votes {
 		vote := types.Vote{
 			ProposalId: proposal.ProposalId,
-			Voter:      addr.String(),
+			Voter:      genAddr(),
 			Options:    types.NewNonSplitVoteOption(types.OptionYes),
 		}
 		votes[i] = vote
