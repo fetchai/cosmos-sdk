@@ -164,11 +164,11 @@ func TestMarshalAmino(t *testing.T) {
 	for _, tc := range testCases {
 		t.Run(tc.desc, func(t *testing.T) {
 			// Do a round trip of encoding/decoding binary.
-			bz, err := aminoCdc.MarshalBinaryBare(tc.msg)
+			bz, err := aminoCdc.Marshal(tc.msg)
 			require.NoError(t, err)
 			require.Equal(t, tc.expBinary, bz)
 
-			err = aminoCdc.UnmarshalBinaryBare(bz, tc.typ)
+			err = aminoCdc.Unmarshal(bz, tc.typ)
 			require.NoError(t, err)
 
 			require.Equal(t, tc.msg, tc.typ)
@@ -205,7 +205,7 @@ func TestMarshalAmino_BackwardsCompatibility(t *testing.T) {
 			"ed25519 private key, binary",
 			tmPrivKey,
 			privKey,
-			aminoCdc.MarshalBinaryBare,
+			aminoCdc.Marshal,
 		},
 		{
 			"ed25519 private key, JSON",
@@ -217,7 +217,7 @@ func TestMarshalAmino_BackwardsCompatibility(t *testing.T) {
 			"ed25519 public key, binary",
 			tmPubKey,
 			pubKey,
-			aminoCdc.MarshalBinaryBare,
+			aminoCdc.Marshal,
 		},
 		{
 			"ed25519 public key, JSON",
