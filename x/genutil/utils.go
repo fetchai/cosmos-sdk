@@ -11,8 +11,6 @@ import (
 	"github.com/tendermint/tendermint/p2p"
 	"github.com/tendermint/tendermint/privval"
 	tmtypes "github.com/tendermint/tendermint/types"
-
-	"github.com/cosmos/cosmos-sdk/server"
 )
 
 // ExportGenesisFile creates and writes the genesis configuration to disk. An
@@ -56,7 +54,6 @@ func InitializeNodeValidatorFiles(config *cfg.Config,
 	}
 
 	nodeID = string(nodeKey.ID())
-	server.UpgradeOldPrivValFile(config)
 
 	pvKeyFile := config.PrivValidatorKeyFile()
 	if err := tmos.EnsureDir(filepath.Dir(pvKeyFile), 0777); err != nil {
@@ -68,7 +65,10 @@ func InitializeNodeValidatorFiles(config *cfg.Config,
 		return nodeID, valPubKey, nil
 	}
 
-	valPubKey = privval.LoadOrGenFilePV(pvKeyFile, pvStateFile).GetPubKey()
+	valPubKey, err = privval.LoadOrGenFilePV(pvKeyFile, pvStateFile).GetPubKey()
+	if err != nil {
+		return nodeID, valPubKey, err
+	}
 
 	return nodeID, valPubKey, nil
 }

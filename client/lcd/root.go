@@ -13,7 +13,7 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 	"github.com/tendermint/tendermint/libs/log"
-	rpcserver "github.com/tendermint/tendermint/rpc/lib/server"
+	rpcserver "github.com/tendermint/tendermint/rpc/jsonrpc/server"
 
 	"github.com/cosmos/cosmos-sdk/client/context"
 	"github.com/cosmos/cosmos-sdk/client/flags"
@@ -79,7 +79,7 @@ func (rs *RestServer) Start(listenAddr string, maxOpen int, readTimeout, writeTi
 		)(h)
 	}
 
-	return rpcserver.StartHTTPServer(rs.listener, h, rs.log, cfg)
+	return rpcserver.Serve(rs.listener, h, rs.log, cfg)
 }
 
 // ServeCommand will start the application REST service as a blocking process. It
