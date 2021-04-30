@@ -10,11 +10,11 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/require"
-
-	"github.com/cosmos/cosmos-sdk/codec"
 	rpchttp "github.com/tendermint/tendermint/rpc/client/http"
 	ctypes "github.com/tendermint/tendermint/rpc/core/types"
 	tmjsonrpc "github.com/tendermint/tendermint/rpc/jsonrpc/client"
+
+	"github.com/cosmos/cosmos-sdk/codec"
 )
 
 // Wait for the next tendermint block from the Tendermint RPC
@@ -178,9 +178,6 @@ func WaitForStart(url string) {
 	// still haven't started up?! panic!
 	panic(err)
 }
-
-// TODO: these functions just print to Stdout.
-// consider using the logger.
 
 // Wait for the RPC server to respond to /status
 func WaitForRPC(laddr string) {

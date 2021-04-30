@@ -96,7 +96,7 @@ func TestKeeper(t *testing.T) {
 	// Test retrieving black listed accounts
 	for acc := range simapp.GetMaccPerms() {
 		addr := supply.NewModuleAddress(acc)
-		require.Equal(t, app.BlacklistedAccAddrs()[addr.String()], app.BankKeeper.BlacklistedAddr(addr))
+		require.Equal(t, app.ModuleAccountAddrs()[addr.String()], app.BankKeeper.BlacklistedAddr(addr))
 	}
 }
 
@@ -147,6 +147,38 @@ func TestSendKeeper(t *testing.T) {
 	// negative values.
 	err := sendKeeper.SendCoins(ctx, addr, addr2, sdk.Coins{sdk.Coin{Denom: "FOOCOIN", Amount: sdk.NewInt(-5)}})
 	require.Error(t, err)
+}
+
+func TestInputOutputNewAccount(t *testing.T) {
+	app, ctx := createTestApp(false)
+	balances := sdk.NewCoins(sdk.NewInt64Coin("foo", 100), sdk.NewInt64Coin("bar", 50))
+	addr1 := sdk.AccAddress([]byte("addr1"))
+	acc1 := app.AccountKeeper.NewAccountWithAddress(ctx, addr1)
+
+	app.AccountKeeper.SetAccount(ctx, acc1)
+	require.NoError(t, app.BankKeeper.SetCoins(ctx, addr1, balances))
+
+	acc1Balances := app.BankKeeper.GetCoins(ctx, addr1)
+	require.Equal(t, balances, acc1Balances)
+
+	addr2 := sdk.AccAddress([]byte("addr2"))
+
+	require.Nil(t, app.AccountKeeper.GetAccount(ctx, addr2))
+	require.Empty(t, app.BankKeeper.GetCoins(ctx, addr2))
+
+	inputs := []types.Input{
+		{Address: addr1, Coins: sdk.NewCoins(sdk.NewInt64Coin("foo", 30), sdk.NewInt64Coin("bar", 10))},
+	}
+	outputs := []types.Output{
+		{Address: addr2, Coins: sdk.NewCoins(sdk.NewInt64Coin("foo", 30), sdk.NewInt64Coin("bar", 10))},
+	}
+
+	require.NoError(t, app.BankKeeper.InputOutputCoins(ctx, inputs, outputs))
+
+	expected := sdk.NewCoins(sdk.NewInt64Coin("foo", 30), sdk.NewInt64Coin("bar", 10))
+	acc2Balances := app.BankKeeper.GetCoins(ctx, addr2)
+	require.Equal(t, expected, acc2Balances)
+	require.NotNil(t, app.AccountKeeper.GetAccount(ctx, addr2))
 }
 
 func TestMsgSendEvents(t *testing.T) {

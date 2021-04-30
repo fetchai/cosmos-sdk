@@ -53,7 +53,7 @@ func max(i *big.Int, i2 *big.Int) *big.Int {
 }
 
 // MarshalAmino for custom encoding scheme
-func marshalAmino(i *big.Int) (string, error) {
+func marshalAmino(i *big.Int) (string, error) { // nolint:interfacer
 	bz, err := i.MarshalText()
 	return string(bz), err
 }
@@ -77,7 +77,7 @@ func unmarshalAmino(i *big.Int, text string) (err error) {
 
 // MarshalJSON for custom encoding scheme
 // Must be encoded as a string for JSON precision
-func marshalJSON(i *big.Int) ([]byte, error) {
+func marshalJSON(i *big.Int) ([]byte, error) { // nolint:interfacer
 	text, err := i.MarshalText()
 	if err != nil {
 		return nil, err
@@ -106,7 +106,15 @@ type Int struct {
 
 // BigInt converts Int to big.Int
 func (i Int) BigInt() *big.Int {
+	if i.IsNil() {
+		return nil
+	}
 	return new(big.Int).Set(i.i)
+}
+
+// IsNil returns true if Int is uninitialized
+func (i Int) IsNil() bool {
+	return i.i == nil
 }
 
 // NewInt constructs Int from int64

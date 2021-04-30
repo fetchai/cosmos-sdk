@@ -1,11 +1,9 @@
 package iavl
 
 import (
-	"fmt"
 	"io"
 	"sync"
 
-	"github.com/pkg/errors"
 	"github.com/tendermint/iavl"
 	abci "github.com/tendermint/tendermint/abci/types"
 	"github.com/tendermint/tendermint/crypto/merkle"
@@ -31,39 +29,21 @@ var (
 
 // Store Implements types.KVStore and CommitKVStore.
 type Store struct {
-	tree    Tree
-	pruning types.PruningOptions
+	tree Tree
 }
 
 // LoadStore returns an IAVL Store as a CommitKVStore. Internally, it will load the
 // store's version (id) from the provided DB. An error is returned if the version
 // fails to load.
-func LoadStore(db dbm.DB, id types.CommitID, pruning types.PruningOptions, lazyLoading bool) (types.CommitKVStore, error) {
-	if !pruning.IsValid() {
-		return nil, fmt.Errorf("pruning options are invalid: %v", pruning)
-	}
+func LoadStore(db dbm.DB, id types.CommitID, lazyLoading bool) (types.CommitKVStore, error) {
+	return LoadStoreWithInitialVersion(db, id, lazyLoading, 0)
+}
 
-	var keepRecent int64
-
-	// Determine the value of keepRecent based on the following:
-	//
-	// If KeepEvery = 1, keepRecent should be 0 since there is no need to keep
-	// latest version in a in-memory cache.
-	//
-	// If KeepEvery > 1, keepRecent should be 1 so that state changes in between
-	// flushed states can be saved in the in-memory latest tree.
-	if pruning.KeepEvery == 1 {
-		keepRecent = 0
-	} else {
-		keepRecent = 1
-	}
-
-	tree, err := iavl.NewMutableTreeWithOpts(
-		db,
-		dbm.NewMemDB(),
-		defaultIAVLCacheSize,
-		iavl.PruningOptions(pruning.KeepEvery, keepRecent),
-	)
+// LoadStore returns an IAVL Store as a CommitKVStore setting its initialVersion
+// to the one given. Internally, it will load the store's version (id) from the
+// provided DB. An error is returned if the version fails to load.
+func LoadStoreWithInitialVersion(db dbm.DB, id types.CommitID, lazyLoading bool, initialVersion uint64) (types.CommitKVStore, error) {
+	tree, err := iavl.NewMutableTreeWithOpts(db, defaultIAVLCacheSize, &iavl.Options{InitialVersion: initialVersion})
 	if err != nil {
 		return nil, err
 	}
@@ -79,8 +59,7 @@ func LoadStore(db dbm.DB, id types.CommitID, pruning types.PruningOptions, lazyL
 	}
 
 	return &Store{
-		tree:    tree,
-		pruning: pruning,
+		tree: tree,
 	}, nil
 }
 
@@ -90,21 +69,20 @@ func LoadStore(db dbm.DB, id types.CommitID, pruning types.PruningOptions, lazyL
 // CONTRACT: The IAVL tree should be fully loaded.
 // CONTRACT: PruningOptions passed in as argument must be the same as pruning options
 // passed into iavl.MutableTree
-func UnsafeNewStore(tree *iavl.MutableTree, po types.PruningOptions) *Store {
+func UnsafeNewStore(tree *iavl.MutableTree) *Store {
 	return &Store{
-		tree:    tree,
-		pruning: po,
+		tree: tree,
 	}
 }
 
 // GetImmutable returns a reference to a new store backed by an immutable IAVL
 // tree at a specific version (height) without any pruning options. This should
 // be used for querying and iteration only. If the version does not exist or has
-// been pruned, an error will be returned. Any mutable operations executed will
-// result in a panic.
+// been pruned, an empty immutable IAVL tree will be used.
+// Any mutable operations executed will result in a panic.
 func (st *Store) GetImmutable(version int64) (*Store, error) {
 	if !st.VersionExists(version) {
-		return nil, iavl.ErrVersionDoesNotExist
+		return &Store{tree: &immutableTree{&iavl.ImmutableTree{}}}, nil
 	}
 
 	iTree, err := st.tree.GetImmutable(version)
@@ -113,8 +91,7 @@ func (st *Store) GetImmutable(version int64) (*Store, error) {
 	}
 
 	return &Store{
-		tree:    &immutableTree{iTree},
-		pruning: st.pruning,
+		tree: &immutableTree{iTree},
 	}, nil
 }
 
@@ -123,23 +100,7 @@ func (st *Store) GetImmutable(version int64) (*Store, error) {
 func (st *Store) Commit() types.CommitID {
 	hash, version, err := st.tree.SaveVersion()
 	if err != nil {
-		// TODO: Do we want to extend Commit to allow returning errors?
 		panic(err)
-	}
-
-	// If the version we saved got flushed to disk, check if previous flushed
-	// version should be deleted.
-	if st.pruning.FlushVersion(version) {
-		previous := version - st.pruning.KeepEvery
-
-		// Previous flushed version should only be pruned if the previous version is
-		// not a snapshot version OR if snapshotting is disabled (SnapshotEvery == 0).
-		if previous != 0 && !st.pruning.SnapshotVersion(previous) {
-			err := st.tree.DeleteVersion(previous)
-			if errCause := errors.Cause(err); errCause != nil && errCause != iavl.ErrVersionDoesNotExist {
-				panic(err)
-			}
-		}
 	}
 
 	return types.CommitID{
@@ -202,6 +163,13 @@ func (st *Store) Has(key []byte) (exists bool) {
 // Implements types.KVStore.
 func (st *Store) Delete(key []byte) {
 	st.tree.Remove(key)
+}
+
+// DeleteVersions deletes a series of versions from the MutableTree. An error
+// is returned if any single version is invalid or the delete fails. All writes
+// happen in a single batch with a single commit.
+func (st *Store) DeleteVersions(versions ...int64) error {
+	return st.tree.DeleteVersions(versions...)
 }
 
 // Implements types.KVStore.

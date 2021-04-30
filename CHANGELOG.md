@@ -35,7 +35,95 @@ Ref: https://keepachangelog.com/en/1.0.0/
 
 # Changelog
 
-## [Unreleased]
+## [v0.39.3]
+
+This release fixes security vulnerability identified in the simapp.
+
+### Improvements
+
+* (store/cachekv) [\#8719](https://github.com/cosmos/cosmos-sdk/pull/8719) Algorithmically fix pathologically slow code
+
+### Improvements
+
+* (deps) Bump IAVL to v0.14.3.
+* (x/simulation [\#6784](https://github.com/cosmos/cosmos-sdk/issues/6784) Close opened files and check for error while creating files.
+
+## [v0.39.2]
+
+### Features
+
+* (types/coin.go) [\#6755](https://github.com/cosmos/cosmos-sdk/pull/6755) [\#8001](https://github.com/cosmos/cosmos-sdk/pull/8001) Allow custom regex validation for `Coin` denom through `SetCoinDenomRegex()`.
+* (version) [\#7835](https://github.com/cosmos/cosmos-sdk/issues/7835) [\#7940](https://github.com/cosmos/cosmos-sdk/issues/7940) The version --long command now shows the list of build dependencies and their versioning information.
+
+### Improvements
+
+* (deps) Bump Tendermint version to [v0.33.9](https://github.com/tendermint/tendermint/releases/tag/v0.33.9)
+
+### Bug Fixes
+
+* (crypto) [\#7966](https://github.com/cosmos/cosmos-sdk/issues/7966) `BIP44Params` `String()` method now correctly returns the absolute HD path by adding the `m/` prefix.
+* (client) [\#7588](https://github.com/cosmos/cosmos-sdk/issues/7588) Fix gov votes querier to use proper query params.
+* (types) [\#7038](https://github.com/cosmos/cosmos-sdk/issues/7038) Fix infinite looping of `ApproxRoot` by including a hard-coded maximum iterations limit of 100.
+* (types) [\#7084](https://github.com/cosmos/cosmos-sdk/pull/7084) Fix panic when calling `BigInt()` on an uninitialized `Int`.
+* (client) [\#7048](https://github.com/cosmos/cosmos-sdk/issues/7048) Fix client `keys add` failure when generating mnemonic in interactive mode.
+* (keys) [\#7397](https://github.com/cosmos/cosmos-sdk/pull/7397) Update 99designs/keyring to v1.1.6 for go 1.15 compatibility.
+* (kvstore) [\#7385](https://github.com/cosmos/cosmos-sdk/issues/7385) Allow new stores to be registered during on-chain upgrades.
+
+## [v0.39.1]
+
+* (x/auth) [\#6861](https://github.com/cosmos/cosmos-sdk/pull/6861) Remove public key Bech32 encoding for all account types for JSON serialization, instead relying on direct Amino encoding. In addition, JSON serialization utilizes Amino instead of the Go stdlib, so integers are treated as strings.
+* (client) [\#6853](https://github.com/cosmos/cosmos-sdk/pull/6853) Add --unsafe-cors flag.
+
+## [v0.39.0]
+
+### Improvements
+
+* (deps) Bump Tendermint version to [v0.33.6](https://github.com/tendermint/tendermint/releases/tag/v0.33.6)
+* (deps) Bump IAVL version to [v0.14.0](https://github.com/cosmos/iavl/releases/tag/v0.14.0)
+* (client) [\#5585](https://github.com/cosmos/cosmos-sdk/pull/5585) `CLIContext` additions:
+  * Introduce `QueryABCI` that returns the full `abci.ResponseQuery` with inclusion Merkle proofs.
+  * Added `prove` flag for Merkle proof verification.
+* (x/staking) [\#6791)](https://github.com/cosmos/cosmos-sdk/pull/6791) Close {UBDQueue,RedelegationQueu}Iterator once used.
+
+### API Breaking Changes
+
+* (baseapp) [\#5837](https://github.com/cosmos/cosmos-sdk/issues/5837) Transaction simulation now returns a `SimulationResponse` which contains the `GasInfo` and `Result` from the execution.
+
+### Client Breaking Changes
+
+* (x/auth) [\#6745](https://github.com/cosmos/cosmos-sdk/issues/6745) Remove BaseAccount's custom JSON {,un}marshalling.
+
+### Bug Fixes
+
+* (store) [\#6475](https://github.com/cosmos/cosmos-sdk/pull/6475) Revert IAVL pruning functionality introduced in
+[v0.13.0](https://github.com/cosmos/iavl/releases/tag/v0.13.0),
+where the IAVL no longer keeps states in-memory in which it flushes periodically. IAVL now commits and
+flushes every state to disk as it did pre-v0.13.0. The SDK's multi-store will track and ensure the proper
+heights are pruned. The operator can set the pruning options via a `pruning` config via the CLI or
+through `app.toml`. The `pruning` flag exposes `default|everything|nothing|custom` as options --
+see docs for further details. If the operator chooses `custom`, they may provide granular pruning
+options `pruning-keep-recent`, `pruning-keep-every`, and `pruning-interval`. The former two options
+dictate how many recent versions are kept on disk and the offset of what versions are kept after that
+respectively, and the latter defines the height interval in which versions are deleted in a batch.
+**Note, there are some client-facing API breaking changes with regard to IAVL, stores, and pruning settings.**
+* (x/distribution) [\#6210](https://github.com/cosmos/cosmos-sdk/pull/6210) Register `MsgFundCommunityPool` in distribution amino codec.
+* (types) [\#5741](https://github.com/cosmos/cosmos-sdk/issues/5741) Prevent `ChainAnteDecorators()` from panicking when empty `AnteDecorator` slice is supplied.
+* (baseapp) [\#6306](https://github.com/cosmos/cosmos-sdk/issues/6306) Prevent events emitted by the antehandler from being persisted between transactions.
+* (client/keys) [\#5091](https://github.com/cosmos/cosmos-sdk/issues/5091) `keys parse` does not honor client app's configuration.
+* (x/bank) [\#6674](https://github.com/cosmos/cosmos-sdk/pull/6674) Create account if recipient does not exist on handing `MsgMultiSend`.
+* (x/auth) [\#6287](https://github.com/cosmos/cosmos-sdk/pull/6287) Fix nonce stuck when sending multiple transactions from an account in a same block.
+
+## [v0.38.5] - 2020-07-02
+
+### Improvements
+
+* (tendermint) Bump Tendermint version to [v0.33.6](https://github.com/tendermint/tendermint/releases/tag/v0.33.6).
+
+## [v0.38.4] - 2020-05-21
+
+### Bug Fixes
+
+* (x/auth) [\#5950](https://github.com/cosmos/cosmos-sdk/pull/5950) Fix `IncrementSequenceDecorator` to use is `IsReCheckTx` instead of `IsCheckTx` to allow account sequence incrementing.
 
 ## [v0.38.3] - 2020-04-09
 
@@ -301,7 +389,6 @@ to detail this new feature and how state transitions occur.
   now exists a single `Params` type with a getter and setter along with a getter for each individual parameter.
 
 ### Bug Fixes
-
 * (rest) [\#5508](https://github.com/cosmos/cosmos-sdk/pull/5508) Fix `x/distribution` endpoints to properly return height in the response.
 * (x/genutil) [\#5499](https://github.com/cosmos/cosmos-sdk/pull/) Ensure `DefaultGenesis` returns valid and non-nil default genesis state.
 * (client) [\#5303](https://github.com/cosmos/cosmos-sdk/issues/5303) Fix ignored error in tx generate only mode.
@@ -2901,7 +2988,9 @@ BUG FIXES:
 
 <!-- Release links -->
 
-[Unreleased]: https://github.com/cosmos/cosmos-sdk/compare/v0.38.2...HEAD
+[Unreleased]: https://github.com/cosmos/cosmos-sdk/compare/v0.39.1...HEAD
+[v0.39.1]: https://github.com/cosmos/cosmos-sdk/releases/tag/v0.39.1
+[v0.39.0]: https://github.com/cosmos/cosmos-sdk/releases/tag/v0.39.0
 [v0.38.2]: https://github.com/cosmos/cosmos-sdk/releases/tag/v0.38.2
 [v0.38.1]: https://github.com/cosmos/cosmos-sdk/releases/tag/v0.38.1
 [v0.38.0]: https://github.com/cosmos/cosmos-sdk/releases/tag/v0.38.0
