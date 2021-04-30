@@ -11,12 +11,12 @@ import (
 
 // Parameter store keys
 var (
-	KeyMintDenom      = []byte("MintDenom")
-	KeyInflationRate  = []byte("InflationRate")
-	KeyInflationMax   = []byte("InflationMax")
-	KeyInflationMin   = []byte("InflationMin")
-	KeyGoalBonded     = []byte("GoalBonded")
-	KeyBlocksPerYear  = []byte("BlocksPerYear")
+	KeyMintDenom     = []byte("MintDenom")
+	KeyInflationRate = []byte("InflationRate")
+	KeyInflationMax  = []byte("InflationMax")
+	KeyInflationMin  = []byte("InflationMin")
+	KeyGoalBonded    = []byte("GoalBonded")
+	KeyBlocksPerYear = []byte("BlocksPerYear")
 )
 
 // mint parameters
@@ -45,9 +45,9 @@ func NewParams(
 // default minting module parameters
 func DefaultParams() Params {
 	return Params{
-		MintDenom:           sdk.DefaultBondDenom,
-		InflationRate:       sdk.NewDecWithPrec(3, 2),
-		BlocksPerYear:       uint64(60 * 60 * 8766 / 5), // assuming 5 second block times
+		MintDenom:     sdk.DefaultBondDenom,
+		InflationRate: sdk.NewDecWithPrec(3, 2),
+		BlocksPerYear: uint64(60 * 60 * 8766 / 5), // assuming 5 second block times
 	}
 }
 
@@ -101,7 +101,6 @@ func validateMintDenom(i interface{}) error {
 
 	return nil
 }
-
 
 func validateInflationRate(i interface{}) error {
 	v, ok := i.(sdk.Dec)

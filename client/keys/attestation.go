@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"errors"
 	"fmt"
+
 	"github.com/cosmos/cosmos-sdk/client/attestation"
 	"github.com/cosmos/cosmos-sdk/client/flags"
 	"github.com/cosmos/cosmos-sdk/client/input"
@@ -19,23 +20,23 @@ func AttestationCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "attestation",
 		Short: "Create or verify attestations",
-		Long: `Create or verify offline proofs to demonstrate ownership of keys`,
+		Long:  `Create or verify offline proofs to demonstrate ownership of keys`,
 	}
 
 	cmd.AddCommand(
 		&cobra.Command{
-			Use: "create [name]",
+			Use:   "create [name]",
 			Short: "Create an attestation",
-			Long: "Create and attestation for one of the keys present in the store",
-			Args: cobra.ExactArgs(1),
-			RunE: runAttestationCreate,
+			Long:  "Create and attestation for one of the keys present in the store",
+			Args:  cobra.ExactArgs(1),
+			RunE:  runAttestationCreate,
 		},
 		&cobra.Command{
-			Use: "verify [address] [attestation]",
+			Use:   "verify [address] [attestation]",
 			Short: "Verify an attestation",
-			Long: "Given an attestation and address, verify that one proves ownership of the other",
-			Args: cobra.ExactArgs(2),
-			RunE: runAttestationVerify,
+			Long:  "Given an attestation and address, verify that one proves ownership of the other",
+			Args:  cobra.ExactArgs(2),
+			RunE:  runAttestationVerify,
 		},
 	)
 

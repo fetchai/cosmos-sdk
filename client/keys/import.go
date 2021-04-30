@@ -12,9 +12,9 @@ import (
 	"github.com/cosmos/cosmos-sdk/client/flags"
 	"github.com/cosmos/cosmos-sdk/client/input"
 	"github.com/cosmos/cosmos-sdk/crypto/keys"
+	"github.com/cosmos/cosmos-sdk/crypto/keys/mintkey"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/tendermint/tendermint/crypto/secp256k1"
-	"github.com/cosmos/cosmos-sdk/crypto/keys/mintkey"
 )
 
 const (
@@ -57,7 +57,7 @@ func runImportCmd(cmd *cobra.Command, args []string) error {
 
 		// check the size of the binary data
 		if len(rawPrivKey) != 32 {
-			return errors.New("Incorrect raw key size. Please check input path")
+			return errors.New("incorrect raw key size. Please check input path")
 		}
 
 		// create the underlying private key

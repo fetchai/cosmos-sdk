@@ -3,6 +3,7 @@ package attestation
 import (
 	"bytes"
 	"encoding/hex"
+
 	"github.com/tendermint/tendermint/crypto"
 )
 
