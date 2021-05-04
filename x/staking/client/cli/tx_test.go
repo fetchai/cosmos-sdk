@@ -37,7 +37,7 @@ func TestPrepareConfigForTxCreateValidator(t *testing.T) {
 				CommissionRate:          "0.1",
 				CommissionMaxRate:       "0.2",
 				CommissionMaxChangeRate: "0.01",
-				MinSelfDelegation:       "1",
+				MinSelfDelegation:       defaultMinSelfDelegation,
 			},
 		},
 		{
@@ -55,7 +55,7 @@ func TestPrepareConfigForTxCreateValidator(t *testing.T) {
 				CommissionRate:          "0.1",
 				CommissionMaxRate:       "0.2",
 				CommissionMaxChangeRate: "0.01",
-				MinSelfDelegation:       "1",
+				MinSelfDelegation:       defaultMinSelfDelegation,
 			},
 		},
 		{
@@ -73,7 +73,7 @@ func TestPrepareConfigForTxCreateValidator(t *testing.T) {
 				CommissionRate:          "0.54",
 				CommissionMaxRate:       "0.2",
 				CommissionMaxChangeRate: "0.01",
-				MinSelfDelegation:       "1",
+				MinSelfDelegation:       defaultMinSelfDelegation,
 			},
 		},
 		{
@@ -91,7 +91,7 @@ func TestPrepareConfigForTxCreateValidator(t *testing.T) {
 				CommissionRate:          "0.1",
 				CommissionMaxRate:       "0.89",
 				CommissionMaxChangeRate: "0.01",
-				MinSelfDelegation:       "1",
+				MinSelfDelegation:       defaultMinSelfDelegation,
 			},
 		},
 		{
@@ -109,7 +109,7 @@ func TestPrepareConfigForTxCreateValidator(t *testing.T) {
 				CommissionRate:          "0.1",
 				CommissionMaxRate:       "0.2",
 				CommissionMaxChangeRate: "0.55",
-				MinSelfDelegation:       "1",
+				MinSelfDelegation:       defaultMinSelfDelegation,
 			},
 		},
 		{
