@@ -23,7 +23,7 @@ func GenInflation(r *rand.Rand) sdk.Dec {
 	return sdk.NewDecWithPrec(int64(r.Intn(99)), 2)
 }
 
-// GenInflationRateChange randomized InflationRateChange
+// GenInflationRate randomized InflationRate
 func GenInflationRate(r *rand.Rand) sdk.Dec {
 	return sdk.NewDecWithPrec(int64(r.Intn(99)), 2)
 }
@@ -38,15 +38,15 @@ func RandomizedGenState(simState *module.SimulationState) {
 	)
 
 	// params
-	var inflationRate sdk.Dec
+	var inflationRateChange sdk.Dec
 	simState.AppParams.GetOrGenerate(
-		simState.Cdc, InflationRate, &inflationRate, simState.Rand,
-		func(r *rand.Rand) { inflationRate = GenInflationRate(r) },
+		simState.Cdc, InflationRate, &inflationRateChange, simState.Rand,
+		func(r *rand.Rand) { inflationRateChange = GenInflationRate(r) },
 	)
 
 	mintDenom := sdk.DefaultBondDenom
 	blocksPerYear := uint64(60 * 60 * 8766 / 5)
-	params := types.NewParams(mintDenom, inflationRate, blocksPerYear)
+	params := types.NewParams(mintDenom, inflationRateChange, blocksPerYear)
 
 	mintGenesis := types.NewGenesisState(types.InitialMinter(inflation), params)
 

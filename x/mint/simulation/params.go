@@ -20,7 +20,7 @@ const (
 // on the simulation
 func ParamChanges(r *rand.Rand) []simtypes.ParamChange {
 	return []simtypes.ParamChange{
-		simulation.NewSimParamChange(types.ModuleName, keyInflationRateChange,
+		simulation.NewSimParamChange(types.ModuleName, keyInflationRate,
 			func(r *rand.Rand) string {
 				return fmt.Sprintf("\"%s\"", GenInflationRate(r))
 			},

@@ -13,6 +13,9 @@ func TestNextInflation(t *testing.T) {
 	minter := DefaultInitialMinter()
 	params := DefaultParams()
 
+	// Governing Mechanism:
+	//    inflationRateChangePerYear = (1- BondedRatio/ GoalBonded) * MaxInflationRateChange
+
 	tests := []struct {
 		setInflation, expChange sdk.Dec
 	}{
@@ -27,6 +30,7 @@ func TestNextInflation(t *testing.T) {
 	}
 	for i, tc := range tests {
 		minter.Inflation = tc.setInflation
+
 		inflation := minter.NextInflationRate(params)
 		diffInflation := inflation.Sub(tc.setInflation)
 
@@ -88,7 +92,6 @@ func BenchmarkBlockProvision(b *testing.B) {
 func BenchmarkNextInflation(b *testing.B) {
 	minter := InitialMinter(sdk.NewDecWithPrec(1, 1))
 	params := DefaultParams()
-
 	// run the NextInflationRate function b.N times
 	for n := 0; n < b.N; n++ {
 		minter.NextInflationRate(params)

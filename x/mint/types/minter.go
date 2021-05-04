@@ -24,10 +24,10 @@ func InitialMinter(inflation sdk.Dec) Minter {
 }
 
 // DefaultInitialMinter returns a default initial Minter object for a new chain
-// which uses an inflation rate of 13%.
+// which uses an inflation rate of 3%.
 func DefaultInitialMinter() Minter {
 	return InitialMinter(
-		sdk.NewDecWithPrec(13, 2),
+		sdk.NewDecWithPrec(3, 2),
 	)
 }
 
@@ -42,7 +42,6 @@ func ValidateMinter(minter Minter) error {
 
 // NextInflationRate returns the new inflation rate for the next hour.
 func (m Minter) NextInflationRate(params Params) sdk.Dec {
-	// the annual inflation rate is just the fixed rate
 	return params.InflationRate
 }
 

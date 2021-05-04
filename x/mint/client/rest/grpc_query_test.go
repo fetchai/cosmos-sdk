@@ -36,8 +36,6 @@ func (s *IntegrationTestSuite) SetupSuite() {
 
 	inflation := sdk.MustNewDecFromStr("1.0")
 	mintData.Minter.Inflation = inflation
-	mintData.Params.InflationMin = inflation
-	mintData.Params.InflationMax = inflation
 
 	mintDataBz, err := cfg.Codec.MarshalJSON(&mintData)
 	s.Require().NoError(err)
@@ -72,8 +70,7 @@ func (s *IntegrationTestSuite) TestQueryGRPC() {
 			map[string]string{},
 			&minttypes.QueryParamsResponse{},
 			&minttypes.QueryParamsResponse{
-				Params: minttypes.NewParams("stake", sdk.NewDecWithPrec(13, 2), sdk.NewDecWithPrec(100, 2),
-					sdk.NewDec(1), sdk.NewDecWithPrec(67, 2), (60 * 60 * 8766 / 5)),
+				Params: minttypes.NewParams("stake", sdk.NewDecWithPrec(3, 2), (60 * 60 * 8766 / 5)),
 			},
 		},
 		{
@@ -82,7 +79,7 @@ func (s *IntegrationTestSuite) TestQueryGRPC() {
 			map[string]string{},
 			&minttypes.QueryInflationResponse{},
 			&minttypes.QueryInflationResponse{
-				Inflation: sdk.NewDec(1),
+				Inflation: sdk.NewDecWithPrec(3, 2),
 			},
 		},
 		{
@@ -93,7 +90,7 @@ func (s *IntegrationTestSuite) TestQueryGRPC() {
 			},
 			&minttypes.QueryAnnualProvisionsResponse{},
 			&minttypes.QueryAnnualProvisionsResponse{
-				AnnualProvisions: sdk.NewDec(500000000),
+				AnnualProvisions: sdk.NewDec(15000000),
 			},
 		},
 	}
