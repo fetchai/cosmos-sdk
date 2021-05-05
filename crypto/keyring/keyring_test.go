@@ -79,7 +79,7 @@ func TestKeyManagementKeyRing(t *testing.T) {
 	require.NotNil(t, err)
 	_, err = kb.KeyByAddress(accAddr(i2))
 	require.NoError(t, err)
-	addr, err := sdk.AccAddressFromBech32("fetch1yq8lgssgxlx9smjhes6ryjasmqmd3ts28fvvdu")
+	addr, err := sdk.AccAddressFromBech32("cosmos1yq8lgssgxlx9smjhes6ryjasmqmd3ts2559g0t")
 	require.NoError(t, err)
 	_, err = kb.KeyByAddress(addr)
 	require.NotNil(t, err)

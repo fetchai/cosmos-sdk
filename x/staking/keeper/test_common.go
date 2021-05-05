@@ -1,6 +1,4 @@
-package keeper
-
-// noalias
+package keeper // noalias
 
 import (
 	"bytes"

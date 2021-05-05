@@ -6,8 +6,6 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/cosmos/cosmos-sdk/client/attestation"
-
 	"github.com/spf13/cobra"
 	tcmd "github.com/tendermint/tendermint/cmd/tendermint/commands"
 	"github.com/tendermint/tendermint/libs/cli"
@@ -161,27 +159,4 @@ func UnsafeResetAllCmd() *cobra.Command {
 			return nil
 		},
 	}
-}
-
-func AttestationCmd(ctx *Context) *cobra.Command {
-	cmd := &cobra.Command{
-		Use:   "attestation",
-		Short: "Create an offline proof that you are in control of this validator address",
-		RunE: func(cmd *cobra.Command, args []string) error {
-
-			cfg := ctx.Config
-			privValidator := pvm.LoadOrGenFilePV(
-				cfg.PrivValidatorKeyFile(), cfg.PrivValidatorStateFile())
-
-			att, err := attestation.NewAttestation(privValidator.Key.PrivKey)
-			if err != nil {
-				return err
-			}
-
-			fmt.Println(att.String())
-			return nil
-		},
-	}
-
-	return cmd
 }

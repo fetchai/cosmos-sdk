@@ -1,7 +1,6 @@
 package keeper_test
 
 import (
-	proto "github.com/gogo/protobuf/types"
 	"testing"
 
 	"github.com/stretchr/testify/require"

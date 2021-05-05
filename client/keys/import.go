@@ -2,8 +2,6 @@ package keys
 
 import (
 	"bufio"
-	"encoding/hex"
-	"errors"
 	"io/ioutil"
 
 	"github.com/spf13/cobra"
@@ -14,7 +12,7 @@ import (
 
 // ImportKeyCommand imports private keys from a keyfile.
 func ImportKeyCommand() *cobra.Command {
-	cmd := &cobra.Command{
+	return &cobra.Command{
 		Use:   "import <name> <keyfile>",
 		Short: "Import private keys into the local keybase",
 		Long:  "Import a ASCII armored private key into the local keybase.",
@@ -39,7 +37,4 @@ func ImportKeyCommand() *cobra.Command {
 			return clientCtx.Keyring.ImportPrivKey(args[0], string(bz), passphrase)
 		},
 	}
-	cmd.Flags().Bool(flagAgentRawKey, false, "Signal that you want to import an key from the agent framework")
-
-	return cmd
 }
