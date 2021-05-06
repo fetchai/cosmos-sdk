@@ -59,7 +59,7 @@ func (store *Store) Get(key []byte) (value []byte) {
 
 	types.AssertValidKey(key)
 
-	cacheValue, ok := store.cache[string(key)]
+	cacheValue, ok := store.cache[conv.UnsafeBytesToStr(key)]
 	if !ok {
 		value = store.parent.Get(key)
 		store.setCacheValue(key, value, false, false)
@@ -234,18 +234,13 @@ func (store *Store) dirtyItems(start, end []byte) {
 
 // Only entrypoint to mutate store.cache.
 func (store *Store) setCacheValue(key, value []byte, deleted bool, dirty bool) {
-	keyStr := byteSliceToStr(key)
-	store.cache[keyStr] = &cValue{
-		value: value,
-		dirty: dirty,
-	}
-	if deleted {
-		store.deleted[keyStr] = struct{}{}
-	} else {
-		delete(store.deleted, keyStr)
+	store.cache[conv.UnsafeBytesToStr(key)] = &cValue{
+		value:   value,
+		deleted: deleted,
+		dirty:   dirty,
 	}
 	if dirty {
-		store.unsortedCache[string(key)] = struct{}{}
+		store.unsortedCache[conv.UnsafeBytesToStr(key)] = struct{}{}
 	}
 }
 
