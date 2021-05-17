@@ -66,8 +66,8 @@ func TestInitGenesis(t *testing.T) {
 	log.Printf("%#v", len(validators))
 	// mint coins in the bonded pool representing the validators coins
 	require.NoError(t,
-		simapp.FundAccount(
-			app,
+		simapp.FundModuleAccount(
+			app.BankKeeper,
 			ctx,
 			auth.NewModuleAddress(types.BondedPoolName),
 			sdk.NewCoins(
@@ -185,8 +185,8 @@ func TestInitGenesisLargeValidatorSet(t *testing.T) {
 	genesisState := types.NewGenesisState(params, validators, delegations)
 	// mint coins in the bonded pool representing the validators coins
 	require.NoError(t,
-		simapp.FundAccount(
-			app,
+		simapp.FundModuleAccount(
+			app.BankKeeper,
 			ctx,
 			auth.NewModuleAddress(types.BondedPoolName),
 			sdk.NewCoins(
