@@ -108,6 +108,7 @@ func RunAddCmd(ctx client.Context, cmd *cobra.Command, args []string, inBuf *buf
 	noBackup, _ := cmd.Flags().GetBool(flagNoBackup)
 	showMnemonic := !noBackup
 	kb := ctx.Keyring
+	outputFormat := ctx.OutputFormat
 
 	keyringAlgos, _ := kb.SupportedAlgorithms()
 	algoStr, _ := cmd.Flags().GetString(flags.FlagKeyAlgorithm)
@@ -277,12 +278,11 @@ func RunAddCmd(ctx client.Context, cmd *cobra.Command, args []string, inBuf *buf
 	return printCreate(cmd, info, showMnemonic, mnemonic, outputFormat)
 }
 
-func printCreate(cmd *cobra.Command, info keyring.Info, showMnemonic bool, mnemonic string) error {
-	output, _ := cmd.Flags().GetString(cli.OutputFlag)
-	switch output {
+func printCreate(cmd *cobra.Command, info keyring.Info, showMnemonic bool, mnemonic string, outputFormat string) error {
+	switch outputFormat {
 	case OutputFormatText:
 		cmd.PrintErrln()
-		printKeyInfo(cmd.OutOrStdout(), info, keyring.MkAccKeyOutput, output)
+		printKeyInfo(cmd.OutOrStdout(), info, keyring.MkAccKeyOutput, outputFormat)
 
 		// print mnemonic unless requested not to.
 		if showMnemonic {
