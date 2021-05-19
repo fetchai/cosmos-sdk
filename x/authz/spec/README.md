@@ -19,8 +19,8 @@ granting arbitrary privileges from one account (the granter) to another account 
     - [Gas](01_concepts.md#gas)
 2. **[State](02_state.md)**
 3. **[Messages](03_messages.md)**
-    - [Msg/GrantAuthorization](03_messages.md#MsgGrantAuthorization)
-    - [Msg/RevokeAuthorization](03_messages.md#MsgRevokeAuthorization)
-    - [Msg/ExecAuthorized](03_messages.md#MsgExecAuthorized)
+    - [MsgGrant](03_messages.md#MsgGrant)
+    - [MsgRevoke](03_messages.md#MsgRevoke)
+    - [MsgExec](03_messages.md#MsgExec)
 4. **[Events](04_events.md)**
     - [Keeper](04_events.md#Keeper)
