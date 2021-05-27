@@ -16,6 +16,7 @@ Examples on how to do so can be found in the staking types such as `MsgDelegate`
 In case more customization is required, it's possible to embed the Client type and override the methods which require customizations.
 
 Example:
+
 ```go
 package custom_client
 import (

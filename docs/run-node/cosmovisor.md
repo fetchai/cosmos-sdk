@@ -29,7 +29,7 @@ if there was an error.
 
 ## Data Folder Layout
 
-`$DAEMON_HOME/cosmovisor` is expected to belong completely to `cosmovisor` and 
+`$DAEMON_HOME/cosmovisor` is expected to belong completely to `cosmovisor` and
 subprocesses that are controlled by it. The folder content is organised as follows:
 
 ```
@@ -67,6 +67,7 @@ directory layout:
 ## Usage
 
 The system administrator admin is responsible for:
+
 * installing the `cosmovisor` binary and configure the host's init system (e.g. `systemd`, `launchd`, etc) along with the environmental variables appropriately;
 * installing the `genesis` folder manually;
 * installing the `upgrades/<name>` folders manually.
@@ -96,6 +97,7 @@ valid format to specify a download in such a message:
 
 1. Store an os/architecture -> binary URI map in the upgrade plan info field
 as JSON under the `"binaries"` key, eg:
+
 ```json
 {
   "binaries": {
@@ -103,6 +105,7 @@ as JSON under the `"binaries"` key, eg:
   }
 }
 ```
+
 2. Store a link to a file that contains all information in the above format (eg. if you want
 to specify lots of binaries, changelog info, etc without filling up the blockchain).
 
@@ -175,13 +178,13 @@ Submit a software upgrade proposal:
 ```
 ./build/simd tx gov submit-proposal software-upgrade test1 --title "upgrade-demo" --description "upgrade"  --from validator --upgrade-height 100 --deposit 10000000stake --chain-id test --keyring-backend test -y
 ```
- 
+
 Query the proposal to ensure it was correctly broadcast and added to a block:
 
 ```
 ./build/simd query gov proposal 1
 ```
- 
+
 Submit a `Yes` vote for the upgrade proposal:
 
 ```

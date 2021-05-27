@@ -5,6 +5,7 @@
 - 28/10/2020 - Initial draft
 
 ## Authors
+
 - Antoine Herzog (@antoineherzog)
 - Zaki Manian (@zmanian)
 - Aleksandr Bezobchuk (alexanderbez) [1]
@@ -53,8 +54,8 @@ The first message added to the `offchain` package is `MsgSignData`.
 
 It's applications developers decision how `Data` should be treated, by treated we mean the serialization and deserialization process and the Object `Data` should represent.
 
-
 Proto definition:
+
 ```proto
 // MsgSignData defines an arbitrary, general-purpose, off-chain message
 message MsgSignData {
@@ -64,7 +65,9 @@ message MsgSignData {
     bytes Data = 2 [(gogoproto.jsontag) = "data"];
 }
 ```
+
 Signed MsgSignData json example:
+
 ```json
 {
   "type": "cosmos-sdk/StdTx",
