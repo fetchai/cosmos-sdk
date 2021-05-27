@@ -229,6 +229,7 @@ This service uses the same `StoreKVPairWriteListener` for every KVStore, writing
 out to the same files, relying on the `StoreKey` field in the `StoreKVPair` protobuf message to later distinguish the source for each pair.
 
 The file naming schema is as such:
+
 * After every `BeginBlock` request a new file is created with the name `block-{N}-begin`, where N is the block number. All
 subsequent state changes are written out to this file until the first `DeliverTx` request is received. At the head of these files,
   the length-prefixed protobuf encoded `BeginBlock` request is written, and the response is written at the tail.
@@ -398,7 +399,6 @@ func (app *BaseApp) RegisterHooks(s StreamingService) {
 We will also modify the `BeginBlock`, `EndBlock`, and `DeliverTx` methods to pass ABCI requests and responses to any streaming service hooks registered
 with the `BaseApp`.
 
-
 ```go
 func (app *BaseApp) BeginBlock(req abci.RequestBeginBlock) (res abci.ResponseBeginBlock) {
 
@@ -543,7 +543,6 @@ func FileStreamingConstructor(opts servertypes.AppOptions, keys []sdk.StoreKey) 
 
 As a demonstration, we will implement the state watching features as part of SimApp.
 For example, the below is a very rudimentary integration of the state listening features into the SimApp `AppCreator` function:
-
 
 ```go
 func NewSimApp(

@@ -28,7 +28,7 @@ An unplanned upgrade by the counterparty chain may also result in expired client
 chain undergoes an unplanned upgrade, there may be no commitment to that upgrade signed by the validator
 set before the chain-id changes. In this situation, the validator set of the last valid update for the
 light client is never expected to produce another valid header since the chain-id has changed, which will
-ultimately lead the on-chain light client to become expired.
+ultimately lead the on-chain light client to become expired.  
 
 In the case that a highly valued light client is frozen, expired, or rendered non-updateable, a
 governance proposal may be submitted to update this client, known as the subject client. The

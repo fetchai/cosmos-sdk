@@ -1,6 +1,7 @@
 <!--
 order: 4
 -->
+
 # Keyring Migrate Quick Start
 
 `keyring` is the Cosmos SDK mechanism to manage the public/private keypair. Cosmos SDK v0.42 (Stargate) introduced breaking changes in the keyring.
@@ -21,10 +22,11 @@ The migration process moves key information from the legacy db-based Keybase to 
 You can migrate or skip the migration for each key entry found in the specified  `old_home_dir` directory. Each key migration requires a valid passphrase. If an invalid passphrase is entered, the command exits. Run the command again to restart the keyring migration.
 
 The `migrate` command takes the following flags:
+
 - `--dry-run` boolean
 
-     - true - run the migration but do not persist changes to the new Keybase.
-     - false - run the migration and persist keys to the new Keybase.
+    - true - run the migration but do not persist changes to the new Keybase.
+    - false - run the migration and persist keys to the new Keybase.
 
 Recommended: Use `--dry-run true` to test the migration without persisting changes before you migrate and persist keys.
 

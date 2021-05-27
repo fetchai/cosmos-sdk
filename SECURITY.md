@@ -51,8 +51,8 @@ the code.
 
 - HD key derivation, local and Ledger, and all key-management functionality
 - Side-channel attack vectors with our implementations
-  - e.g. key exfiltration based on time or memory-access patterns when decrypting privkey
-
+    - e.g. key exfiltration based on time or memory-access patterns when decrypting privkey
+  
 ## Disclosure Process
 
 The Cosmos SDK team uses the following disclosure process:
@@ -73,6 +73,7 @@ This process can take some time. Every effort is made to handle the bug in as ti
 ### Disclosure Communications
 
 Communications to partners usually include the following details:
+
 1. Affected version or versions
 1. New release version
 1. Impact on user funds
@@ -81,6 +82,7 @@ Communications to partners usually include the following details:
 1. Potential required actions if an adverse condition arises during the security release process
 
 An example notice looks like:
+
 ```
 Dear Cosmos SDK partners,
 

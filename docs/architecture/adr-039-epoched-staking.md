@@ -58,7 +58,6 @@ For threshold based cryptography in particular, we need a pipeline for epoch cha
 
 This can be handled by making a parameter for the epoch pipeline length. This parameter should not be alterable except during hard forks, to mitigate implementation complexity of switching the pipeline length.
 
-
 With pipeline length 1, if I redelegate during epoch N, then my redelegation is applied prior to the beginning of epoch N+1.
 With pipeline length 2, if I redelegate during epoch N, then my redelegation is applied prior to the beginning of epoch N+2.
 
@@ -79,6 +78,7 @@ __Step-1__:  Implement buffering of all staking and slashing messages.
 First we create a pool for storing tokens that are being bonded, but should be applied at the epoch boundary called the `EpochDelegationPool`. Then, we have two separate queues, one for staking, one for slashing. We describe what happens on each message being delivered below:
 
 ### Staking messages
+
 - **MsgCreateValidator**: Move user's self-bond to `EpochDelegationPool` immediately. Queue a message for the epoch boundary to handle the self-bond, taking the funds from the `EpochDelegationPool`. If Epoch execution fail, return back funds from `EpochDelegationPool` to user's account.
 - **MsgEditValidator**: Validate message and if valid queue the message for execution at the end of the Epoch.
 - **MsgDelegate**: Move user's funds to `EpochDelegationPool` immediately. Queue a message for the epoch boundary to handle the delegation, taking the funds from the `EpochDelegationPool`. If Epoch execution fail, return back funds from `EpochDelegationPool` to user's account.
@@ -86,14 +86,15 @@ First we create a pool for storing tokens that are being bonded, but should be a
 - **MsgUndelegate**: Validate message and if valid queue the message for execution at the end of the Epoch.
 
 ### Slashing messages
+
 - **MsgUnjail**: Validate message and if valid queue the message for execution at the end of the Epoch.
 - **Slash Event**: Whenever a slash event is created, it gets queued in the slashing module to apply at the end of the epoch. The queues should be setup such that this slash applies immediately.
 
 ### Evidence Messages
- - **MsgSubmitEvidence**: This gets executed immediately, and the validator gets jailed immediately. However in slashing, the actual slash event gets queued.
+
+- **MsgSubmitEvidence**: This gets executed immediately, and the validator gets jailed immediately. However in slashing, the actual slash event gets queued.
 
 Then we add methods to the end blockers, to ensure that at the epoch boundary the queues are cleared and delegation updates are applied.
-
 
 __Step-2__: Implement querying of queued staking txs.
 

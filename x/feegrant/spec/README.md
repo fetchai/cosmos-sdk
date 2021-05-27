@@ -19,7 +19,7 @@ This module allows accounts to grant fee allowances and to use fees from their a
     - [BasicAllowance](01_concepts.md#basicallowance)
     - [PeriodicAllowance](01_concepts.md#periodicallowance)
     - [FeeAccount flag](01_concepts.md#feeaccount-flag)
-    -  [Granted Fee Deductions](01_concepts.md#granted-fee-deductions)
+    - [Granted Fee Deductions](01_concepts.md#granted-fee-deductions)
     - [Gas](01_concepts.md#gas)
 2. **[State](02_state.md)**
     - [FeeAllowance](02_state.md#feeallowance)

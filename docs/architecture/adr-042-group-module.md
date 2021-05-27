@@ -15,6 +15,7 @@ This ADR defines the `x/group` module which allows the creation and management o
 ## Context
 
 The legacy amino multi-signature mechanism of the Cosmos SDK has certain limitations:
+
 - Key rotation is not possible, although this can be solved with [account rekeying](adr-034-account-rekeying.md).
 - Thresholds can't be changed.
 - UX is cumbersome for non-technical users ([#5661](https://github.com/cosmos/cosmos-sdk/issues/5661)).
@@ -185,6 +186,7 @@ A proposal consists of a set of `sdk.Msg`s that will be executed if the proposal
 passes as well as any metadata associated with the proposal. These `sdk.Msg`s get validated as part of the `Msg/CreateProposal` request validation. They should also have their signer set as the group account.
 
 Internally, a proposal also tracks:
+
 - its current `Status`: submitted, closed or aborted
 - its `Result`: unfinalized, accepted or rejected
 - its `VoteState` in the form of a `Tally`, which is calculated on new votes and when executing the proposal.
@@ -265,13 +267,13 @@ Inter-module communication introduced by [ADR-033](adr-033-protobuf-inter-module
 
 - Convergence of `/group` and `x/gov` as both support proposals and voting: https://github.com/cosmos/cosmos-sdk/discussions/9066
 - `x/group` possible future improvements:
-  - Execute proposals on submission (https://github.com/regen-network/regen-ledger/issues/288)
-  - Withdraw a proposal (https://github.com/regen-network/cosmos-modules/issues/41)
-  - Make `Tally` more flexible and support non-binary choices
+    - Execute proposals on submission (https://github.com/regen-network/regen-ledger/issues/288)
+    - Withdraw a proposal (https://github.com/regen-network/cosmos-modules/issues/41)
+    - Make `Tally` more flexible and support non-binary choices
 
 ## References
 
 - Initial specification:
-  - https://gist.github.com/aaronc/b60628017352df5983791cad30babe56#group-module
-  - [#5236](https://github.com/cosmos/cosmos-sdk/pull/5236)
+    - https://gist.github.com/aaronc/b60628017352df5983791cad30babe56#group-module
+    - [#5236](https://github.com/cosmos/cosmos-sdk/pull/5236)
 - Proposal to add `x/group` into the SDK: [#7633](https://github.com/cosmos/cosmos-sdk/issues/7633)

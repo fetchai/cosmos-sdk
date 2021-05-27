@@ -66,6 +66,7 @@ directory layout:
 ## Usage
 
 The system administrator admin is responsible for:
+
 * installing the `cosmovisor` binary and configure the host's init system (e.g. `systemd`, `launchd`, etc) along with the environmental variables appropriately;
 * installing the `genesis` folder manually;
 * installing the `upgrades/<name>` folders manually.
@@ -95,6 +96,7 @@ valid format to specify a download in such a message:
 
 1. Store an os/architecture -> binary URI map in the upgrade plan info field
 as JSON under the `"binaries"` key, eg:
+
 ```json
 {
   "binaries": {
@@ -102,6 +104,7 @@ as JSON under the `"binaries"` key, eg:
   }
 }
 ```
+
 2. Store a link to a file that contains all information in the above format (eg. if you want
 to specify lots of binaries, changelog info, etc without filling up the blockchain).
 
