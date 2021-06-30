@@ -1,44 +1,35 @@
-package types
+package types_test
 
 import (
 	"encoding/json"
 	"testing"
 
+	proto "github.com/gogo/protobuf/proto"
 	"github.com/stretchr/testify/require"
-	"github.com/tendermint/tendermint/crypto/ed25519"
 
+	codectypes "github.com/cosmos/cosmos-sdk/codec/types"
+	"github.com/cosmos/cosmos-sdk/crypto/keys/ed25519"
 	sdk "github.com/cosmos/cosmos-sdk/types"
-	"github.com/cosmos/cosmos-sdk/x/auth/exported"
+	"github.com/cosmos/cosmos-sdk/x/auth/types"
 )
 
 func TestSanitize(t *testing.T) {
 	addr1 := sdk.AccAddress(ed25519.GenPrivKey().PubKey().Address())
-	authAcc1 := NewBaseAccountWithAddress(addr1)
-	authAcc1.SetCoins(sdk.Coins{
-		sdk.NewInt64Coin("bcoin", 150),
-		sdk.NewInt64Coin("acoin", 150),
-	})
-	authAcc1.SetAccountNumber(1)
+	authAcc1 := types.NewBaseAccountWithAddress(addr1)
+	err := authAcc1.SetAccountNumber(1)
+	require.NoError(t, err)
 
 	addr2 := sdk.AccAddress(ed25519.GenPrivKey().PubKey().Address())
-	authAcc2 := NewBaseAccountWithAddress(addr2)
-	authAcc2.SetCoins(sdk.Coins{
-		sdk.NewInt64Coin("acoin", 150),
-		sdk.NewInt64Coin("bcoin", 150),
-	})
+	authAcc2 := types.NewBaseAccountWithAddress(addr2)
 
-	genAccs := exported.GenesisAccounts{&authAcc1, &authAcc2}
+	genAccs := types.GenesisAccounts{authAcc1, authAcc2}
 
 	require.True(t, genAccs[0].GetAccountNumber() > genAccs[1].GetAccountNumber())
-	require.Equal(t, genAccs[0].GetCoins()[0].Denom, "bcoin")
-	require.Equal(t, genAccs[0].GetCoins()[1].Denom, "acoin")
 	require.Equal(t, genAccs[1].GetAddress(), addr2)
-	genAccs = SanitizeGenesisAccounts(genAccs)
+	genAccs = types.SanitizeGenesisAccounts(genAccs)
 
 	require.False(t, genAccs[0].GetAccountNumber() > genAccs[1].GetAccountNumber())
 	require.Equal(t, genAccs[1].GetAddress(), addr1)
-	require.Equal(t, genAccs[1].GetCoins()[0].Denom, "acoin")
-	require.Equal(t, genAccs[1].GetCoins()[1].Denom, "bcoin")
 }
 
 var (
@@ -50,37 +41,35 @@ var (
 
 // require duplicate accounts fails validation
 func TestValidateGenesisDuplicateAccounts(t *testing.T) {
-	acc1 := NewBaseAccountWithAddress(sdk.AccAddress(addr1))
-	acc1.Coins = sdk.NewCoins(sdk.NewInt64Coin(sdk.DefaultBondDenom, 150))
+	acc1 := types.NewBaseAccountWithAddress(sdk.AccAddress(addr1))
 
-	genAccs := make(exported.GenesisAccounts, 2)
-	genAccs[0] = &acc1
-	genAccs[1] = &acc1
+	genAccs := make(types.GenesisAccounts, 2)
+	genAccs[0] = acc1
+	genAccs[1] = acc1
 
-	require.Error(t, ValidateGenAccounts(genAccs))
+	require.Error(t, types.ValidateGenAccounts(genAccs))
 }
 
 func TestGenesisAccountIterator(t *testing.T) {
-	acc1 := NewBaseAccountWithAddress(sdk.AccAddress(addr1))
-	acc1.Coins = sdk.NewCoins(sdk.NewInt64Coin(sdk.DefaultBondDenom, 150))
+	acc1 := types.NewBaseAccountWithAddress(sdk.AccAddress(addr1))
+	acc2 := types.NewBaseAccountWithAddress(sdk.AccAddress(addr2))
 
-	acc2 := NewBaseAccountWithAddress(sdk.AccAddress(addr2))
-	acc2.Coins = sdk.NewCoins(sdk.NewInt64Coin(sdk.DefaultBondDenom, 150))
+	genAccounts := types.GenesisAccounts{acc1, acc2}
 
-	genAccounts := exported.GenesisAccounts{&acc1, &acc2}
-
-	authGenState := DefaultGenesisState()
-	authGenState.Accounts = genAccounts
+	authGenState := types.DefaultGenesisState()
+	accounts, err := types.PackAccounts(genAccounts)
+	require.NoError(t, err)
+	authGenState.Accounts = accounts
 
 	appGenesis := make(map[string]json.RawMessage)
-	authGenStateBz, err := ModuleCdc.MarshalJSON(authGenState)
+	authGenStateBz, err := appCodec.MarshalJSON(authGenState)
 	require.NoError(t, err)
 
-	appGenesis[ModuleName] = authGenStateBz
+	appGenesis[types.ModuleName] = authGenStateBz
 
 	var addresses []sdk.AccAddress
-	GenesisAccountIterator{}.IterateGenesisAccounts(
-		ModuleCdc, appGenesis, func(acc exported.Account) (stop bool) {
+	types.GenesisAccountIterator{}.IterateGenesisAccounts(
+		appCodec, appGenesis, func(acc types.AccountI) (stop bool) {
 			addresses = append(addresses, acc.GetAddress())
 			return false
 		},
@@ -89,4 +78,57 @@ func TestGenesisAccountIterator(t *testing.T) {
 	require.Len(t, addresses, 2)
 	require.Equal(t, addresses[0], acc1.GetAddress())
 	require.Equal(t, addresses[1], acc2.GetAddress())
+}
+
+func TestPackAccountsAny(t *testing.T) {
+	var (
+		accounts []*codectypes.Any
+	)
+
+	testCases := []struct {
+		msg      string
+		malleate func()
+		expPass  bool
+	}{
+		{
+			"expected genesis account",
+			func() {
+				accounts = []*codectypes.Any{{}}
+			},
+			false,
+		},
+		{
+			"success",
+			func() {
+				genAccounts := types.GenesisAccounts{&types.BaseAccount{}}
+				accounts = make([]*codectypes.Any, len(genAccounts))
+
+				for i, a := range genAccounts {
+					msg, ok := a.(proto.Message)
+					require.Equal(t, ok, true)
+					any, err := codectypes.NewAnyWithValue(msg)
+					require.NoError(t, err)
+					accounts[i] = any
+				}
+			},
+			true,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.msg, func(t *testing.T) {
+			tc.malleate()
+
+			res, err := types.UnpackAccounts(accounts)
+
+			if tc.expPass {
+				require.NoError(t, err)
+				require.NotNil(t, res)
+				require.Equal(t, len(res), len(accounts))
+			} else {
+				require.Error(t, err)
+				require.Nil(t, res)
+			}
+		})
+	}
 }

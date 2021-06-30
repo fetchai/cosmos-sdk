@@ -23,7 +23,7 @@ const (
 )
 
 // PowerReduction is the amount of staking tokens required for 1 unit of consensus-engine power
-var PowerReduction = NewIntFromBigInt(new(big.Int).Exp(big.NewInt(10), big.NewInt(18), nil))
+var PowerReduction = NewIntFromBigInt(new(big.Int).Exp(big.NewInt(10), big.NewInt(6), nil))
 
 // TokensToConsensusPower - convert input tokens to potential consensus-engine power
 func TokensToConsensusPower(tokens Int) int64 {
@@ -33,37 +33,4 @@ func TokensToConsensusPower(tokens Int) int64 {
 // TokensFromConsensusPower - convert input power to tokens
 func TokensFromConsensusPower(power int64) Int {
 	return NewInt(power).Mul(PowerReduction)
-}
-
-// BondStatus is the status of a validator
-type BondStatus byte
-
-// staking constants
-const (
-	Unbonded  BondStatus = 0x00
-	Unbonding BondStatus = 0x01
-	Bonded    BondStatus = 0x02
-
-	BondStatusUnbonded  = "Unbonded"
-	BondStatusUnbonding = "Unbonding"
-	BondStatusBonded    = "Bonded"
-)
-
-// Equal compares two BondStatus instances
-func (b BondStatus) Equal(b2 BondStatus) bool {
-	return byte(b) == byte(b2)
-}
-
-// String implements the Stringer interface for BondStatus.
-func (b BondStatus) String() string {
-	switch b {
-	case 0x00:
-		return BondStatusUnbonded
-	case 0x01:
-		return BondStatusUnbonding
-	case 0x02:
-		return BondStatusBonded
-	default:
-		panic("invalid bond status")
-	}
 }

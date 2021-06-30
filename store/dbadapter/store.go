@@ -37,6 +37,7 @@ func (dsa Store) Has(key []byte) bool {
 
 // Set wraps the underlying DB's Set method panicing on error.
 func (dsa Store) Set(key, value []byte) {
+	types.AssertValidKey(key)
 	if err := dsa.DB.Set(key, value); err != nil {
 		panic(err)
 	}
@@ -74,7 +75,7 @@ func (Store) GetStoreType() types.StoreType {
 	return types.StoreTypeDB
 }
 
-// CacheWrap cache wraps the underlying store.
+// CacheWrap branches the underlying store.
 func (dsa Store) CacheWrap() types.CacheWrap {
 	return cachekv.NewStore(dsa)
 }

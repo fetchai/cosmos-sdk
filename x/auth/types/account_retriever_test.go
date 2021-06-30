@@ -1,40 +1,43 @@
-package types
+package types_test
 
 import (
-	"errors"
 	"testing"
 
-	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/require"
 
-	"github.com/cosmos/cosmos-sdk/tests/mocks"
+	"github.com/cosmos/cosmos-sdk/testutil/network"
+	"github.com/cosmos/cosmos-sdk/x/auth/types"
 )
 
-var errFoo = errors.New("dummy")
-
 func TestAccountRetriever(t *testing.T) {
-	mockCtrl := gomock.NewController(t)
-	defer mockCtrl.Finish()
+	cfg := network.DefaultConfig()
+	cfg.NumValidators = 1
 
-	mockNodeQuerier := mocks.NewMockNodeQuerier(mockCtrl)
-	accRetr := NewAccountRetriever(mockNodeQuerier)
-	addr := []byte("test")
-	bs, err := ModuleCdc.MarshalJSON(NewQueryAccountParams(addr))
+	network := network.New(t, cfg)
+	defer network.Cleanup()
+
+	_, err := network.WaitForHeight(3)
 	require.NoError(t, err)
 
-	mockNodeQuerier.EXPECT().QueryWithData(gomock.Eq("custom/acc/account"),
-		gomock.Eq(bs)).Return(nil, int64(0), errFoo).Times(1)
-	_, err = accRetr.GetAccount(addr)
-	require.Error(t, err)
+	val := network.Validators[0]
+	clientCtx := val.ClientCtx
+	ar := types.AccountRetriever{}
 
-	mockNodeQuerier.EXPECT().QueryWithData(gomock.Eq("custom/acc/account"),
-		gomock.Eq(bs)).Return(nil, int64(0), errFoo).Times(1)
-	n, s, err := accRetr.GetAccountNumberSequence(addr)
-	require.Error(t, err)
-	require.Equal(t, uint64(0), n)
-	require.Equal(t, uint64(0), s)
+	clientCtx = clientCtx.WithHeight(2)
 
-	mockNodeQuerier.EXPECT().QueryWithData(gomock.Eq("custom/acc/account"),
-		gomock.Eq(bs)).Return(nil, int64(0), errFoo).Times(1)
-	require.Error(t, accRetr.EnsureExists(addr))
+	acc, err := ar.GetAccount(clientCtx, val.Address)
+	require.NoError(t, err)
+	require.NotNil(t, acc)
+
+	acc, height, err := ar.GetAccountWithHeight(clientCtx, val.Address)
+	require.NoError(t, err)
+	require.NotNil(t, acc)
+	require.Equal(t, height, int64(2))
+
+	require.NoError(t, ar.EnsureExists(clientCtx, val.Address))
+
+	accNum, accSeq, err := ar.GetAccountNumberSequence(clientCtx, val.Address)
+	require.NoError(t, err)
+	require.Equal(t, accNum, uint64(0))
+	require.Equal(t, accSeq, uint64(1))
 }

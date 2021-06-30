@@ -1,135 +1,94 @@
 package keys
 
 import (
-	"bufio"
-	"strings"
+	"context"
+	"fmt"
 	"testing"
 
-	"github.com/spf13/viper"
 	"github.com/stretchr/testify/require"
 
+	"github.com/cosmos/cosmos-sdk/client"
 	"github.com/cosmos/cosmos-sdk/client/flags"
-	"github.com/cosmos/cosmos-sdk/crypto/keys"
-	"github.com/cosmos/cosmos-sdk/tests"
+	"github.com/cosmos/cosmos-sdk/crypto/hd"
+	"github.com/cosmos/cosmos-sdk/crypto/keyring"
+	"github.com/cosmos/cosmos-sdk/testutil"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 )
 
 func Test_runDeleteCmd(t *testing.T) {
-	runningUnattended := isRunningUnattended()
-	deleteKeyCommand := DeleteKeyCommand()
-	mockIn, _, _ := tests.ApplyMockIO(deleteKeyCommand)
+	// Now add a temporary keybase
+	kbHome := t.TempDir()
+	cmd := DeleteKeyCommand()
+	cmd.Flags().AddFlagSet(Commands(kbHome).PersistentFlags())
+	mockIn := testutil.ApplyMockIODiscardOutErr(cmd)
 
-	yesF, _ := deleteKeyCommand.Flags().GetBool(flagYes)
-	forceF, _ := deleteKeyCommand.Flags().GetBool(flagForce)
+	yesF, _ := cmd.Flags().GetBool(flagYes)
+	forceF, _ := cmd.Flags().GetBool(flagForce)
+
 	require.False(t, yesF)
 	require.False(t, forceF)
 
 	fakeKeyName1 := "runDeleteCmd_Key1"
 	fakeKeyName2 := "runDeleteCmd_Key2"
-	if !runningUnattended {
-		kb, err := keys.NewKeyring(sdk.KeyringServiceName(), viper.GetString(flags.FlagKeyringBackend), viper.GetString(flags.FlagHome), mockIn)
-		require.NoError(t, err)
-		defer func() {
-			kb.Delete("runDeleteCmd_Key1", "", false)
-			kb.Delete("runDeleteCmd_Key2", "", false)
 
-		}()
-	}
-	// Now add a temporary keybase
-	kbHome, cleanUp := tests.NewTestCaseDir(t)
-	defer cleanUp()
-	viper.Set(flags.FlagHome, kbHome)
+	path := sdk.GetConfig().GetFullFundraiserPath()
 
-	// Now
-	kb, err := keys.NewKeyring(sdk.KeyringServiceName(), viper.GetString(flags.FlagKeyringBackend), kbHome, mockIn)
-	require.NoError(t, err)
-	if runningUnattended {
-		mockIn.Reset("testpass1\ntestpass1\n")
-	}
-	_, err = kb.CreateAccount(fakeKeyName1, tests.TestMnemonic, "", "", "0", keys.Secp256k1)
+	cmd.SetArgs([]string{"blah", fmt.Sprintf("--%s=%s", flags.FlagHome, kbHome)})
+	kb, err := keyring.New(sdk.KeyringServiceName(), keyring.BackendTest, kbHome, mockIn)
 	require.NoError(t, err)
 
-	if runningUnattended {
-		mockIn.Reset("testpass1\ntestpass1\n")
-	}
-	_, err = kb.CreateAccount(fakeKeyName2, tests.TestMnemonic, "", "", "1", keys.Secp256k1)
+	_, err = kb.NewAccount(fakeKeyName1, testutil.TestMnemonic, "", path, hd.Secp256k1)
 	require.NoError(t, err)
 
-	if runningUnattended {
-		mockIn.Reset("testpass1\ntestpass1\n")
-	}
-	err = runDeleteCmd(deleteKeyCommand, []string{"blah"})
+	_, _, err = kb.NewMnemonic(fakeKeyName2, keyring.English, sdk.FullFundraiserPath, hd.Secp256k1)
+	require.NoError(t, err)
+
+	clientCtx := client.Context{}.
+		WithKeyringDir(kbHome).
+		WithKeyring(kb)
+
+	ctx := context.WithValue(context.Background(), client.ClientContextKey, &clientCtx)
+
+	err = cmd.ExecuteContext(ctx)
 	require.Error(t, err)
 	require.Equal(t, "The specified item could not be found in the keyring", err.Error())
 
 	// User confirmation missing
-	err = runDeleteCmd(deleteKeyCommand, []string{fakeKeyName1})
+	cmd.SetArgs([]string{
+		fakeKeyName1,
+		fmt.Sprintf("--%s=%s", flags.FlagHome, kbHome),
+		fmt.Sprintf("--%s=%s", flags.FlagKeyringBackend, keyring.BackendTest),
+	})
+	err = cmd.Execute()
 	require.Error(t, err)
-	if runningUnattended {
-		require.Equal(t, "aborted", err.Error())
-	} else {
-		require.Equal(t, "EOF", err.Error())
-	}
+	require.Equal(t, "EOF", err.Error())
 
-	{
-		if runningUnattended {
-			mockIn.Reset("testpass1\n")
-		}
-		_, err = kb.Get(fakeKeyName1)
-		require.NoError(t, err)
-
-		// Now there is a confirmation
-		viper.Set(flagYes, true)
-		if runningUnattended {
-			mockIn.Reset("testpass1\ntestpass1\n")
-		}
-		require.NoError(t, runDeleteCmd(deleteKeyCommand, []string{fakeKeyName1}))
-
-		_, err = kb.Get(fakeKeyName1)
-		require.Error(t, err) // Key1 is gone
-	}
-
-	viper.Set(flagYes, true)
-	if runningUnattended {
-		mockIn.Reset("testpass1\n")
-	}
-	_, err = kb.Get(fakeKeyName2)
+	_, err = kb.Key(fakeKeyName1)
 	require.NoError(t, err)
-	if runningUnattended {
-		mockIn.Reset("testpass1\ny\ntestpass1\n")
-	}
-	err = runDeleteCmd(deleteKeyCommand, []string{fakeKeyName2})
+
+	// Now there is a confirmation
+	cmd.SetArgs([]string{
+		fakeKeyName1,
+		fmt.Sprintf("--%s=%s", flags.FlagHome, kbHome),
+		fmt.Sprintf("--%s=true", flagYes),
+		fmt.Sprintf("--%s=%s", flags.FlagKeyringBackend, keyring.BackendTest),
+	})
+	require.NoError(t, cmd.Execute())
+
+	_, err = kb.Key(fakeKeyName1)
+	require.Error(t, err) // Key1 is gone
+
+	_, err = kb.Key(fakeKeyName2)
 	require.NoError(t, err)
-	_, err = kb.Get(fakeKeyName2)
+
+	cmd.SetArgs([]string{
+		fakeKeyName2,
+		fmt.Sprintf("--%s=%s", flags.FlagHome, kbHome),
+		fmt.Sprintf("--%s=true", flagYes),
+		fmt.Sprintf("--%s=%s", flags.FlagKeyringBackend, keyring.BackendTest),
+	})
+	require.NoError(t, cmd.Execute())
+
+	_, err = kb.Key(fakeKeyName2)
 	require.Error(t, err) // Key2 is gone
-}
-
-func Test_confirmDeletion(t *testing.T) {
-	type args struct {
-		buf *bufio.Reader
-	}
-
-	answerYes := bufio.NewReader(strings.NewReader("y\n"))
-	answerYes2 := bufio.NewReader(strings.NewReader("Y\n"))
-	answerNo := bufio.NewReader(strings.NewReader("n\n"))
-	answerInvalid := bufio.NewReader(strings.NewReader("245\n"))
-
-	tests := []struct {
-		name    string
-		args    args
-		wantErr bool
-	}{
-		{"Y", args{answerYes}, false},
-		{"y", args{answerYes2}, false},
-		{"N", args{answerNo}, true},
-		{"BAD", args{answerInvalid}, true},
-	}
-	for _, tt := range tests {
-		tt := tt
-		t.Run(tt.name, func(t *testing.T) {
-			if err := confirmDeletion(tt.args.buf); (err != nil) != tt.wantErr {
-				t.Errorf("confirmDeletion() error = %v, wantErr %v", err, tt.wantErr)
-			}
-		})
-	}
 }

@@ -1,13 +1,16 @@
-# run:
+run:
+  tests: false
 #   # timeout for analysis, e.g. 30s, 5m, default is 1m
 #   timeout: 5m
 
 linters:
+  disable-all: true
   enable:
     - bodyclose
     - deadcode
     - depguard
     - dogsled
+    # - errcheck
     - goconst
     - gocritic
     - gofmt
@@ -29,9 +32,10 @@ linters:
     - typecheck
     - unconvert
     - unused
+    - unparam
     - misspell
-  disable:
-    - errcheck
+    # - wsl
+    - nolintlint
 
 issues:
   exclude-rules:
@@ -47,6 +51,13 @@ issues:
     - text: "ST1003:"
       linters:
         - stylecheck
+    # FIXME: Disabled until golangci-lint updates stylecheck with this fix:
+    # https://github.com/dominikh/go-tools/issues/389
+    - text: "ST1016:"
+      linters:
+        - stylecheck
+  max-issues-per-linter: 10000
+  max-same-issues: 10000
 
 linters-settings:
   dogsled:
@@ -54,3 +65,8 @@ linters-settings:
   maligned:
     # print struct with more effective memory layout or not, false by default
     suggest-new: true
+  nolintlint:
+    allow-unused: false
+    allow-leading-space: true
+    require-explanation: false
+    require-specific: false

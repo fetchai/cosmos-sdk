@@ -43,11 +43,13 @@ func TestMsgSubmitProposal(t *testing.T) {
 	}
 
 	for i, tc := range tests {
-		msg := NewMsgSubmitProposal(
+		msg, err := NewMsgSubmitProposal(
 			ContentFromProposalType(tc.title, tc.description, tc.proposalType),
 			tc.initialDeposit,
 			tc.proposerAddr,
 		)
+
+		require.NoError(t, err)
 
 		if tc.expectPass {
 			require.NoError(t, msg.ValidateBasic(), "test: %v", i)
@@ -62,7 +64,7 @@ func TestMsgDepositGetSignBytes(t *testing.T) {
 	msg := NewMsgDeposit(addr, 0, coinsPos)
 	res := msg.GetSignBytes()
 
-	expected := `{"type":"cosmos-sdk/MsgDeposit","value":{"amount":[{"amount":"1000","denom":"stake"}],"depositor":"fetch1v9jxgu33pwr8tz","proposal_id":"0"}}`
+	expected := `{"type":"cosmos-sdk/MsgDeposit","value":{"amount":[{"amount":"1000","denom":"stake"}],"depositor":"cosmos1v9jxgu33kfsgr5","proposal_id":"0"}}`
 	require.Equal(t, expected, string(res))
 }
 
@@ -114,4 +116,17 @@ func TestMsgVote(t *testing.T) {
 			require.NotNil(t, msg.ValidateBasic(), "test: %v", i)
 		}
 	}
+}
+
+// this tests that Amino JSON MsgSubmitProposal.GetSignBytes() still works with Content as Any using the ModuleCdc
+func TestMsgSubmitProposal_GetSignBytes(t *testing.T) {
+	msg, err := NewMsgSubmitProposal(NewTextProposal("test", "abcd"), sdk.NewCoins(), sdk.AccAddress{})
+	require.NoError(t, err)
+	var bz []byte
+	require.NotPanics(t, func() {
+		bz = msg.GetSignBytes()
+	})
+	require.Equal(t,
+		`{"type":"cosmos-sdk/MsgSubmitProposal","value":{"content":{"type":"cosmos-sdk/TextProposal","value":{"description":"abcd","title":"test"}},"initial_deposit":[]}}`,
+		string(bz))
 }

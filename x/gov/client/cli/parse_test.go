@@ -1,17 +1,15 @@
 package cli
 
 import (
-	"io/ioutil"
 	"testing"
 
-	"github.com/spf13/viper"
 	"github.com/stretchr/testify/require"
+
+	"github.com/cosmos/cosmos-sdk/testutil"
 )
 
 func TestParseSubmitProposalFlags(t *testing.T) {
-	okJSON, err := ioutil.TempFile("", "proposal")
-	require.Nil(t, err, "unexpected error")
-	okJSON.WriteString(`
+	okJSON := testutil.WriteToNewTempFile(t, `
 {
   "title": "Test Proposal",
   "description": "My awesome proposal",
@@ -20,23 +18,22 @@ func TestParseSubmitProposalFlags(t *testing.T) {
 }
 `)
 
-	badJSON, err := ioutil.TempFile("", "proposal")
-	require.Nil(t, err, "unexpected error")
-	badJSON.WriteString("bad json")
+	badJSON := testutil.WriteToNewTempFile(t, "bad json")
+	fs := NewCmdSubmitProposal().Flags()
 
 	// nonexistent json
-	viper.Set(FlagProposal, "fileDoesNotExist")
-	_, err = parseSubmitProposalFlags()
+	fs.Set(FlagProposal, "fileDoesNotExist")
+	_, err := parseSubmitProposalFlags(fs)
 	require.Error(t, err)
 
 	// invalid json
-	viper.Set(FlagProposal, badJSON.Name())
-	_, err = parseSubmitProposalFlags()
+	fs.Set(FlagProposal, badJSON.Name())
+	_, err = parseSubmitProposalFlags(fs)
 	require.Error(t, err)
 
 	// ok json
-	viper.Set(FlagProposal, okJSON.Name())
-	proposal1, err := parseSubmitProposalFlags()
+	fs.Set(FlagProposal, okJSON.Name())
+	proposal1, err := parseSubmitProposalFlags(fs)
 	require.Nil(t, err, "unexpected error")
 	require.Equal(t, "Test Proposal", proposal1.Title)
 	require.Equal(t, "My awesome proposal", proposal1.Description)
@@ -45,19 +42,20 @@ func TestParseSubmitProposalFlags(t *testing.T) {
 
 	// flags that can't be used with --proposal
 	for _, incompatibleFlag := range ProposalFlags {
-		viper.Set(incompatibleFlag, "some value")
-		_, err := parseSubmitProposalFlags()
+		fs.Set(incompatibleFlag, "some value")
+		_, err := parseSubmitProposalFlags(fs)
 		require.Error(t, err)
-		viper.Set(incompatibleFlag, "")
+		fs.Set(incompatibleFlag, "")
 	}
 
 	// no --proposal, only flags
-	viper.Set(FlagProposal, "")
-	viper.Set(FlagTitle, proposal1.Title)
-	viper.Set(FlagDescription, proposal1.Description)
-	viper.Set(flagProposalType, proposal1.Type)
-	viper.Set(FlagDeposit, proposal1.Deposit)
-	proposal2, err := parseSubmitProposalFlags()
+	fs.Set(FlagProposal, "")
+	fs.Set(FlagTitle, proposal1.Title)
+	fs.Set(FlagDescription, proposal1.Description)
+	fs.Set(FlagProposalType, proposal1.Type)
+	fs.Set(FlagDeposit, proposal1.Deposit)
+	proposal2, err := parseSubmitProposalFlags(fs)
+
 	require.Nil(t, err, "unexpected error")
 	require.Equal(t, proposal1.Title, proposal2.Title)
 	require.Equal(t, proposal1.Description, proposal2.Description)

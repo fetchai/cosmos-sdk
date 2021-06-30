@@ -1,47 +1,71 @@
 package keys
 
 import (
+	"context"
+	"fmt"
 	"testing"
 
-	"github.com/spf13/viper"
 	"github.com/stretchr/testify/require"
 
+	"github.com/cosmos/cosmos-sdk/client"
+	"github.com/cosmos/cosmos-sdk/crypto/hd"
+	"github.com/cosmos/cosmos-sdk/testutil"
+
 	"github.com/cosmos/cosmos-sdk/client/flags"
-	"github.com/cosmos/cosmos-sdk/crypto/keys"
-	"github.com/cosmos/cosmos-sdk/tests"
+	"github.com/cosmos/cosmos-sdk/crypto/keyring"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 )
 
 func Test_runExportCmd(t *testing.T) {
-	runningUnattended := isRunningUnattended()
-	exportKeyCommand := ExportKeyCommand()
-	mockIn, _, _ := tests.ApplyMockIO(exportKeyCommand)
+	cmd := ExportKeyCommand()
+	cmd.Flags().AddFlagSet(Commands("home").PersistentFlags())
+	mockIn := testutil.ApplyMockIODiscardOutErr(cmd)
 
 	// Now add a temporary keybase
-	kbHome, cleanUp := tests.NewTestCaseDir(t)
-	defer cleanUp()
-	viper.Set(flags.FlagHome, kbHome)
+	kbHome := t.TempDir()
 
 	// create a key
-	kb, err := keys.NewKeyring(sdk.KeyringServiceName(), viper.GetString(flags.FlagKeyringBackend), viper.GetString(flags.FlagHome), mockIn)
+	kb, err := keyring.New(sdk.KeyringServiceName(), keyring.BackendTest, kbHome, mockIn)
 	require.NoError(t, err)
-	if !runningUnattended {
-		defer func() {
-			kb.Delete("keyname1", "", false)
-		}()
-	}
+	t.Cleanup(func() {
+		kb.Delete("keyname1") // nolint:errcheck
+	})
 
-	if runningUnattended {
-		mockIn.Reset("testpass1\ntestpass1\n")
-	}
-	_, err = kb.CreateAccount("keyname1", tests.TestMnemonic, "", "123456789", "", keys.Secp256k1)
+	path := sdk.GetConfig().GetFullFundraiserPath()
+	_, err = kb.NewAccount("keyname1", testutil.TestMnemonic, "", path, hd.Secp256k1)
 	require.NoError(t, err)
 
 	// Now enter password
-	if runningUnattended {
-		mockIn.Reset("123456789\n123456789\ntestpass1\n")
-	} else {
-		mockIn.Reset("123456789\n123456789\n")
+	args := []string{
+		"keyname1",
+		fmt.Sprintf("--%s=%s", flags.FlagHome, kbHome),
+		fmt.Sprintf("--%s=%s", flags.FlagKeyringBackend, keyring.BackendTest),
 	}
-	require.NoError(t, runExportCmd(exportKeyCommand, []string{"keyname1"}))
+
+	mockIn.Reset("123456789\n123456789\n")
+	cmd.SetArgs(args)
+
+	clientCtx := client.Context{}.
+		WithKeyringDir(kbHome).
+		WithKeyring(kb)
+	ctx := context.WithValue(context.Background(), client.ClientContextKey, &clientCtx)
+
+	require.NoError(t, cmd.ExecuteContext(ctx))
+
+	argsUnsafeOnly := append(args, "--unsafe")
+	cmd.SetArgs(argsUnsafeOnly)
+	require.Error(t, cmd.ExecuteContext(ctx))
+
+	argsUnarmoredHexOnly := append(args, "--unarmored-hex")
+	cmd.SetArgs(argsUnarmoredHexOnly)
+	require.Error(t, cmd.ExecuteContext(ctx))
+
+	argsUnsafeUnarmoredHex := append(args, "--unsafe", "--unarmored-hex")
+	cmd.SetArgs(argsUnsafeUnarmoredHex)
+	require.Error(t, cmd.ExecuteContext(ctx))
+
+	mockIn, mockOut := testutil.ApplyMockIO(cmd)
+	mockIn.Reset("y\n")
+	require.NoError(t, cmd.ExecuteContext(ctx))
+	require.Equal(t, "2485e33678db4175dc0ecef2d6e1fc493d4a0d7f7ce83324b6ed70afe77f3485\n", mockOut.String())
 }

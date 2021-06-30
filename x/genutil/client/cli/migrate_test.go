@@ -1,64 +1,60 @@
-package cli
+package cli_test
 
 import (
-	"io/ioutil"
-	"path"
 	"testing"
 
-	"github.com/spf13/cobra"
-	"github.com/spf13/viper"
 	"github.com/stretchr/testify/require"
-	tcmd "github.com/tendermint/tendermint/cmd/tendermint/commands"
-	"github.com/tendermint/tendermint/libs/cli"
-	"github.com/tendermint/tendermint/libs/log"
 
-	"github.com/cosmos/cosmos-sdk/client/flags"
-	"github.com/cosmos/cosmos-sdk/server"
-	"github.com/cosmos/cosmos-sdk/tests"
+	"github.com/cosmos/cosmos-sdk/testutil"
+	clitestutil "github.com/cosmos/cosmos-sdk/testutil/cli"
+	"github.com/cosmos/cosmos-sdk/x/genutil/client/cli"
 )
 
-func setupCmd(genesisTime string, chainID string) *cobra.Command {
-	c := &cobra.Command{
-		Use:  "c",
-		Args: cobra.ArbitraryArgs,
-		Run:  func(_ *cobra.Command, args []string) {},
-	}
-
-	c.Flags().String(flagGenesisTime, genesisTime, "")
-	c.Flags().String(flagChainID, chainID, "")
-
-	return c
-}
-
 func TestGetMigrationCallback(t *testing.T) {
-	for _, version := range GetMigrationVersions() {
-		require.NotNil(t, GetMigrationCallback(version))
+	for _, version := range cli.GetMigrationVersions() {
+		require.NotNil(t, cli.GetMigrationCallback(version))
 	}
 }
 
-func TestMigrateGenesis(t *testing.T) {
-	home, cleanup := tests.NewTestCaseDir(t)
-	viper.Set(cli.HomeFlag, home)
-	viper.Set(flags.FlagName, "moniker")
-	logger := log.NewNopLogger()
-	cfg, err := tcmd.ParseConfig()
-	require.Nil(t, err)
-	ctx := server.NewContext(cfg, logger)
-	cdc := makeCodec()
+func (s *IntegrationTestSuite) TestMigrateGenesis() {
+	val0 := s.network.Validators[0]
 
-	genesisPath := path.Join(home, "genesis.json")
-	target := "v0.36"
+	testCases := []struct {
+		name      string
+		genesis   string
+		target    string
+		expErr    bool
+		expErrMsg string
+	}{
+		{
+			"migrate to 0.36",
+			`{"chain_id":"test","app_state":{}}`,
+			"v0.36",
+			false, "",
+		},
+		{
+			"exported 0.37 genesis file",
+			v037Exported,
+			"v0.40",
+			true, "Make sure that you have correctly migrated all Tendermint consensus params",
+		},
+		{
+			"valid 0.40 genesis file",
+			v040Valid,
+			"v0.40",
+			false, "",
+		},
+	}
 
-	defer cleanup()
-
-	// Reject if we dont' have the right parameters or genesis does not exists
-	require.Error(t, MigrateGenesisCmd(ctx, cdc).RunE(nil, []string{target, genesisPath}))
-
-	// Noop migration with minimal genesis
-	emptyGenesis := []byte(`{"chain_id":"test","app_state":{}}`)
-	err = ioutil.WriteFile(genesisPath, emptyGenesis, 0644)
-	require.Nil(t, err)
-	cmd := setupCmd("", "test2")
-	require.NoError(t, MigrateGenesisCmd(ctx, cdc).RunE(cmd, []string{target, genesisPath}))
-	// Every migration function shuold tests its own module separately
+	for _, tc := range testCases {
+		s.Run(tc.name, func() {
+			genesisFile := testutil.WriteToNewTempFile(s.T(), tc.genesis)
+			_, err := clitestutil.ExecTestCLICmd(val0.ClientCtx, cli.MigrateGenesisCmd(), []string{tc.target, genesisFile.Name()})
+			if tc.expErr {
+				s.Require().Contains(err.Error(), tc.expErrMsg)
+			} else {
+				s.Require().NoError(err)
+			}
+		})
+	}
 }
