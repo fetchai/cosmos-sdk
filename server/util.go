@@ -200,6 +200,7 @@ func interceptConfigs(rootViper *viper.Viper) (*tmcfg.Config, error) {
 		conf.P2P.RecvRate = 5120000
 		conf.P2P.SendRate = 5120000
 		conf.Consensus.TimeoutCommit = 5 * time.Second
+		conf.P2P.AllowDuplicateIP = true
 		tmcfg.WriteConfigFile(tmCfgFile, conf)
 
 	case err != nil:
