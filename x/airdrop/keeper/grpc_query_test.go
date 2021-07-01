@@ -59,7 +59,14 @@ func (s *KeeperGrpcQueryTestSuite) TestQueryFund() {
 					Amount:          &amount,
 					DripRate:        sdk.NewInt(40),
 				}
-				s.app.AirdropKeeper.AddFund(s.ctx, addr, fund)
+				err := s.app.BankKeeper.SetBalance(s.ctx, addr, amount)
+				if err != nil {
+					panic(err)
+				}
+				err = s.app.AirdropKeeper.AddFund(s.ctx, addr, fund)
+				if err != nil {
+					panic(err)
+				}
 
 				req = &types.QueryFundRequest{
 					Address: addr.String(),
@@ -134,8 +141,23 @@ func (s *KeeperGrpcQueryTestSuite) TestQueryAllFund() {
 		{
 			"when funds are present",
 			func() {
-				s.app.AirdropKeeper.AddFund(s.ctx, addr1, fund)
-				s.app.AirdropKeeper.AddFund(s.ctx, addr2, fund)
+				err := s.app.BankKeeper.SetBalance(s.ctx, addr1, *fund.Amount)
+				if err != nil {
+					panic(err)
+				}
+				err = s.app.BankKeeper.SetBalance(s.ctx, addr2, *fund.Amount)
+				if err != nil {
+					panic(err)
+				}
+				err = s.app.AirdropKeeper.AddFund(s.ctx, addr1, fund)
+				if err != nil {
+					panic(err)
+				}
+				err = s.app.AirdropKeeper.AddFund(s.ctx, addr2, fund)
+				if err != nil {
+					panic(err)
+				}
+
 
 				req = &types.QueryAllFundsRequest{}
 				expResponse = types.QueryAllFundsResponse{
@@ -160,8 +182,22 @@ func (s *KeeperGrpcQueryTestSuite) TestQueryAllFund() {
 		{
 			"when funds are present with page 1",
 			func() {
-				s.app.AirdropKeeper.AddFund(s.ctx, addr1, fund)
-				s.app.AirdropKeeper.AddFund(s.ctx, addr2, fund)
+				err := s.app.BankKeeper.SetBalance(s.ctx, addr1, *fund.Amount)
+				if err != nil {
+					panic(err)
+				}
+				err = s.app.BankKeeper.SetBalance(s.ctx, addr2, *fund.Amount)
+				if err != nil {
+					panic(err)
+				}
+				err = s.app.AirdropKeeper.AddFund(s.ctx, addr1, fund)
+				if err != nil {
+					panic(err)
+				}
+				err = s.app.AirdropKeeper.AddFund(s.ctx, addr2, fund)
+				if err != nil {
+					panic(err)
+				}
 
 				req = &types.QueryAllFundsRequest{
 					Pagination: &query.PageRequest{
@@ -188,8 +224,22 @@ func (s *KeeperGrpcQueryTestSuite) TestQueryAllFund() {
 		{
 			"when funds are present with page 2",
 			func() {
-				s.app.AirdropKeeper.AddFund(s.ctx, addr1, fund)
-				s.app.AirdropKeeper.AddFund(s.ctx, addr2, fund)
+				err := s.app.BankKeeper.SetBalance(s.ctx, addr1, *fund.Amount)
+				if err != nil {
+					panic(err)
+				}
+				err = s.app.BankKeeper.SetBalance(s.ctx, addr2, *fund.Amount)
+				if err != nil {
+					panic(err)
+				}
+				err = s.app.AirdropKeeper.AddFund(s.ctx, addr1, fund)
+				if err != nil {
+					panic(err)
+				}
+				err = s.app.AirdropKeeper.AddFund(s.ctx, addr2, fund)
+				if err != nil {
+					panic(err)
+				}
 
 				req = &types.QueryAllFundsRequest{
 					Pagination: &query.PageRequest{
