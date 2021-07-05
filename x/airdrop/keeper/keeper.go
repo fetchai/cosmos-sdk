@@ -7,6 +7,7 @@ import (
 	"github.com/cosmos/cosmos-sdk/x/airdrop/types"
 	authtypes "github.com/cosmos/cosmos-sdk/x/auth/types"
 	paramtypes "github.com/cosmos/cosmos-sdk/x/params/types"
+	"github.com/tendermint/tendermint/libs/log"
 )
 
 type Keeper struct {
@@ -36,6 +37,10 @@ func NewKeeper(cdc codec.BinaryMarshaler, storeKey sdk.StoreKey, paramSpace para
 		feeCollectorName: feeCollectorName,
 		paramSpace:       paramSpace,
 	}
+}
+
+func (k Keeper) Logger(ctx sdk.Context) log.Logger {
+	return ctx.Logger().With("module", "x/"+types.ModuleName)
 }
 
 func (k Keeper) AddFund(ctx sdk.Context, sender sdk.AccAddress, fund types.Fund) error {
@@ -152,6 +157,7 @@ func (k Keeper) DripAllFunds(ctx sdk.Context) (sdk.Coins, error) {
 		// update the fund - we either delete or update
 		err := k.UpdateFund(ctx, fund.Account, newFund)
 		if err != nil {
+			k.Logger(ctx).Error("Unable to drip fund", "err", err.Error())
 			continue // ignore this drip
 		}
 

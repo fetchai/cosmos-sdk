@@ -109,9 +109,7 @@ func (a AppModule) ExportGenesis(ctx sdk.Context, cdc codec.JSONMarshaler) json.
 }
 
 // RegisterInvariants registers the airdrop module invariants.
-func (a AppModule) RegisterInvariants(_ sdk.InvariantRegistry) {
-	// TODO
-}
+func (a AppModule) RegisterInvariants(_ sdk.InvariantRegistry) {}
 
 // Route returns the message routing key for the airdrop module.
 func (a AppModule) Route() sdk.Route {
