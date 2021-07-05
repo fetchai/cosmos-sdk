@@ -301,7 +301,10 @@ func NewSimApp(
 		app.IBCKeeper.ChannelKeeper, &app.IBCKeeper.PortKeeper,
 		app.AccountKeeper, app.BankKeeper, scopedTransferKeeper,
 	)
-	app.AirdropKeeper = airdropkeeper.NewKeeper(appCodec, keys[airdroptypes.StoreKey], app.BankKeeper, authtypes.FeeCollectorName)
+	app.AirdropKeeper = airdropkeeper.NewKeeper(
+		appCodec, keys[airdroptypes.StoreKey], app.GetSubspace(airdroptypes.ModuleName), app.BankKeeper,
+		authtypes.FeeCollectorName,
+	)
 
 
 	transferModule := transfer.NewAppModule(app.TransferKeeper)
@@ -610,6 +613,7 @@ func initParamsKeeper(appCodec codec.BinaryMarshaler, legacyAmino *codec.LegacyA
 	paramsKeeper.Subspace(crisistypes.ModuleName)
 	paramsKeeper.Subspace(ibctransfertypes.ModuleName)
 	paramsKeeper.Subspace(ibchost.ModuleName)
+	paramsKeeper.Subspace(airdroptypes.ModuleName)
 
 	return paramsKeeper
 }

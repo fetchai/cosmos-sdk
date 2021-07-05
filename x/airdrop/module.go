@@ -1,6 +1,7 @@
 package airdrop
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"github.com/cosmos/cosmos-sdk/client"
@@ -8,7 +9,10 @@ import (
 	codectypes "github.com/cosmos/cosmos-sdk/codec/types"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/types/module"
+	"github.com/cosmos/cosmos-sdk/x/airdrop/client/cli"
+	"github.com/cosmos/cosmos-sdk/x/airdrop/keeper"
 	"github.com/cosmos/cosmos-sdk/x/airdrop/types"
+	host "github.com/cosmos/cosmos-sdk/x/ibc/core/24-host"
 	"github.com/gorilla/mux"
 	"github.com/grpc-ecosystem/grpc-gateway/runtime"
 	"github.com/spf13/cobra"
@@ -23,95 +27,116 @@ var (
 
 //____________________________________________________________________________
 
+// AppModuleBasic defines the basic application module used by the airdrop module.
 type AppModuleBasic struct{}
 
+// Name returns the airdrop module's name.
 func (a AppModuleBasic) Name() string {
 	return types.ModuleName
 }
 
-func (a AppModuleBasic) RegisterLegacyAminoCodec(amino *codec.LegacyAmino) {
-	//panic("implement me")
-}
+// RegisterLegacyAminoCodec does nothings. Airdrop does not support amino
+func (a AppModuleBasic) RegisterLegacyAminoCodec(amino *codec.LegacyAmino) {}
 
+// RegisterInterfaces registers module concrete types into protobuf Any.
 func (a AppModuleBasic) RegisterInterfaces(registry codectypes.InterfaceRegistry) {
-	//panic("implement me")
+	types.RegisterInterfaces(registry)
 }
 
-func (a AppModuleBasic) DefaultGenesis(marshaler codec.JSONMarshaler) json.RawMessage {
-	return []byte{}
+// DefaultGenesis returns default genesis state as raw bytes for the airdrop module
+func (a AppModuleBasic) DefaultGenesis(cdc codec.JSONMarshaler) json.RawMessage {
+	return cdc.MustMarshalJSON(types.DefaultGenesisState())
 }
 
-func (a AppModuleBasic) ValidateGenesis(marshaler codec.JSONMarshaler, config client.TxEncodingConfig, message json.RawMessage) error {
-	return nil
+// ValidateGenesis performs genesis state validation for the airdrop module.
+func (a AppModuleBasic) ValidateGenesis(cdc codec.JSONMarshaler, _ client.TxEncodingConfig, bz json.RawMessage) error {
+	var gs types.GenesisState
+	if err := cdc.UnmarshalJSON(bz, &gs); err != nil {
+		return fmt.Errorf("failed to unmarshal %s genesis state: %w", host.ModuleName, err)
+	}
+
+	return gs.Validate()
 }
 
-func (a AppModuleBasic) RegisterRESTRoutes(context client.Context, router *mux.Router) {
-	//panic("implement me")
+// RegisterRESTRoutes does nothing. Airdrop does not support legacy REST routes.
+func (a AppModuleBasic) RegisterRESTRoutes(context client.Context, router *mux.Router) {}
+
+// RegisterGRPCGatewayRoutes registers the gRPC Gateway routes for the ibc module.
+func (a AppModuleBasic) RegisterGRPCGatewayRoutes(clientCtx client.Context, mux *runtime.ServeMux) {
+	types.RegisterQueryHandlerClient(context.Background(), mux, types.NewQueryClient(clientCtx))
 }
 
-func (a AppModuleBasic) RegisterGRPCGatewayRoutes(context client.Context, serveMux *runtime.ServeMux) {
-	//panic("implement me")
-}
-
+// GetTxCmd returns the root tx command for the airdrop module.
 func (a AppModuleBasic) GetTxCmd() *cobra.Command {
-	return nil
-	//panic("implement me")
+	return cli.GetTxCmd()
 }
 
+// GetQueryCmd returns the root query command for the airdrop module.
 func (a AppModuleBasic) GetQueryCmd() *cobra.Command {
-	//panic("implement me")
-	return nil
+	return cli.GetQueryCmd()
 }
 
-// AppModule implements an application module for the crisis module.
+// AppModule implements an application module for the airdrop module.
 type AppModule struct {
 	AppModuleBasic
 
-	//bankKeeper    types.BankKeeper
+	keeper *keeper.Keeper
 }
 
-func NewAppModule() AppModule {
-	return AppModule{}
+// NewAppModule creates a new AppModule object
+func NewAppModule(k *keeper.Keeper) AppModule {
+	return AppModule{
+		keeper: k,
+	}
 }
 
+// Name returns the airdrop module's name.
 func (a AppModule) Name() string {
 	return types.ModuleName
 }
 
-func (a AppModule) InitGenesis(context sdk.Context, marshaler codec.JSONMarshaler, message json.RawMessage) []abci.ValidatorUpdate {
+// InitGenesis performs genesis initialization for the airdrop module
+func (a AppModule) InitGenesis(ctx sdk.Context, cdc codec.JSONMarshaler, data json.RawMessage) []abci.ValidatorUpdate {
+	var genesisState types.GenesisState
+	cdc.MustUnmarshalJSON(data, &genesisState)
+	a.keeper.InitGenesis(ctx, &genesisState)
 	return []abci.ValidatorUpdate{}
 }
 
-func (a AppModule) ExportGenesis(context sdk.Context, marshaler codec.JSONMarshaler) json.RawMessage {
-	return []byte{}
+// ExportGenesis returns the exported genesis state as raw bytes for the airdrop module
+func (a AppModule) ExportGenesis(ctx sdk.Context, cdc codec.JSONMarshaler) json.RawMessage {
+	gs := a.keeper.ExportGenesis(ctx)
+	return cdc.MustMarshalJSON(gs)
 }
 
-func (a AppModule) RegisterInvariants(registry sdk.InvariantRegistry) {
+// RegisterInvariants registers the airdrop module invariants.
+func (a AppModule) RegisterInvariants(_ sdk.InvariantRegistry) {
+	// TODO
 }
 
+// Route returns the message routing key for the airdrop module.
 func (a AppModule) Route() sdk.Route {
-	return sdk.NewRoute(types.ModuleName, func(ctx sdk.Context, msg sdk.Msg) (*sdk.Result, error) {
-		return nil, nil
-	})
+	return sdk.NewRoute(types.RouterKey, NewHandler(*a.keeper))
 }
 
-func (a AppModule) QuerierRoute() string {
-	return ""
+// QuerierRoute returns the airdrop module's querier route name.
+func (a AppModule) QuerierRoute() string { return types.RouterKey }
+
+// LegacyQuerierHandler not supported for the airdrop module
+func (a AppModule) LegacyQuerierHandler(_ *codec.LegacyAmino) sdk.Querier { return nil }
+
+// RegisterServices registers module services.
+func (a AppModule) RegisterServices(cfg module.Configurator) {
+	types.RegisterMsgServer(cfg.MsgServer(), keeper.NewMsgServerImpl(*a.keeper))
+	types.RegisterQueryServer(cfg.QueryServer(), *a.keeper)
 }
 
-func (a AppModule) LegacyQuerierHandler(amino *codec.LegacyAmino) sdk.Querier {
-	return func(ctx sdk.Context, path []string, req abci.RequestQuery) ([]byte, error) {
-		return nil, nil
-	}
+// BeginBlock handles the begin block events
+func (a AppModule) BeginBlock(ctx sdk.Context, _ abci.RequestBeginBlock) {
+	BeginBlocker(ctx, *a.keeper)
 }
 
-func (a AppModule) RegisterServices(configurator module.Configurator) {
-}
-
-func (a AppModule) BeginBlock(context sdk.Context, block abci.RequestBeginBlock) {
-	fmt.Println("Whoop whoop this is a block...")
-}
-
-func (a AppModule) EndBlock(context sdk.Context, block abci.RequestEndBlock) []abci.ValidatorUpdate {
+// EndBlock returns the end blocker for the airdrop module.
+func (a AppModule) EndBlock(_ sdk.Context, _ abci.RequestEndBlock) []abci.ValidatorUpdate {
 	return []abci.ValidatorUpdate{}
 }

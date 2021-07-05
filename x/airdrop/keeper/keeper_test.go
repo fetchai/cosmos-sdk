@@ -15,6 +15,8 @@ import (
 var (
 	moduleAddress = authtypes.NewModuleAddress(types.ModuleName)
 	feeCollectorAddress = authtypes.NewModuleAddress(authtypes.FeeCollectorName)
+	addr1 = sdk.AccAddress([]byte("addr1_______________"))
+	addr2 = sdk.AccAddress([]byte("addr2_______________"))
 )
 
 type KeeperTestSuite struct {
@@ -31,14 +33,15 @@ func (s *KeeperTestSuite) SetupTest() {
 		Time:   time.Now(),
 		Height: 10,
 	})
+
+	s.app.AirdropKeeper.SetParams(s.ctx, types.NewParams(addr1.String(), addr2.String()))
 }
 
 func (s *KeeperTestSuite) TestAddNewFund() {
-	addr := sdk.AccAddress([]byte("addr1_______________"))
 	amount := sdk.NewInt64Coin(sdk.DefaultBondDenom, 4000)
-	s.Require().NoError(s.app.BankKeeper.SetBalance(s.ctx, addr, amount)) // ensure the account is funded
+	s.Require().NoError(s.app.BankKeeper.SetBalance(s.ctx, addr1, amount)) // ensure the account is funded
 
-	addrBalance := s.app.BankKeeper.GetBalance(s.ctx, addr, sdk.DefaultBondDenom)
+	addrBalance := s.app.BankKeeper.GetBalance(s.ctx, addr1, sdk.DefaultBondDenom)
 	moduleBalance := s.app.BankKeeper.GetBalance(s.ctx, moduleAddress, sdk.DefaultBondDenom)
 
 	// sanity check
@@ -50,9 +53,9 @@ func (s *KeeperTestSuite) TestAddNewFund() {
 		Amount:          &amount,
 		DripRate:        sdk.NewInt(40),
 	}
-	s.Require().NoError(s.app.AirdropKeeper.AddFund(s.ctx, addr, fund))
+	s.Require().NoError(s.app.AirdropKeeper.AddFund(s.ctx, addr1, fund))
 
-	addrBalance = s.app.BankKeeper.GetBalance(s.ctx, addr, sdk.DefaultBondDenom)
+	addrBalance = s.app.BankKeeper.GetBalance(s.ctx, addr1, sdk.DefaultBondDenom)
 	moduleBalance = s.app.BankKeeper.GetBalance(s.ctx, moduleAddress, sdk.DefaultBondDenom)
 
 	s.Require().Equal(addrBalance, sdk.NewCoin(sdk.DefaultBondDenom, sdk.NewInt(0)))
@@ -60,51 +63,46 @@ func (s *KeeperTestSuite) TestAddNewFund() {
 }
 
 func (s *KeeperTestSuite) TestCreateRetrieveFund() {
-	addr := sdk.AccAddress([]byte("addr1_______________"))
 	amount := sdk.NewInt64Coin(sdk.DefaultBondDenom, 4000)
-	s.Require().NoError(s.app.BankKeeper.SetBalance(s.ctx, addr, amount)) // ensure the account is funded
+	s.Require().NoError(s.app.BankKeeper.SetBalance(s.ctx, addr1, amount)) // ensure the account is funded
 
 	fund := types.Fund{
 		Amount:          &amount,
 		DripRate:        sdk.NewInt(40),
 	}
-	s.Require().NoError(s.app.AirdropKeeper.AddFund(s.ctx, addr, fund))
+	s.Require().NoError(s.app.AirdropKeeper.AddFund(s.ctx, addr1, fund))
 
-	recoveredFund, err := s.app.AirdropKeeper.GetFund(s.ctx, addr)
+	recoveredFund, err := s.app.AirdropKeeper.GetFund(s.ctx, addr1)
 	s.Require().NoError(err)
 	s.Require().Equal(*recoveredFund, fund)
 }
 
 func (s *KeeperTestSuite) TestUnableToCreateDuplicateFunds() {
-	addr := sdk.AccAddress([]byte("addr1_______________"))
 	amount := sdk.NewInt64Coin(sdk.DefaultBondDenom, 4000)
 	addrAmount := sdk.NewInt64Coin(sdk.DefaultBondDenom, 8000)
-	s.Require().NoError(s.app.BankKeeper.SetBalance(s.ctx, addr, addrAmount)) // ensure the account is funded for the two funds
+	s.Require().NoError(s.app.BankKeeper.SetBalance(s.ctx, addr1, addrAmount)) // ensure the account is funded for the two funds
 
 	fund := types.Fund{
 		Amount:          &amount,
 		DripRate:        sdk.NewInt(40),
 	}
-	s.Require().NoError(s.app.AirdropKeeper.AddFund(s.ctx, addr, fund))
-	s.Require().Error(s.app.AirdropKeeper.AddFund(s.ctx, addr, fund)) // this should fail
+	s.Require().NoError(s.app.AirdropKeeper.AddFund(s.ctx, addr1, fund))
+	s.Require().Error(s.app.AirdropKeeper.AddFund(s.ctx, addr1, fund)) // this should fail
 }
 
 func (s *KeeperTestSuite) TestUnableToCreateFundWithNecessaryFunds() {
-	addr := sdk.AccAddress([]byte("addr1_______________"))
 	amount := sdk.NewInt64Coin(sdk.DefaultBondDenom, 4000)
 	addrAmount := sdk.NewInt64Coin(sdk.DefaultBondDenom, 2000) // not enough
-	s.Require().NoError(s.app.BankKeeper.SetBalance(s.ctx, addr, addrAmount)) // ensure the account is funded for the two funds
+	s.Require().NoError(s.app.BankKeeper.SetBalance(s.ctx, addr1, addrAmount)) // ensure the account is funded for the two funds
 
 	fund := types.Fund{
 		Amount:          &amount,
 		DripRate:        sdk.NewInt(40),
 	}
-	s.Require().Error(s.app.AirdropKeeper.AddFund(s.ctx, addr, fund)) // this should fail - user doesn't have enough funds
+	s.Require().Error(s.app.AirdropKeeper.AddFund(s.ctx, addr1, fund)) // this should fail - user doesn't have enough funds
 }
 
 func (s *KeeperTestSuite) TestQueryOfAllFunds() {
-	addr1 := sdk.AccAddress([]byte("addr1_______________"))
-	addr2 := sdk.AccAddress([]byte("addr2_______________"))
 	amount := sdk.NewInt64Coin(sdk.DefaultBondDenom, 4000)
 	fund := types.Fund{
 		Amount:          &amount,
@@ -130,8 +128,6 @@ func (s *KeeperTestSuite) TestQueryOfAllFunds() {
 }
 
 func (s *KeeperTestSuite) TestFeeDrip() {
-	addr1 := sdk.AccAddress([]byte("addr1_______________"))
-	addr2 := sdk.AccAddress([]byte("addr2_______________"))
 	amount := sdk.NewInt64Coin(sdk.DefaultBondDenom, 4000)
 	fund1 := types.Fund{
 		Amount:          &amount,

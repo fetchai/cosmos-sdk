@@ -5,6 +5,7 @@ import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
 	"github.com/cosmos/cosmos-sdk/x/airdrop/types"
+	paramtypes "github.com/cosmos/cosmos-sdk/x/params/types"
 )
 
 type Keeper struct {
@@ -12,6 +13,7 @@ type Keeper struct {
 	cdc              codec.BinaryMarshaler
 	storeKey         sdk.StoreKey
 	feeCollectorName string
+	paramSpace       paramtypes.Subspace
 }
 
 type FundPair struct {
@@ -19,16 +21,31 @@ type FundPair struct {
 	Account sdk.AccAddress
 }
 
-func NewKeeper(cdc codec.BinaryMarshaler, storeKey sdk.StoreKey, bankKeeper types.BankKeeper, feeCollectorName string) Keeper {
+func NewKeeper(cdc codec.BinaryMarshaler, storeKey sdk.StoreKey, paramSpace paramtypes.Subspace, bankKeeper types.BankKeeper, feeCollectorName string) Keeper {
+
+	// set KeyTable if it has not already been set
+	if !paramSpace.HasKeyTable() {
+		paramSpace = paramSpace.WithKeyTable(types.ParamKeyTable())
+	}
+
 	return Keeper{
 		bankKeeper:       bankKeeper,
 		cdc:              cdc,
 		storeKey:         storeKey,
 		feeCollectorName: feeCollectorName,
+		paramSpace:       paramSpace,
 	}
 }
 
 func (k Keeper) AddFund(ctx sdk.Context, sender sdk.AccAddress, fund types.Fund) error {
+	params := k.GetParams(ctx)
+	if !params.IsAllowedSender(sender) {
+		return sdkerrors.Wrapf(
+			sdkerrors.ErrConflict,
+			"Non-whitelist sender %s", sender.String(),
+		)
+	}
+
 	key := types.GetActiveFundKey(sender)
 
 	// validate that the fund we are adding is correct

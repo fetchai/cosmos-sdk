@@ -20,6 +20,11 @@ service Query {
   rpc Fund(QueryFundRequest) returns (QueryFundResponse) {
     option (google.api.http).get = "/cosmos/airdrop/v1beta1/funds/{address}";
   }
+
+  // Params queries the current modules parameters
+  rpc Params(QueryParamsRequest) returns (QueryParamsResponse) {
+    option (google.api.http).get = "/cosmos/airdrop/v1beta1/params";
+  }
 }
 
 // QueryAllFundsRequest defines the request for querying all the funds
@@ -41,4 +46,12 @@ message QueryFundRequest {
 // QueryFundResponse defines the response for querying a specific fund
 message QueryFundResponse {
   cosmos.airdrop.v1beta1.Fund fund = 1;
+}
+
+// QueryParamsRequest defines the request type for querying x/airdrop parameters.
+message QueryParamsRequest {}
+
+// QueryParamsResponse defines the response type for querying x/airdrop parameters.
+message QueryParamsResponse {
+  Params params = 1 [(gogoproto.nullable) = false];
 }

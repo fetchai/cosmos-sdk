@@ -27,6 +27,8 @@
     - [QueryAllFundsResponse](#cosmos.airdrop.v1beta1.QueryAllFundsResponse)
     - [QueryFundRequest](#cosmos.airdrop.v1beta1.QueryFundRequest)
     - [QueryFundResponse](#cosmos.airdrop.v1beta1.QueryFundResponse)
+    - [QueryParamsRequest](#cosmos.airdrop.v1beta1.QueryParamsRequest)
+    - [QueryParamsResponse](#cosmos.airdrop.v1beta1.QueryParamsResponse)
   
     - [Query](#cosmos.airdrop.v1beta1.Query)
   
@@ -807,7 +809,7 @@ IntProto defines a Protobuf wrapper around an Int object.
 <a name="cosmos.airdrop.v1beta1.ActiveFund"></a>
 
 ### ActiveFund
-
+ActiveFund describes an active fund on the network
 
 
 | Field | Type | Label | Description |
@@ -839,12 +841,12 @@ Fund defines a structure for a fund that is being distributed to network stakers
 <a name="cosmos.airdrop.v1beta1.Params"></a>
 
 ### Params
-
+Params define the module parameters
 
 
 | Field | Type | Label | Description |
 | ----- | ---- | ----- | ----------- |
-| `enabled` | [bool](#bool) |  |  |
+| `whitelist` | [string](#string) | repeated |  |
 
 
 
@@ -876,7 +878,7 @@ GenesisState defines the bank module's genesis state.
 | Field | Type | Label | Description |
 | ----- | ---- | ----- | ----------- |
 | `params` | [Params](#cosmos.airdrop.v1beta1.Params) |  | params defines all the parameters of the module. |
-| `balances` | [ActiveFund](#cosmos.airdrop.v1beta1.ActiveFund) | repeated | balances is an array containing the balances of all the accounts. |
+| `funds` | [ActiveFund](#cosmos.airdrop.v1beta1.ActiveFund) | repeated | balances is an array containing the balances of all the accounts. |
 
 
 
@@ -1021,6 +1023,31 @@ QueryFundResponse defines the response for querying a specific fund
 
 
 
+
+<a name="cosmos.airdrop.v1beta1.QueryParamsRequest"></a>
+
+### QueryParamsRequest
+QueryParamsRequest defines the request type for querying x/airdrop parameters.
+
+
+
+
+
+
+<a name="cosmos.airdrop.v1beta1.QueryParamsResponse"></a>
+
+### QueryParamsResponse
+QueryParamsResponse defines the response type for querying x/airdrop parameters.
+
+
+| Field | Type | Label | Description |
+| ----- | ---- | ----- | ----------- |
+| `params` | [Params](#cosmos.airdrop.v1beta1.Params) |  |  |
+
+
+
+
+
  <!-- end messages -->
 
  <!-- end enums -->
@@ -1037,6 +1064,7 @@ Query defines the gRPC querier service.
 | ----------- | ------------ | ------------- | ------------| ------- | -------- |
 | `AllFunds` | [QueryAllFundsRequest](#cosmos.airdrop.v1beta1.QueryAllFundsRequest) | [QueryAllFundsResponse](#cosmos.airdrop.v1beta1.QueryAllFundsResponse) | AllFunds queries all active airdrop funds | GET|/cosmos/airdrop/v1beta1/funds|
 | `Fund` | [QueryFundRequest](#cosmos.airdrop.v1beta1.QueryFundRequest) | [QueryFundResponse](#cosmos.airdrop.v1beta1.QueryFundResponse) | Fund queries a specific airdrop fund | GET|/cosmos/airdrop/v1beta1/funds/{address}|
+| `Params` | [QueryParamsRequest](#cosmos.airdrop.v1beta1.QueryParamsRequest) | [QueryParamsResponse](#cosmos.airdrop.v1beta1.QueryParamsResponse) | Params queries the current modules parameters | GET|/cosmos/airdrop/v1beta1/params|
 
  <!-- end services -->
 

@@ -68,3 +68,14 @@ func (k Keeper) Fund(ctx context.Context, req *types.QueryFundRequest) (*types.Q
 
 	return resp, nil
 }
+
+func (k Keeper) Params(ctx context.Context, req *types.QueryParamsRequest) (*types.QueryParamsResponse, error) {
+	if req == nil {
+		return nil, status.Errorf(codes.InvalidArgument, "empty request")
+	}
+
+	sdkCtx := sdk.UnwrapSDKContext(ctx)
+	params := k.GetParams(sdkCtx)
+
+	return &types.QueryParamsResponse{Params: params}, nil
+}
