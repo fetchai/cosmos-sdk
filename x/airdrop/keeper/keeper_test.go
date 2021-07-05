@@ -48,7 +48,6 @@ func (s *KeeperTestSuite) TestAddNewFund() {
 	s.Require().Equal(addrBalance, sdk.NewCoin(sdk.DefaultBondDenom, sdk.NewInt(4000)))
 	s.Require().Equal(moduleBalance, sdk.NewCoin(sdk.DefaultBondDenom, sdk.NewInt(0)))
 
-
 	fund := types.Fund{
 		Amount:          &amount,
 		DripRate:        sdk.NewInt(40),

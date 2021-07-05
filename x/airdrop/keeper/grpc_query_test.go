@@ -13,6 +13,12 @@ import (
 	"testing"
 )
 
+var (
+	queryAddr1 = sdk.AccAddress([]byte("addr1_______________"))
+	queryAddr2 = sdk.AccAddress([]byte("addr2_______________"))
+)
+
+
 type KeeperGrpcQueryTestSuite struct {
 	suite.Suite
 
@@ -24,6 +30,7 @@ type KeeperGrpcQueryTestSuite struct {
 func (s *KeeperGrpcQueryTestSuite) SetupTest() {
 	s.app = simapp.Setup(false)
 	s.ctx = s.app.BaseApp.NewContext(false, tmproto.Header{})
+	s.app.AirdropKeeper.SetParams(s.ctx, types.NewParams(queryAddr1.String(), queryAddr2.String()))
 
 	queryHelper := baseapp.NewQueryServerTestHelper(s.ctx, s.app.InterfaceRegistry())
 	types.RegisterQueryServer(queryHelper, s.app.AirdropKeeper)
@@ -31,8 +38,6 @@ func (s *KeeperGrpcQueryTestSuite) SetupTest() {
 }
 
 func (s *KeeperGrpcQueryTestSuite) TestQueryFund() {
-	addr := sdk.AccAddress([]byte("addr1_______________"))
-
 	var (
 		req         *types.QueryFundRequest
 		expResponse types.QueryFundResponse
@@ -59,17 +64,17 @@ func (s *KeeperGrpcQueryTestSuite) TestQueryFund() {
 					Amount:          &amount,
 					DripRate:        sdk.NewInt(40),
 				}
-				err := s.app.BankKeeper.SetBalance(s.ctx, addr, amount)
+				err := s.app.BankKeeper.SetBalance(s.ctx, queryAddr1, amount)
 				if err != nil {
 					panic(err)
 				}
-				err = s.app.AirdropKeeper.AddFund(s.ctx, addr, fund)
+				err = s.app.AirdropKeeper.AddFund(s.ctx, queryAddr1, fund)
 				if err != nil {
 					panic(err)
 				}
 
 				req = &types.QueryFundRequest{
-					Address: addr.String(),
+					Address: queryAddr1.String(),
 				}
 				expResponse = types.QueryFundResponse{Fund: &fund}
 			},
@@ -79,7 +84,7 @@ func (s *KeeperGrpcQueryTestSuite) TestQueryFund() {
 			"with an address being specified but fund not present",
 			func() {
 				req = &types.QueryFundRequest{
-					Address: addr.String(),
+					Address: queryAddr1.String(),
 				}
 				expResponse = types.QueryFundResponse{}
 			},
@@ -106,9 +111,6 @@ func (s *KeeperGrpcQueryTestSuite) TestQueryFund() {
 }
 
 func (s *KeeperGrpcQueryTestSuite) TestQueryAllFund() {
-	addr1 := sdk.AccAddress([]byte("addr1_______________"))
-	addr2 := sdk.AccAddress([]byte("addr2_______________"))
-
 	amount := sdk.NewInt64Coin(sdk.DefaultBondDenom, 2000)
 	fund := types.Fund{
 		Amount:          &amount,
@@ -141,33 +143,32 @@ func (s *KeeperGrpcQueryTestSuite) TestQueryAllFund() {
 		{
 			"when funds are present",
 			func() {
-				err := s.app.BankKeeper.SetBalance(s.ctx, addr1, *fund.Amount)
+				err := s.app.BankKeeper.SetBalance(s.ctx, queryAddr1, *fund.Amount)
 				if err != nil {
 					panic(err)
 				}
-				err = s.app.BankKeeper.SetBalance(s.ctx, addr2, *fund.Amount)
+				err = s.app.BankKeeper.SetBalance(s.ctx, queryAddr2, *fund.Amount)
 				if err != nil {
 					panic(err)
 				}
-				err = s.app.AirdropKeeper.AddFund(s.ctx, addr1, fund)
+				err = s.app.AirdropKeeper.AddFund(s.ctx, queryAddr1, fund)
 				if err != nil {
 					panic(err)
 				}
-				err = s.app.AirdropKeeper.AddFund(s.ctx, addr2, fund)
+				err = s.app.AirdropKeeper.AddFund(s.ctx, queryAddr2, fund)
 				if err != nil {
 					panic(err)
 				}
-
 
 				req = &types.QueryAllFundsRequest{}
 				expResponse = types.QueryAllFundsResponse{
 					Funds: []*types.ActiveFund{
 						{
-							Sender: addr1.String(),
+							Sender: queryAddr1.String(),
 							Fund:   &fund,
 						},
 						{
-							Sender: addr2.String(),
+							Sender: queryAddr2.String(),
 							Fund:   &fund,
 						},
 					},
@@ -182,19 +183,19 @@ func (s *KeeperGrpcQueryTestSuite) TestQueryAllFund() {
 		{
 			"when funds are present with page 1",
 			func() {
-				err := s.app.BankKeeper.SetBalance(s.ctx, addr1, *fund.Amount)
+				err := s.app.BankKeeper.SetBalance(s.ctx, queryAddr1, *fund.Amount)
 				if err != nil {
 					panic(err)
 				}
-				err = s.app.BankKeeper.SetBalance(s.ctx, addr2, *fund.Amount)
+				err = s.app.BankKeeper.SetBalance(s.ctx, queryAddr2, *fund.Amount)
 				if err != nil {
 					panic(err)
 				}
-				err = s.app.AirdropKeeper.AddFund(s.ctx, addr1, fund)
+				err = s.app.AirdropKeeper.AddFund(s.ctx, queryAddr1, fund)
 				if err != nil {
 					panic(err)
 				}
-				err = s.app.AirdropKeeper.AddFund(s.ctx, addr2, fund)
+				err = s.app.AirdropKeeper.AddFund(s.ctx, queryAddr2, fund)
 				if err != nil {
 					panic(err)
 				}
@@ -210,12 +211,12 @@ func (s *KeeperGrpcQueryTestSuite) TestQueryAllFund() {
 				expResponse = types.QueryAllFundsResponse{
 					Funds: []*types.ActiveFund{
 						{
-							Sender: addr1.String(),
+							Sender: queryAddr1.String(),
 							Fund:   &fund,
 						},
 					},
 					Pagination: &query.PageResponse{
-						NextKey: addr2,
+						NextKey: queryAddr2,
 					},
 				}
 			},
@@ -224,19 +225,19 @@ func (s *KeeperGrpcQueryTestSuite) TestQueryAllFund() {
 		{
 			"when funds are present with page 2",
 			func() {
-				err := s.app.BankKeeper.SetBalance(s.ctx, addr1, *fund.Amount)
+				err := s.app.BankKeeper.SetBalance(s.ctx, queryAddr1, *fund.Amount)
 				if err != nil {
 					panic(err)
 				}
-				err = s.app.BankKeeper.SetBalance(s.ctx, addr2, *fund.Amount)
+				err = s.app.BankKeeper.SetBalance(s.ctx, queryAddr2, *fund.Amount)
 				if err != nil {
 					panic(err)
 				}
-				err = s.app.AirdropKeeper.AddFund(s.ctx, addr1, fund)
+				err = s.app.AirdropKeeper.AddFund(s.ctx, queryAddr1, fund)
 				if err != nil {
 					panic(err)
 				}
-				err = s.app.AirdropKeeper.AddFund(s.ctx, addr2, fund)
+				err = s.app.AirdropKeeper.AddFund(s.ctx, queryAddr2, fund)
 				if err != nil {
 					panic(err)
 				}
@@ -252,7 +253,7 @@ func (s *KeeperGrpcQueryTestSuite) TestQueryAllFund() {
 				expResponse = types.QueryAllFundsResponse{
 					Funds: []*types.ActiveFund{
 						{
-							Sender: addr2.String(),
+							Sender: queryAddr2.String(),
 							Fund:   &fund,
 						},
 					},

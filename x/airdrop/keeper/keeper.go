@@ -5,6 +5,7 @@ import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
 	"github.com/cosmos/cosmos-sdk/x/airdrop/types"
+	authtypes "github.com/cosmos/cosmos-sdk/x/auth/types"
 	paramtypes "github.com/cosmos/cosmos-sdk/x/params/types"
 )
 
@@ -46,8 +47,6 @@ func (k Keeper) AddFund(ctx sdk.Context, sender sdk.AccAddress, fund types.Fund)
 		)
 	}
 
-	key := types.GetActiveFundKey(sender)
-
 	// validate that the fund we are adding is correct
 	err := fund.ValidateBasic()
 	if err != nil {
@@ -59,14 +58,40 @@ func (k Keeper) AddFund(ctx sdk.Context, sender sdk.AccAddress, fund types.Fund)
 		return err
 	}
 
+	return k.setFund(ctx, sender, fund, false);
+}
+
+func (k Keeper) UpdateFund(ctx sdk.Context, sender sdk.AccAddress, fund types.Fund) error {
+	return k.setFund(ctx, sender, fund, true);
+}
+
+func (k Keeper) setFund(ctx sdk.Context, sender sdk.AccAddress, fund types.Fund, shouldExist bool) error {
+	key := types.GetActiveFundKey(sender)
+
 	// check that we do not already have fund from this account
 	store := ctx.KVStore(k.storeKey)
-	if store.Has(key) {
-		return sdkerrors.Wrapf(sdkerrors.ErrConflict, "Fund from sender already exists")
-	}
 
-	// update the fund
-	store.Set(key, k.cdc.MustMarshalBinaryBare(&fund))
+	// check to see if the fund should exist or not
+	if shouldExist {
+		if !store.Has(key) {
+			return sdkerrors.Wrapf(sdkerrors.ErrConflict, "Fund from sender already exists")
+		}
+
+		// if a fund is updated with a zero or negative remaining amount then simple delete the entry
+		if fund.Amount.IsNegative() || fund.Amount.IsZero() {
+			store.Delete(key) // remove the entry
+		} else {
+			store.Set(key, k.cdc.MustMarshalBinaryBare(&fund)) // update the entry
+		}
+
+	} else {
+		if store.Has(key) {
+			return sdkerrors.Wrapf(sdkerrors.ErrConflict, "Fund from sender already exists")
+		}
+
+		// update the fund
+		store.Set(key, k.cdc.MustMarshalBinaryBare(&fund))
+	}
 
 	return nil
 }
@@ -85,23 +110,6 @@ func (k Keeper) GetFund(ctx sdk.Context, sender sdk.AccAddress) (*types.Fund, er
 	return fund, nil
 }
 
-func (k Keeper) UpdateFund(ctx sdk.Context, sender sdk.AccAddress, fund types.Fund) error {
-	key := types.GetActiveFundKey(sender)
-
-	store := ctx.KVStore(k.storeKey)
-	if !store.Has(key) {
-		return sdkerrors.Wrapf(sdkerrors.ErrConflict, "Fund from sender already exists")
-	}
-
-	// if a fund is updated with a zero or negative remaining amount then simple delete the entry
-	if fund.Amount.IsNegative() || fund.Amount.IsZero() {
-		store.Delete(key) // remove the entry
-	} else {
-		store.Set(key, k.cdc.MustMarshalBinaryBare(&fund)) // update the entry
-	}
-
-	return nil
-}
 
 func (k Keeper) GetAllFunds(ctx sdk.Context) []FundPair {
 	store := ctx.KVStore(k.storeKey)
@@ -122,7 +130,7 @@ func (k Keeper) GetAllFunds(ctx sdk.Context) []FundPair {
 }
 
 func (k Keeper) DripAllFunds(ctx sdk.Context) (*sdk.Coins, error) {
-	drips := map[string]sdk.Coin{}
+	drips := sdk.NewCoins()
 	funds := k.GetAllFunds(ctx)
 
 	for _, fund := range funds {
@@ -134,28 +142,59 @@ func (k Keeper) DripAllFunds(ctx sdk.Context) (*sdk.Coins, error) {
 			continue // ignore this drip
 		}
 
-		coin, ok := drips[drip.Denom]
-		if !ok {
-			coin = drip
-		} else {
-			coin = coin.Add(drip)
-		}
-		drips[drip.Denom] = coin
+		// update the drips
+		drips = drips.Add(drip)
 	}
-
-	// build the complete set of drips
-	allCoins := []sdk.Coin{}
-	for _, drop := range drips {
-		allCoins = append(allCoins, drop)
-	}
-
-	allDrips := sdk.NewCoins(allCoins...)
 
 	// send the funds to the fee collector module
-	err := k.bankKeeper.SendCoinsFromModuleToModule(ctx, types.ModuleName, k.feeCollectorName, allDrips)
+	err := k.bankKeeper.SendCoinsFromModuleToModule(ctx, types.ModuleName, k.feeCollectorName, drips)
 	if err != nil {
 		return nil, err
 	}
 
-	return &allDrips, nil
+	return &drips, nil
+}
+
+func (k Keeper) GetActiveFunds(ctx sdk.Context) []types.ActiveFund {
+	activeFunds := []types.ActiveFund{}
+	for _, fund := range k.GetAllFunds(ctx) {
+		activeFunds = append(activeFunds, types.ActiveFund{
+			Sender: fund.Account.String(),
+			Fund:   &fund.Fund,
+		})
+	}
+
+	return activeFunds
+}
+
+// SetActiveFunds forcibly sets the active funds that should be used
+func (k Keeper) SetActiveFunds(ctx sdk.Context, funds []types.ActiveFund) error {
+	coins := sdk.NewCoins()
+
+	for _, fund := range funds {
+		account, err := sdk.AccAddressFromBech32(fund.Sender)
+		if err != nil {
+			return sdkerrors.Wrapf(sdkerrors.ErrConflict, "Invalid address: %s", fund.Sender)
+		}
+
+		if fund.Fund == nil {
+			return sdkerrors.Wrapf(sdkerrors.ErrConflict, "Invalid fund")
+		}
+
+		// update the coins
+		coins = coins.Add(*fund.Fund.Amount)
+
+		err = k.setFund(ctx, account, *fund.Fund, false)
+		if err != nil {
+			return sdkerrors.Wrapf(sdkerrors.ErrConflict, "Failed to set active fund: %s", err.Error())
+		}
+	}
+
+	// finally set the balance for this module
+	err := k.bankKeeper.SetBalances(ctx, authtypes.NewModuleAddress(types.ModuleName), coins)
+	if err != nil {
+		return sdkerrors.Wrapf(sdkerrors.ErrConflict, "Failed to set active coins: %s", err.Error())
+	}
+
+	return nil
 }

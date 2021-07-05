@@ -6,9 +6,16 @@ import (
 )
 
 func (k Keeper) InitGenesis(ctx sdk.Context, genState *types.GenesisState) {
-
+	k.SetParams(ctx, genState.Params)
+	err := k.SetActiveFunds(ctx, genState.Funds)
+	if err != nil {
+		panic(err)
+	}
 }
 
 func (k Keeper) ExportGenesis(ctx sdk.Context) *types.GenesisState {
-	return nil
+	return types.NewGenesisState(
+		k.GetParams(ctx),
+		k.GetActiveFunds(ctx),
+	)
 }
