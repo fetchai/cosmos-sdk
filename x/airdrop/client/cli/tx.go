@@ -27,9 +27,9 @@ func GetTxCmd() *cobra.Command {
 func NewSendTxCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use: "send [from_key_or_address] [amount] [drip_rate]",
-		Short: `Creates an airdrop fund. Note, the'--from' flag is
+		Short: `Creates an airdrop fund. Note, the '--from' flag is
 ignored as it is implied from [from_key_or_address].`,
-		Args: cobra.ExactArgs(2),
+		Args: cobra.ExactArgs(3),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			cmd.Flags().Set(flags.FlagFrom, args[0])
 			clientCtx, err := client.GetClientTxContext(cmd)
