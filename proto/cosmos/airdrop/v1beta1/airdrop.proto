@@ -1,0 +1,35 @@
+syntax = "proto3";
+package cosmos.airdrop.v1beta1;
+
+import "gogoproto/gogo.proto";
+import "cosmos_proto/cosmos.proto";
+import "cosmos/base/v1beta1/coin.proto";
+
+option go_package = "github.com/cosmos/cosmos-sdk/x/airdrop/types";
+
+// Fund defines a structure for a fund that is being distributed to network stakers
+message Fund {
+  option (gogoproto.equal) = true;
+
+  // The amount of fund that is remaining
+  cosmos.base.v1beta1.Coin amount = 1 [(gogoproto.moretags) = "yaml:\"amount\""];
+
+  // The amount of funds that should be removed from the fund every block
+  string drip_amount = 2 [
+    (gogoproto.customtype) = "github.com/cosmos/cosmos-sdk/types.Int",
+    (gogoproto.nullable)   = false,
+    (gogoproto.moretags)   = "yaml:\"drip_amount\""
+  ];
+}
+
+// ActiveFund describes an active fund on the network
+message ActiveFund {
+  string sender = 1 [(gogoproto.moretags) = "yaml:\"sender\""];
+  Fund   fund   = 2 [(gogoproto.moretags) = "yaml:\"blocks_remaining\""];
+}
+
+// Params define the module parameters
+message Params {
+  // The set of addresses which are allowed to create are drop funds
+  repeated string allow_list = 1 [(gogoproto.moretags) = "yaml:\"allow_list\""];
+}

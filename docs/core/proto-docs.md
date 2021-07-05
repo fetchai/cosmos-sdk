@@ -4,6 +4,40 @@
 
 ## Table of Contents
 
+- [cosmos/base/v1beta1/coin.proto](#cosmos/base/v1beta1/coin.proto)
+    - [Coin](#cosmos.base.v1beta1.Coin)
+    - [DecCoin](#cosmos.base.v1beta1.DecCoin)
+    - [DecProto](#cosmos.base.v1beta1.DecProto)
+    - [IntProto](#cosmos.base.v1beta1.IntProto)
+  
+- [cosmos/airdrop/v1beta1/airdrop.proto](#cosmos/airdrop/v1beta1/airdrop.proto)
+    - [ActiveFund](#cosmos.airdrop.v1beta1.ActiveFund)
+    - [Fund](#cosmos.airdrop.v1beta1.Fund)
+    - [Params](#cosmos.airdrop.v1beta1.Params)
+  
+- [cosmos/airdrop/v1beta1/genesis.proto](#cosmos/airdrop/v1beta1/genesis.proto)
+    - [GenesisState](#cosmos.airdrop.v1beta1.GenesisState)
+  
+- [cosmos/base/query/v1beta1/pagination.proto](#cosmos/base/query/v1beta1/pagination.proto)
+    - [PageRequest](#cosmos.base.query.v1beta1.PageRequest)
+    - [PageResponse](#cosmos.base.query.v1beta1.PageResponse)
+  
+- [cosmos/airdrop/v1beta1/query.proto](#cosmos/airdrop/v1beta1/query.proto)
+    - [QueryAllFundsRequest](#cosmos.airdrop.v1beta1.QueryAllFundsRequest)
+    - [QueryAllFundsResponse](#cosmos.airdrop.v1beta1.QueryAllFundsResponse)
+    - [QueryFundRequest](#cosmos.airdrop.v1beta1.QueryFundRequest)
+    - [QueryFundResponse](#cosmos.airdrop.v1beta1.QueryFundResponse)
+    - [QueryParamsRequest](#cosmos.airdrop.v1beta1.QueryParamsRequest)
+    - [QueryParamsResponse](#cosmos.airdrop.v1beta1.QueryParamsResponse)
+  
+    - [Query](#cosmos.airdrop.v1beta1.Query)
+  
+- [cosmos/airdrop/v1beta1/tx.proto](#cosmos/airdrop/v1beta1/tx.proto)
+    - [MsgAirDrop](#cosmos.airdrop.v1beta1.MsgAirDrop)
+    - [MsgAirDropResponse](#cosmos.airdrop.v1beta1.MsgAirDropResponse)
+  
+    - [Msg](#cosmos.airdrop.v1beta1.Msg)
+  
 - [cosmos/auth/v1beta1/auth.proto](#cosmos/auth/v1beta1/auth.proto)
     - [BaseAccount](#cosmos.auth.v1beta1.BaseAccount)
     - [ModuleAccount](#cosmos.auth.v1beta1.ModuleAccount)
@@ -20,12 +54,6 @@
   
     - [Query](#cosmos.auth.v1beta1.Query)
   
-- [cosmos/base/v1beta1/coin.proto](#cosmos/base/v1beta1/coin.proto)
-    - [Coin](#cosmos.base.v1beta1.Coin)
-    - [DecCoin](#cosmos.base.v1beta1.DecCoin)
-    - [DecProto](#cosmos.base.v1beta1.DecProto)
-    - [IntProto](#cosmos.base.v1beta1.IntProto)
-  
 - [cosmos/bank/v1beta1/bank.proto](#cosmos/bank/v1beta1/bank.proto)
     - [DenomUnit](#cosmos.bank.v1beta1.DenomUnit)
     - [Input](#cosmos.bank.v1beta1.Input)
@@ -38,10 +66,6 @@
 - [cosmos/bank/v1beta1/genesis.proto](#cosmos/bank/v1beta1/genesis.proto)
     - [Balance](#cosmos.bank.v1beta1.Balance)
     - [GenesisState](#cosmos.bank.v1beta1.GenesisState)
-  
-- [cosmos/base/query/v1beta1/pagination.proto](#cosmos/base/query/v1beta1/pagination.proto)
-    - [PageRequest](#cosmos.base.query.v1beta1.PageRequest)
-    - [PageResponse](#cosmos.base.query.v1beta1.PageResponse)
   
 - [cosmos/bank/v1beta1/query.proto](#cosmos/bank/v1beta1/query.proto)
     - [QueryAllBalancesRequest](#cosmos.bank.v1beta1.QueryAllBalancesRequest)
@@ -691,6 +715,413 @@
 
 
 
+<a name="cosmos/base/v1beta1/coin.proto"></a>
+<p align="right"><a href="#top">Top</a></p>
+
+## cosmos/base/v1beta1/coin.proto
+
+
+
+<a name="cosmos.base.v1beta1.Coin"></a>
+
+### Coin
+Coin defines a token with a denomination and an amount.
+
+NOTE: The amount field is an Int which implements the custom method
+signatures required by gogoproto.
+
+
+| Field | Type | Label | Description |
+| ----- | ---- | ----- | ----------- |
+| `denom` | [string](#string) |  |  |
+| `amount` | [string](#string) |  |  |
+
+
+
+
+
+
+<a name="cosmos.base.v1beta1.DecCoin"></a>
+
+### DecCoin
+DecCoin defines a token with a denomination and a decimal amount.
+
+NOTE: The amount field is an Dec which implements the custom method
+signatures required by gogoproto.
+
+
+| Field | Type | Label | Description |
+| ----- | ---- | ----- | ----------- |
+| `denom` | [string](#string) |  |  |
+| `amount` | [string](#string) |  |  |
+
+
+
+
+
+
+<a name="cosmos.base.v1beta1.DecProto"></a>
+
+### DecProto
+DecProto defines a Protobuf wrapper around a Dec object.
+
+
+| Field | Type | Label | Description |
+| ----- | ---- | ----- | ----------- |
+| `dec` | [string](#string) |  |  |
+
+
+
+
+
+
+<a name="cosmos.base.v1beta1.IntProto"></a>
+
+### IntProto
+IntProto defines a Protobuf wrapper around an Int object.
+
+
+| Field | Type | Label | Description |
+| ----- | ---- | ----- | ----------- |
+| `int` | [string](#string) |  |  |
+
+
+
+
+
+ <!-- end messages -->
+
+ <!-- end enums -->
+
+ <!-- end HasExtensions -->
+
+ <!-- end services -->
+
+
+
+<a name="cosmos/airdrop/v1beta1/airdrop.proto"></a>
+<p align="right"><a href="#top">Top</a></p>
+
+## cosmos/airdrop/v1beta1/airdrop.proto
+
+
+
+<a name="cosmos.airdrop.v1beta1.ActiveFund"></a>
+
+### ActiveFund
+ActiveFund describes an active fund on the network
+
+
+| Field | Type | Label | Description |
+| ----- | ---- | ----- | ----------- |
+| `sender` | [string](#string) |  |  |
+| `fund` | [Fund](#cosmos.airdrop.v1beta1.Fund) |  |  |
+
+
+
+
+
+
+<a name="cosmos.airdrop.v1beta1.Fund"></a>
+
+### Fund
+Fund defines a structure for a fund that is being distributed to network stakers
+
+
+| Field | Type | Label | Description |
+| ----- | ---- | ----- | ----------- |
+| `amount` | [cosmos.base.v1beta1.Coin](#cosmos.base.v1beta1.Coin) |  | The amount of fund that is remaining |
+| `drip_amount` | [string](#string) |  | The amount of funds that should be removed from the fund every block |
+
+
+
+
+
+
+<a name="cosmos.airdrop.v1beta1.Params"></a>
+
+### Params
+Params define the module parameters
+
+
+| Field | Type | Label | Description |
+| ----- | ---- | ----- | ----------- |
+| `allow_list` | [string](#string) | repeated | The set of addresses which are allowed to create are drop funds |
+
+
+
+
+
+ <!-- end messages -->
+
+ <!-- end enums -->
+
+ <!-- end HasExtensions -->
+
+ <!-- end services -->
+
+
+
+<a name="cosmos/airdrop/v1beta1/genesis.proto"></a>
+<p align="right"><a href="#top">Top</a></p>
+
+## cosmos/airdrop/v1beta1/genesis.proto
+
+
+
+<a name="cosmos.airdrop.v1beta1.GenesisState"></a>
+
+### GenesisState
+GenesisState defines the bank module's genesis state.
+
+
+| Field | Type | Label | Description |
+| ----- | ---- | ----- | ----------- |
+| `params` | [Params](#cosmos.airdrop.v1beta1.Params) |  | params defines all the parameters of the module. |
+| `funds` | [ActiveFund](#cosmos.airdrop.v1beta1.ActiveFund) | repeated | balances is an array containing the balances of all the accounts. |
+
+
+
+
+
+ <!-- end messages -->
+
+ <!-- end enums -->
+
+ <!-- end HasExtensions -->
+
+ <!-- end services -->
+
+
+
+<a name="cosmos/base/query/v1beta1/pagination.proto"></a>
+<p align="right"><a href="#top">Top</a></p>
+
+## cosmos/base/query/v1beta1/pagination.proto
+
+
+
+<a name="cosmos.base.query.v1beta1.PageRequest"></a>
+
+### PageRequest
+PageRequest is to be embedded in gRPC request messages for efficient
+pagination. Ex:
+
+ message SomeRequest {
+         Foo some_parameter = 1;
+         PageRequest pagination = 2;
+ }
+
+
+| Field | Type | Label | Description |
+| ----- | ---- | ----- | ----------- |
+| `key` | [bytes](#bytes) |  | key is a value returned in PageResponse.next_key to begin querying the next page most efficiently. Only one of offset or key should be set. |
+| `offset` | [uint64](#uint64) |  | offset is a numeric offset that can be used when key is unavailable. It is less efficient than using key. Only one of offset or key should be set. |
+| `limit` | [uint64](#uint64) |  | limit is the total number of results to be returned in the result page. If left empty it will default to a value to be set by each app. |
+| `count_total` | [bool](#bool) |  | count_total is set to true to indicate that the result set should include a count of the total number of items available for pagination in UIs. count_total is only respected when offset is used. It is ignored when key is set. |
+
+
+
+
+
+
+<a name="cosmos.base.query.v1beta1.PageResponse"></a>
+
+### PageResponse
+PageResponse is to be embedded in gRPC response messages where the
+corresponding request message has used PageRequest.
+
+ message SomeResponse {
+         repeated Bar results = 1;
+         PageResponse page = 2;
+ }
+
+
+| Field | Type | Label | Description |
+| ----- | ---- | ----- | ----------- |
+| `next_key` | [bytes](#bytes) |  | next_key is the key to be passed to PageRequest.key to query the next page most efficiently |
+| `total` | [uint64](#uint64) |  | total is total number of results available if PageRequest.count_total was set, its value is undefined otherwise |
+
+
+
+
+
+ <!-- end messages -->
+
+ <!-- end enums -->
+
+ <!-- end HasExtensions -->
+
+ <!-- end services -->
+
+
+
+<a name="cosmos/airdrop/v1beta1/query.proto"></a>
+<p align="right"><a href="#top">Top</a></p>
+
+## cosmos/airdrop/v1beta1/query.proto
+
+
+
+<a name="cosmos.airdrop.v1beta1.QueryAllFundsRequest"></a>
+
+### QueryAllFundsRequest
+QueryAllFundsRequest defines the request for querying all the funds
+
+
+| Field | Type | Label | Description |
+| ----- | ---- | ----- | ----------- |
+| `pagination` | [cosmos.base.query.v1beta1.PageRequest](#cosmos.base.query.v1beta1.PageRequest) |  |  |
+
+
+
+
+
+
+<a name="cosmos.airdrop.v1beta1.QueryAllFundsResponse"></a>
+
+### QueryAllFundsResponse
+QueryAllFundsResponse defines the response for querying all the funds
+
+
+| Field | Type | Label | Description |
+| ----- | ---- | ----- | ----------- |
+| `funds` | [ActiveFund](#cosmos.airdrop.v1beta1.ActiveFund) | repeated |  |
+| `pagination` | [cosmos.base.query.v1beta1.PageResponse](#cosmos.base.query.v1beta1.PageResponse) |  |  |
+
+
+
+
+
+
+<a name="cosmos.airdrop.v1beta1.QueryFundRequest"></a>
+
+### QueryFundRequest
+QueryFundRequest defines the request for querying a specific fund
+
+
+| Field | Type | Label | Description |
+| ----- | ---- | ----- | ----------- |
+| `address` | [string](#string) |  |  |
+
+
+
+
+
+
+<a name="cosmos.airdrop.v1beta1.QueryFundResponse"></a>
+
+### QueryFundResponse
+QueryFundResponse defines the response for querying a specific fund
+
+
+| Field | Type | Label | Description |
+| ----- | ---- | ----- | ----------- |
+| `fund` | [Fund](#cosmos.airdrop.v1beta1.Fund) |  |  |
+
+
+
+
+
+
+<a name="cosmos.airdrop.v1beta1.QueryParamsRequest"></a>
+
+### QueryParamsRequest
+QueryParamsRequest defines the request type for querying x/airdrop parameters.
+
+
+
+
+
+
+<a name="cosmos.airdrop.v1beta1.QueryParamsResponse"></a>
+
+### QueryParamsResponse
+QueryParamsResponse defines the response type for querying x/airdrop parameters.
+
+
+| Field | Type | Label | Description |
+| ----- | ---- | ----- | ----------- |
+| `params` | [Params](#cosmos.airdrop.v1beta1.Params) |  |  |
+
+
+
+
+
+ <!-- end messages -->
+
+ <!-- end enums -->
+
+ <!-- end HasExtensions -->
+
+
+<a name="cosmos.airdrop.v1beta1.Query"></a>
+
+### Query
+Query defines the gRPC querier service.
+
+| Method Name | Request Type | Response Type | Description | HTTP Verb | Endpoint |
+| ----------- | ------------ | ------------- | ------------| ------- | -------- |
+| `AllFunds` | [QueryAllFundsRequest](#cosmos.airdrop.v1beta1.QueryAllFundsRequest) | [QueryAllFundsResponse](#cosmos.airdrop.v1beta1.QueryAllFundsResponse) | AllFunds queries all active airdrop funds | GET|/cosmos/airdrop/v1beta1/funds|
+| `Fund` | [QueryFundRequest](#cosmos.airdrop.v1beta1.QueryFundRequest) | [QueryFundResponse](#cosmos.airdrop.v1beta1.QueryFundResponse) | Fund queries a specific airdrop fund | GET|/cosmos/airdrop/v1beta1/funds/{address}|
+| `Params` | [QueryParamsRequest](#cosmos.airdrop.v1beta1.QueryParamsRequest) | [QueryParamsResponse](#cosmos.airdrop.v1beta1.QueryParamsResponse) | Params queries the current modules parameters | GET|/cosmos/airdrop/v1beta1/params|
+
+ <!-- end services -->
+
+
+
+<a name="cosmos/airdrop/v1beta1/tx.proto"></a>
+<p align="right"><a href="#top">Top</a></p>
+
+## cosmos/airdrop/v1beta1/tx.proto
+
+
+
+<a name="cosmos.airdrop.v1beta1.MsgAirDrop"></a>
+
+### MsgAirDrop
+MsgAirDrop represents a message to create an airdrop fund for distribution
+
+
+| Field | Type | Label | Description |
+| ----- | ---- | ----- | ----------- |
+| `from_address` | [string](#string) |  |  |
+| `fund` | [Fund](#cosmos.airdrop.v1beta1.Fund) |  |  |
+
+
+
+
+
+
+<a name="cosmos.airdrop.v1beta1.MsgAirDropResponse"></a>
+
+### MsgAirDropResponse
+MsgAirDropResponse represents a message for the response
+
+
+
+
+
+ <!-- end messages -->
+
+ <!-- end enums -->
+
+ <!-- end HasExtensions -->
+
+
+<a name="cosmos.airdrop.v1beta1.Msg"></a>
+
+### Msg
+Msg defines the airdrop Msg service.
+
+| Method Name | Request Type | Response Type | Description | HTTP Verb | Endpoint |
+| ----------- | ------------ | ------------- | ------------| ------- | -------- |
+| `AirDrop` | [MsgAirDrop](#cosmos.airdrop.v1beta1.MsgAirDrop) | [MsgAirDropResponse](#cosmos.airdrop.v1beta1.MsgAirDropResponse) | AirDrop defines a method for sending coins to the airdrop module for distribution | |
+
+ <!-- end services -->
+
+
+
 <a name="cosmos/auth/v1beta1/auth.proto"></a>
 <p align="right"><a href="#top">Top</a></p>
 
@@ -877,90 +1308,6 @@ Query defines the gRPC querier service.
 
 
 
-<a name="cosmos/base/v1beta1/coin.proto"></a>
-<p align="right"><a href="#top">Top</a></p>
-
-## cosmos/base/v1beta1/coin.proto
-
-
-
-<a name="cosmos.base.v1beta1.Coin"></a>
-
-### Coin
-Coin defines a token with a denomination and an amount.
-
-NOTE: The amount field is an Int which implements the custom method
-signatures required by gogoproto.
-
-
-| Field | Type | Label | Description |
-| ----- | ---- | ----- | ----------- |
-| `denom` | [string](#string) |  |  |
-| `amount` | [string](#string) |  |  |
-
-
-
-
-
-
-<a name="cosmos.base.v1beta1.DecCoin"></a>
-
-### DecCoin
-DecCoin defines a token with a denomination and a decimal amount.
-
-NOTE: The amount field is an Dec which implements the custom method
-signatures required by gogoproto.
-
-
-| Field | Type | Label | Description |
-| ----- | ---- | ----- | ----------- |
-| `denom` | [string](#string) |  |  |
-| `amount` | [string](#string) |  |  |
-
-
-
-
-
-
-<a name="cosmos.base.v1beta1.DecProto"></a>
-
-### DecProto
-DecProto defines a Protobuf wrapper around a Dec object.
-
-
-| Field | Type | Label | Description |
-| ----- | ---- | ----- | ----------- |
-| `dec` | [string](#string) |  |  |
-
-
-
-
-
-
-<a name="cosmos.base.v1beta1.IntProto"></a>
-
-### IntProto
-IntProto defines a Protobuf wrapper around an Int object.
-
-
-| Field | Type | Label | Description |
-| ----- | ---- | ----- | ----------- |
-| `int` | [string](#string) |  |  |
-
-
-
-
-
- <!-- end messages -->
-
- <!-- end enums -->
-
- <!-- end HasExtensions -->
-
- <!-- end services -->
-
-
-
 <a name="cosmos/bank/v1beta1/bank.proto"></a>
 <p align="right"><a href="#top">Top</a></p>
 
@@ -1131,68 +1478,6 @@ GenesisState defines the bank module's genesis state.
 | `balances` | [Balance](#cosmos.bank.v1beta1.Balance) | repeated | balances is an array containing the balances of all the accounts. |
 | `supply` | [cosmos.base.v1beta1.Coin](#cosmos.base.v1beta1.Coin) | repeated | supply represents the total supply. |
 | `denom_metadata` | [Metadata](#cosmos.bank.v1beta1.Metadata) | repeated | denom_metadata defines the metadata of the differents coins. |
-
-
-
-
-
- <!-- end messages -->
-
- <!-- end enums -->
-
- <!-- end HasExtensions -->
-
- <!-- end services -->
-
-
-
-<a name="cosmos/base/query/v1beta1/pagination.proto"></a>
-<p align="right"><a href="#top">Top</a></p>
-
-## cosmos/base/query/v1beta1/pagination.proto
-
-
-
-<a name="cosmos.base.query.v1beta1.PageRequest"></a>
-
-### PageRequest
-PageRequest is to be embedded in gRPC request messages for efficient
-pagination. Ex:
-
- message SomeRequest {
-         Foo some_parameter = 1;
-         PageRequest pagination = 2;
- }
-
-
-| Field | Type | Label | Description |
-| ----- | ---- | ----- | ----------- |
-| `key` | [bytes](#bytes) |  | key is a value returned in PageResponse.next_key to begin querying the next page most efficiently. Only one of offset or key should be set. |
-| `offset` | [uint64](#uint64) |  | offset is a numeric offset that can be used when key is unavailable. It is less efficient than using key. Only one of offset or key should be set. |
-| `limit` | [uint64](#uint64) |  | limit is the total number of results to be returned in the result page. If left empty it will default to a value to be set by each app. |
-| `count_total` | [bool](#bool) |  | count_total is set to true to indicate that the result set should include a count of the total number of items available for pagination in UIs. count_total is only respected when offset is used. It is ignored when key is set. |
-
-
-
-
-
-
-<a name="cosmos.base.query.v1beta1.PageResponse"></a>
-
-### PageResponse
-PageResponse is to be embedded in gRPC response messages where the
-corresponding request message has used PageRequest.
-
- message SomeResponse {
-         repeated Bar results = 1;
-         PageResponse page = 2;
- }
-
-
-| Field | Type | Label | Description |
-| ----- | ---- | ----- | ----------- |
-| `next_key` | [bytes](#bytes) |  | next_key is the key to be passed to PageRequest.key to query the next page most efficiently |
-| `total` | [uint64](#uint64) |  | total is total number of results available if PageRequest.count_total was set, its value is undefined otherwise |
 
 
 
