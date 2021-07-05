@@ -6,13 +6,13 @@ import (
 )
 
 const (
-	TypeMsgAirDrop      = "airdrop"
+	TypeMsgAirDrop = "airdrop"
 )
 
-func NewMsgAirDrop(fromAddr sdk.AccAddress, amount sdk.Coin, dripRate sdk.Int) *MsgAirDrop {
+func NewMsgAirDrop(fromAddr sdk.AccAddress, amount sdk.Coin, dripAmount sdk.Int) *MsgAirDrop {
 	return &MsgAirDrop{FromAddress: fromAddr.String(), Fund: &Fund{
-		Amount:          &amount,
-		DripRate:        dripRate,
+		Amount:     &amount,
+		DripAmount: dripAmount,
 	}}
 }
 

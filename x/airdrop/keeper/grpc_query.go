@@ -30,7 +30,7 @@ func (k Keeper) AllFunds(ctx context.Context, req *types.QueryAllFundsRequest) (
 
 		activeFunds = append(activeFunds, &types.ActiveFund{
 			Sender: account.String(),
-			Fund: &fund,
+			Fund:   &fund,
 		})
 		return nil
 	})

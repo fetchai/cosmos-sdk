@@ -28,7 +28,7 @@ func (m msgServer) AirDrop(goCtx context.Context, msg *types.MsgAirDrop) (*types
 	}
 
 	// validate the fund
-	err = msg.Fund.ValidateBasic();
+	err = msg.Fund.ValidateBasic()
 	if err != nil {
 		return nil, err
 	}

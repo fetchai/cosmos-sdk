@@ -58,11 +58,11 @@ func (k Keeper) AddFund(ctx sdk.Context, sender sdk.AccAddress, fund types.Fund)
 		return err
 	}
 
-	return k.setFund(ctx, sender, fund, false);
+	return k.setFund(ctx, sender, fund, false)
 }
 
 func (k Keeper) UpdateFund(ctx sdk.Context, sender sdk.AccAddress, fund types.Fund) error {
-	return k.setFund(ctx, sender, fund, true);
+	return k.setFund(ctx, sender, fund, true)
 }
 
 func (k Keeper) setFund(ctx sdk.Context, sender sdk.AccAddress, fund types.Fund, shouldExist bool) error {
@@ -74,7 +74,7 @@ func (k Keeper) setFund(ctx sdk.Context, sender sdk.AccAddress, fund types.Fund,
 	// check to see if the fund should exist or not
 	if shouldExist {
 		if !store.Has(key) {
-			return sdkerrors.Wrapf(sdkerrors.ErrConflict, "Fund from sender already exists")
+			return sdkerrors.Wrapf(sdkerrors.ErrConflict, "Fund from sender does not exists")
 		}
 
 		// if a fund is updated with a zero or negative remaining amount then simple delete the entry
@@ -87,6 +87,10 @@ func (k Keeper) setFund(ctx sdk.Context, sender sdk.AccAddress, fund types.Fund,
 	} else {
 		if store.Has(key) {
 			return sdkerrors.Wrapf(sdkerrors.ErrConflict, "Fund from sender already exists")
+		}
+
+		if fund.Amount.IsNegative() || fund.Amount.IsZero() {
+			return sdkerrors.Wrapf(sdkerrors.ErrConflict, "Fund has a zero or negative amount")
 		}
 
 		// update the fund
@@ -106,12 +110,14 @@ func (k Keeper) GetFund(ctx sdk.Context, sender sdk.AccAddress) (*types.Fund, er
 	}
 
 	fund := &types.Fund{}
-	k.cdc.MustUnmarshalBinaryBare(bz, fund)
+	err := k.cdc.UnmarshalBinaryBare(bz, fund)
+	if err != nil {
+		return nil, err
+	}
 	return fund, nil
 }
 
-
-func (k Keeper) GetAllFunds(ctx sdk.Context) []FundPair {
+func (k Keeper) GetAllFunds(ctx sdk.Context) ([]FundPair, error) {
 	store := ctx.KVStore(k.storeKey)
 	iter := sdk.KVStorePrefixIterator(store, types.ActiveFundKeyPrefix)
 	defer iter.Close()
@@ -121,17 +127,24 @@ func (k Keeper) GetAllFunds(ctx sdk.Context) []FundPair {
 		pair := FundPair{
 			Account: types.GetAddressFromActiveFundKey(iter.Key()),
 		}
-		k.cdc.MustUnmarshalBinaryBare(iter.Value(), &pair.Fund)
+
+		err := k.cdc.UnmarshalBinaryBare(iter.Value(), &pair.Fund)
+		if err != nil {
+			return nil, err
+		}
 
 		funds = append(funds, pair)
 	}
 
-	return funds
+	return funds, nil
 }
 
-func (k Keeper) DripAllFunds(ctx sdk.Context) (*sdk.Coins, error) {
+func (k Keeper) DripAllFunds(ctx sdk.Context) (sdk.Coins, error) {
 	drips := sdk.NewCoins()
-	funds := k.GetAllFunds(ctx)
+	funds, err := k.GetAllFunds(ctx)
+	if err != nil {
+		return nil, err
+	}
 
 	for _, fund := range funds {
 		newFund, drip := fund.Fund.Drip() // calculate the drip for this block
@@ -147,24 +160,29 @@ func (k Keeper) DripAllFunds(ctx sdk.Context) (*sdk.Coins, error) {
 	}
 
 	// send the funds to the fee collector module
-	err := k.bankKeeper.SendCoinsFromModuleToModule(ctx, types.ModuleName, k.feeCollectorName, drips)
+	err = k.bankKeeper.SendCoinsFromModuleToModule(ctx, types.ModuleName, k.feeCollectorName, drips)
 	if err != nil {
 		return nil, err
 	}
 
-	return &drips, nil
+	return drips, nil
 }
 
-func (k Keeper) GetActiveFunds(ctx sdk.Context) []types.ActiveFund {
-	activeFunds := []types.ActiveFund{}
-	for _, fund := range k.GetAllFunds(ctx) {
-		activeFunds = append(activeFunds, types.ActiveFund{
-			Sender: fund.Account.String(),
-			Fund:   &fund.Fund,
-		})
+func (k Keeper) GetActiveFunds(ctx sdk.Context) ([]types.ActiveFund, error) {
+	allFunds, err := k.GetAllFunds(ctx)
+	if err != nil {
+		return nil, err
 	}
 
-	return activeFunds
+	activeFunds := make([]types.ActiveFund, len(allFunds))
+	for i, fund := range allFunds {
+		activeFunds[i] = types.ActiveFund{
+			Sender: fund.Account.String(),
+			Fund:   &fund.Fund,
+		}
+	}
+
+	return activeFunds, nil
 }
 
 // SetActiveFunds forcibly sets the active funds that should be used

@@ -14,11 +14,11 @@ message Fund {
   // The amount of fund that is remaining
   cosmos.base.v1beta1.Coin amount = 1 [(gogoproto.moretags) = "yaml:\"amount\""];
 
-  // The amount of funds that should be added to the pool every block
-  string drip_rate = 2 [
+  // The amount of funds that should be removed from the fund every block
+  string drip_amount = 2 [
     (gogoproto.customtype) = "github.com/cosmos/cosmos-sdk/types.Int",
     (gogoproto.nullable)   = false,
-    (gogoproto.moretags)   = "yaml:\"drip_rate\""
+    (gogoproto.moretags)   = "yaml:\"drip_amount\""
   ];
 }
 
@@ -30,5 +30,6 @@ message ActiveFund {
 
 // Params define the module parameters
 message Params {
-  repeated string whitelist = 1 [(gogoproto.moretags) = "yaml:\"whitelist\""];
+  // The set of addresses which are allowed to create are drop funds
+  repeated string allow_list = 1 [(gogoproto.moretags) = "yaml:\"allow_list\""];
 }

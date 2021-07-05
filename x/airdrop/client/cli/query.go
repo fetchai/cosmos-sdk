@@ -26,7 +26,6 @@ func GetQueryCmd() *cobra.Command {
 	return cmd
 }
 
-
 func GetFunds() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "funds",

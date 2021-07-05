@@ -831,7 +831,7 @@ Fund defines a structure for a fund that is being distributed to network stakers
 | Field | Type | Label | Description |
 | ----- | ---- | ----- | ----------- |
 | `amount` | [cosmos.base.v1beta1.Coin](#cosmos.base.v1beta1.Coin) |  | The amount of fund that is remaining |
-| `drip_rate` | [string](#string) |  | The amount of funds that should be added to the pool every block |
+| `drip_amount` | [string](#string) |  | The amount of funds that should be removed from the fund every block |
 
 
 
@@ -846,7 +846,7 @@ Params define the module parameters
 
 | Field | Type | Label | Description |
 | ----- | ---- | ----- | ----------- |
-| `whitelist` | [string](#string) | repeated |  |
+| `allow_list` | [string](#string) | repeated | The set of addresses which are allowed to create are drop funds |
 
 
 

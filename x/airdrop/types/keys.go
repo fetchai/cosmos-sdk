@@ -4,12 +4,12 @@ import sdk "github.com/cosmos/cosmos-sdk/types"
 
 const (
 	ModuleName = "airdrop"
-	StoreKey = ModuleName
-	RouterKey = ModuleName
+	StoreKey   = ModuleName
+	RouterKey  = ModuleName
 )
 
 var (
-	ActiveFundKeyPrefix = []byte{0x02}
+	ActiveFundKeyPrefix = []byte{0x01}
 )
 
 func GetActiveFundKey(address sdk.AccAddress) []byte {
@@ -23,4 +23,3 @@ func GetAddressFromActiveFundKey(key []byte) sdk.AccAddress {
 	}
 	return sdk.AccAddress(addr)
 }
-

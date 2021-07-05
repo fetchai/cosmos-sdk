@@ -18,7 +18,6 @@ var (
 	queryAddr2 = sdk.AccAddress([]byte("addr2_______________"))
 )
 
-
 type KeeperGrpcQueryTestSuite struct {
 	suite.Suite
 
@@ -61,8 +60,8 @@ func (s *KeeperGrpcQueryTestSuite) TestQueryFund() {
 			func() {
 				amount := sdk.NewInt64Coin(sdk.DefaultBondDenom, 2000)
 				fund := types.Fund{
-					Amount:          &amount,
-					DripRate:        sdk.NewInt(40),
+					Amount:     &amount,
+					DripAmount: sdk.NewInt(40),
 				}
 				err := s.app.BankKeeper.SetBalance(s.ctx, queryAddr1, amount)
 				if err != nil {
@@ -89,7 +88,8 @@ func (s *KeeperGrpcQueryTestSuite) TestQueryFund() {
 				expResponse = types.QueryFundResponse{}
 			},
 			false,
-		},	}
+		},
+	}
 
 	for _, tc := range testCases {
 		s.Run(fmt.Sprintf("Case %s", tc.msg), func() {
@@ -113,8 +113,8 @@ func (s *KeeperGrpcQueryTestSuite) TestQueryFund() {
 func (s *KeeperGrpcQueryTestSuite) TestQueryAllFund() {
 	amount := sdk.NewInt64Coin(sdk.DefaultBondDenom, 2000)
 	fund := types.Fund{
-		Amount:          &amount,
-		DripRate:        sdk.NewInt(40),
+		Amount:     &amount,
+		DripAmount: sdk.NewInt(40),
 	}
 
 	var (
@@ -274,7 +274,6 @@ func (s *KeeperGrpcQueryTestSuite) TestQueryAllFund() {
 
 			if tc.expPass {
 				s.Require().NoError(err)
-				s.Require().NotNil(res)
 				s.Require().Equal(&expResponse, res)
 			} else {
 				s.Require().Error(err)

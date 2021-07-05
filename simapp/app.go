@@ -306,7 +306,6 @@ func NewSimApp(
 		authtypes.FeeCollectorName,
 	)
 
-
 	transferModule := transfer.NewAppModule(app.TransferKeeper)
 
 	// NOTE: the IBC mock keeper and application module is used only for testing core IBC. Do

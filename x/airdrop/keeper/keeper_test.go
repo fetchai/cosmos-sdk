@@ -13,10 +13,10 @@ import (
 )
 
 var (
-	moduleAddress = authtypes.NewModuleAddress(types.ModuleName)
+	moduleAddress       = authtypes.NewModuleAddress(types.ModuleName)
 	feeCollectorAddress = authtypes.NewModuleAddress(authtypes.FeeCollectorName)
-	addr1 = sdk.AccAddress([]byte("addr1_______________"))
-	addr2 = sdk.AccAddress([]byte("addr2_______________"))
+	addr1               = sdk.AccAddress([]byte("addr1_______________"))
+	addr2               = sdk.AccAddress([]byte("addr2_______________"))
 )
 
 type KeeperTestSuite struct {
@@ -49,8 +49,8 @@ func (s *KeeperTestSuite) TestAddNewFund() {
 	s.Require().Equal(moduleBalance, sdk.NewCoin(sdk.DefaultBondDenom, sdk.NewInt(0)))
 
 	fund := types.Fund{
-		Amount:          &amount,
-		DripRate:        sdk.NewInt(40),
+		Amount:     &amount,
+		DripAmount: sdk.NewInt(40),
 	}
 	s.Require().NoError(s.app.AirdropKeeper.AddFund(s.ctx, addr1, fund))
 
@@ -66,8 +66,8 @@ func (s *KeeperTestSuite) TestCreateRetrieveFund() {
 	s.Require().NoError(s.app.BankKeeper.SetBalance(s.ctx, addr1, amount)) // ensure the account is funded
 
 	fund := types.Fund{
-		Amount:          &amount,
-		DripRate:        sdk.NewInt(40),
+		Amount:     &amount,
+		DripAmount: sdk.NewInt(40),
 	}
 	s.Require().NoError(s.app.AirdropKeeper.AddFund(s.ctx, addr1, fund))
 
@@ -82,8 +82,8 @@ func (s *KeeperTestSuite) TestUnableToCreateDuplicateFunds() {
 	s.Require().NoError(s.app.BankKeeper.SetBalance(s.ctx, addr1, addrAmount)) // ensure the account is funded for the two funds
 
 	fund := types.Fund{
-		Amount:          &amount,
-		DripRate:        sdk.NewInt(40),
+		Amount:     &amount,
+		DripAmount: sdk.NewInt(40),
 	}
 	s.Require().NoError(s.app.AirdropKeeper.AddFund(s.ctx, addr1, fund))
 	s.Require().Error(s.app.AirdropKeeper.AddFund(s.ctx, addr1, fund)) // this should fail
@@ -91,12 +91,12 @@ func (s *KeeperTestSuite) TestUnableToCreateDuplicateFunds() {
 
 func (s *KeeperTestSuite) TestUnableToCreateFundWithNecessaryFunds() {
 	amount := sdk.NewInt64Coin(sdk.DefaultBondDenom, 4000)
-	addrAmount := sdk.NewInt64Coin(sdk.DefaultBondDenom, 2000) // not enough
+	addrAmount := sdk.NewInt64Coin(sdk.DefaultBondDenom, 2000)                 // not enough
 	s.Require().NoError(s.app.BankKeeper.SetBalance(s.ctx, addr1, addrAmount)) // ensure the account is funded for the two funds
 
 	fund := types.Fund{
-		Amount:          &amount,
-		DripRate:        sdk.NewInt(40),
+		Amount:     &amount,
+		DripAmount: sdk.NewInt(40),
 	}
 	s.Require().Error(s.app.AirdropKeeper.AddFund(s.ctx, addr1, fund)) // this should fail - user doesn't have enough funds
 }
@@ -104,8 +104,8 @@ func (s *KeeperTestSuite) TestUnableToCreateFundWithNecessaryFunds() {
 func (s *KeeperTestSuite) TestQueryOfAllFunds() {
 	amount := sdk.NewInt64Coin(sdk.DefaultBondDenom, 4000)
 	fund := types.Fund{
-		Amount:          &amount,
-		DripRate:        sdk.NewInt(40),
+		Amount:     &amount,
+		DripAmount: sdk.NewInt(40),
 	}
 	s.Require().NoError(s.app.BankKeeper.SetBalance(s.ctx, addr1, amount))
 	s.Require().NoError(s.app.BankKeeper.SetBalance(s.ctx, addr2, amount))
@@ -113,7 +113,8 @@ func (s *KeeperTestSuite) TestQueryOfAllFunds() {
 	s.Require().NoError(s.app.AirdropKeeper.AddFund(s.ctx, addr1, fund))
 	s.Require().NoError(s.app.AirdropKeeper.AddFund(s.ctx, addr2, fund))
 
-	funds:= s.app.AirdropKeeper.GetAllFunds(s.ctx)
+	funds, err := s.app.AirdropKeeper.GetAllFunds(s.ctx)
+	s.Require().NoError(err)
 	s.Require().Equal(len(funds), 2)
 
 	s.Require().Equal(funds[0].Fund, fund)
@@ -129,12 +130,12 @@ func (s *KeeperTestSuite) TestQueryOfAllFunds() {
 func (s *KeeperTestSuite) TestFeeDrip() {
 	amount := sdk.NewInt64Coin(sdk.DefaultBondDenom, 4000)
 	fund1 := types.Fund{
-		Amount:          &amount,
-		DripRate:        sdk.NewInt(40),
+		Amount:     &amount,
+		DripAmount: sdk.NewInt(40),
 	}
 	fund2 := types.Fund{
-		Amount:          &amount,
-		DripRate:        sdk.NewInt(4000), // will only last one block
+		Amount:     &amount,
+		DripAmount: sdk.NewInt(4000), // will only last one block
 	}
 
 	s.Require().NoError(s.app.BankKeeper.SetBalance(s.ctx, addr1, amount))

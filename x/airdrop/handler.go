@@ -19,7 +19,7 @@ func NewHandler(k keeper.Keeper) sdk.Handler {
 			return sdk.WrapServiceResult(ctx, res, err)
 
 		default:
-			return nil, sdkerrors.Wrapf(sdkerrors.ErrUnknownRequest, "unrecognized bank message type: %T", msg)
+			return nil, sdkerrors.Wrapf(sdkerrors.ErrUnknownRequest, "unrecognized airdrop message type: %T", msg)
 		}
 	}
 }

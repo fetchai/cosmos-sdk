@@ -9,12 +9,12 @@ import (
 
 var (
 	// KeyWhiteList is store's key for WhiteList Params
-	KeyWhiteList = []byte("WhiteList")
+	KeyWhiteList = []byte("AllowList")
 )
 
 func NewParams(whiteListClients ...string) Params {
 	return Params{
-		Whitelist: whiteListClients,
+		AllowList: whiteListClients,
 	}
 }
 
@@ -24,7 +24,7 @@ func ParamKeyTable() paramtypes.KeyTable {
 
 func (p *Params) ParamSetPairs() paramtypes.ParamSetPairs {
 	return paramtypes.ParamSetPairs{
-		paramtypes.NewParamSetPair(KeyWhiteList, &p.Whitelist, validateWhiteList),
+		paramtypes.NewParamSetPair(KeyWhiteList, &p.AllowList, validateWhiteList),
 	}
 }
 
@@ -46,14 +46,14 @@ func validateWhiteList(i interface{}) error {
 
 // IsAllowedSender checks if the given address can perform an airdrop
 func (p Params) IsAllowedSender(sender sdk.AccAddress) bool {
-	for _, address := range p.Whitelist {
+	for _, address := range p.AllowList {
 		accAddress, err := sdk.AccAddressFromBech32(strings.TrimSpace(address))
 		if err != nil {
 			continue
 		}
 
 		if sender.Equals(accAddress) {
-			return true;
+			return true
 		}
 	}
 	return false

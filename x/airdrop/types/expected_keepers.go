@@ -7,4 +7,3 @@ type BankKeeper interface {
 	SendCoinsFromAccountToModule(ctx sdk.Context, senderAddr sdk.AccAddress, recipientModule string, amt sdk.Coins) error
 	SetBalances(ctx sdk.Context, addr sdk.AccAddress, balances sdk.Coins) error
 }
-

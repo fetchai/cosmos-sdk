@@ -16,7 +16,7 @@ func NewGenesisState(params Params, funds []ActiveFund) *GenesisState {
 func (gs *GenesisState) Validate() error {
 	whiteListAddresses := []sdk.AccAddress{}
 
-	for _, address := range gs.Params.Whitelist {
+	for _, address := range gs.Params.AllowList {
 		accAddress, err := sdk.AccAddressFromBech32(strings.TrimSpace(address))
 		if err != nil {
 			return err
