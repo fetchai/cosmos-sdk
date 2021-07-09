@@ -166,6 +166,30 @@ func (s *KeeperTestSuite) TestFeeDrip() {
 	s.Require().Equal(feeCollectorBalance, sdk.NewCoin(sdk.DefaultBondDenom, sdk.NewInt(4040)))
 }
 
+func (s *KeeperTestSuite) TestAddNewFundWithDiffDenom() {
+	amount := sdk.NewInt64Coin("afet", 4000)
+	s.Require().NoError(s.app.BankKeeper.SetBalance(s.ctx, addr1, amount)) // ensure the account is funded
+
+	addrBalance := s.app.BankKeeper.GetBalance(s.ctx, addr1, "afet")
+	moduleBalance := s.app.BankKeeper.GetBalance(s.ctx, moduleAddress, "afet")
+
+	// sanity check
+	s.Require().Equal(addrBalance, sdk.NewCoin("afet", sdk.NewInt(4000)))
+	s.Require().Equal(moduleBalance, sdk.NewCoin("afet", sdk.NewInt(0)))
+
+	fund := types.Fund{
+		Amount:     &amount,
+		DripAmount: sdk.NewInt(40),
+	}
+	s.Require().NoError(s.app.AirdropKeeper.AddFund(s.ctx, addr1, fund))
+
+	addrBalance = s.app.BankKeeper.GetBalance(s.ctx, addr1, "afet")
+	moduleBalance = s.app.BankKeeper.GetBalance(s.ctx, moduleAddress, "afet")
+
+	s.Require().Equal(addrBalance, sdk.NewCoin("afet", sdk.NewInt(0)))
+	s.Require().Equal(moduleBalance, sdk.NewCoin("afet", sdk.NewInt(4000)))
+}
+
 func (s *KeeperTestSuite) TestMultiDenomFeeDrip() {
 	amount_stake := sdk.NewInt64Coin(sdk.DefaultBondDenom, 4000)
 	amount_afet := sdk.NewInt64Coin("afet", 4000)
