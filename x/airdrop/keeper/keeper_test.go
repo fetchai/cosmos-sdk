@@ -167,15 +167,15 @@ func (s *KeeperTestSuite) TestFeeDrip() {
 }
 
 func (s *KeeperTestSuite) TestAddNewFundWithDiffDenom() {
-	amount := sdk.NewInt64Coin("afet", 4000)
+	amount := sdk.NewInt64Coin("denom", 4000)
 	s.Require().NoError(s.app.BankKeeper.SetBalance(s.ctx, addr1, amount)) // ensure the account is funded
 
-	addrBalance := s.app.BankKeeper.GetBalance(s.ctx, addr1, "afet")
-	moduleBalance := s.app.BankKeeper.GetBalance(s.ctx, moduleAddress, "afet")
+	addrBalance := s.app.BankKeeper.GetBalance(s.ctx, addr1, "denom")
+	moduleBalance := s.app.BankKeeper.GetBalance(s.ctx, moduleAddress, "denom")
 
 	// sanity check
-	s.Require().Equal(addrBalance, sdk.NewCoin("afet", sdk.NewInt(4000)))
-	s.Require().Equal(moduleBalance, sdk.NewCoin("afet", sdk.NewInt(0)))
+	s.Require().Equal(addrBalance, sdk.NewCoin("denom", sdk.NewInt(4000)))
+	s.Require().Equal(moduleBalance, sdk.NewCoin("denom", sdk.NewInt(0)))
 
 	fund := types.Fund{
 		Amount:     &amount,
@@ -183,65 +183,65 @@ func (s *KeeperTestSuite) TestAddNewFundWithDiffDenom() {
 	}
 	s.Require().NoError(s.app.AirdropKeeper.AddFund(s.ctx, addr1, fund))
 
-	addrBalance = s.app.BankKeeper.GetBalance(s.ctx, addr1, "afet")
-	moduleBalance = s.app.BankKeeper.GetBalance(s.ctx, moduleAddress, "afet")
+	addrBalance = s.app.BankKeeper.GetBalance(s.ctx, addr1, "denom")
+	moduleBalance = s.app.BankKeeper.GetBalance(s.ctx, moduleAddress, "denom")
 
-	s.Require().Equal(addrBalance, sdk.NewCoin("afet", sdk.NewInt(0)))
-	s.Require().Equal(moduleBalance, sdk.NewCoin("afet", sdk.NewInt(4000)))
+	s.Require().Equal(addrBalance, sdk.NewCoin("denom", sdk.NewInt(0)))
+	s.Require().Equal(moduleBalance, sdk.NewCoin("denom", sdk.NewInt(4000)))
 }
 
 func (s *KeeperTestSuite) TestMultiDenomFeeDrip() {
-	amount_stake := sdk.NewInt64Coin(sdk.DefaultBondDenom, 4000)
-	amount_afet := sdk.NewInt64Coin("afet", 4000)
+	amountStake := sdk.NewInt64Coin(sdk.DefaultBondDenom, 4000)
+	amountDenom := sdk.NewInt64Coin("denom", 4000)
 	fund1 := types.Fund{
-		Amount:     &amount_stake,
+		Amount:     &amountStake,
 		DripAmount: sdk.NewInt(40)}
 
 	fund2 := types.Fund{
-		Amount:     &amount_stake,
+		Amount:     &amountStake,
 		DripAmount: sdk.NewInt(4000), // will only last one block
 	}
 
 	fund3 := types.Fund{
-		Amount:     &amount_afet,
+		Amount:     &amountDenom,
 		DripAmount: sdk.NewInt(40)}
 
 	fund4 := types.Fund{
-		Amount:     &amount_afet,
+		Amount:     &amountDenom,
 		DripAmount: sdk.NewInt(4000), // will only last one block
 	}
-	s.Require().NoError(s.app.BankKeeper.SetBalance(s.ctx, addr1, amount_stake))
-	s.Require().NoError(s.app.BankKeeper.SetBalance(s.ctx, addr2, amount_stake))
-	s.Require().NoError(s.app.BankKeeper.SetBalance(s.ctx, addr3, amount_afet))
-	s.Require().NoError(s.app.BankKeeper.SetBalance(s.ctx, addr4, amount_afet))
+	s.Require().NoError(s.app.BankKeeper.SetBalance(s.ctx, addr1, amountStake))
+	s.Require().NoError(s.app.BankKeeper.SetBalance(s.ctx, addr2, amountStake))
+	s.Require().NoError(s.app.BankKeeper.SetBalance(s.ctx, addr3, amountDenom))
+	s.Require().NoError(s.app.BankKeeper.SetBalance(s.ctx, addr4, amountDenom))
 
 	s.Require().NoError(s.app.AirdropKeeper.AddFund(s.ctx, addr1, fund1))
 	s.Require().NoError(s.app.AirdropKeeper.AddFund(s.ctx, addr2, fund2))
 	s.Require().NoError(s.app.AirdropKeeper.AddFund(s.ctx, addr3, fund3))
 	s.Require().NoError(s.app.AirdropKeeper.AddFund(s.ctx, addr4, fund4)) // check the balances
 
-	moduleBalance_stake := s.app.BankKeeper.GetBalance(s.ctx, moduleAddress, sdk.DefaultBondDenom)
-	moduleBalance_afet := s.app.BankKeeper.GetBalance(s.ctx, moduleAddress, "afet")
-	feeCollectorBalance_stake := s.app.BankKeeper.GetBalance(s.ctx, feeCollectorAddress, sdk.DefaultBondDenom)
-	feeCollectorBalance_afet := s.app.BankKeeper.GetBalance(s.ctx, feeCollectorAddress, "afet")
+	moduleBalanceStake := s.app.BankKeeper.GetBalance(s.ctx, moduleAddress, sdk.DefaultBondDenom)
+	moduleBalanceDenom := s.app.BankKeeper.GetBalance(s.ctx, moduleAddress, "denom")
+	feeCollectorBalanceStake := s.app.BankKeeper.GetBalance(s.ctx, feeCollectorAddress, sdk.DefaultBondDenom)
+	feeCollectorBalanceDenom := s.app.BankKeeper.GetBalance(s.ctx, feeCollectorAddress, "denom")
 
-	s.Require().Equal(moduleBalance_stake, sdk.NewCoin(sdk.DefaultBondDenom, sdk.NewInt(8000)))
-	s.Require().Equal(moduleBalance_afet, sdk.NewCoin("afet", sdk.NewInt(8000)))
-	s.Require().Equal(feeCollectorBalance_stake, sdk.NewCoin(sdk.DefaultBondDenom, sdk.NewInt(0)))
-	s.Require().Equal(feeCollectorBalance_afet, sdk.NewCoin("afet", sdk.NewInt(0))) // test case - drip the funds
+	s.Require().Equal(moduleBalanceStake, sdk.NewCoin(sdk.DefaultBondDenom, sdk.NewInt(8000)))
+	s.Require().Equal(moduleBalanceDenom, sdk.NewCoin("denom", sdk.NewInt(8000)))
+	s.Require().Equal(feeCollectorBalanceStake, sdk.NewCoin(sdk.DefaultBondDenom, sdk.NewInt(0)))
+	s.Require().Equal(feeCollectorBalanceDenom, sdk.NewCoin("denom", sdk.NewInt(0))) // test case - drip the funds
 
 	_, err := s.app.AirdropKeeper.DripAllFunds(s.ctx)
 	s.Require().NoError(err) // check that the fees have been transferred
 
-	moduleBalance_stake = s.app.BankKeeper.GetBalance(s.ctx, moduleAddress, sdk.DefaultBondDenom)
-	moduleBalance_afet = s.app.BankKeeper.GetBalance(s.ctx, moduleAddress, "afet")
-	feeCollectorBalance_stake = s.app.BankKeeper.GetBalance(s.ctx, feeCollectorAddress, sdk.DefaultBondDenom)
-	feeCollectorBalance_afet = s.app.BankKeeper.GetBalance(s.ctx, feeCollectorAddress, "afet")
+	moduleBalanceStake = s.app.BankKeeper.GetBalance(s.ctx, moduleAddress, sdk.DefaultBondDenom)
+	moduleBalanceDenom = s.app.BankKeeper.GetBalance(s.ctx, moduleAddress, "denom")
+	feeCollectorBalanceStake = s.app.BankKeeper.GetBalance(s.ctx, feeCollectorAddress, sdk.DefaultBondDenom)
+	feeCollectorBalanceDenom = s.app.BankKeeper.GetBalance(s.ctx, feeCollectorAddress, "denom")
 
-	s.Require().Equal(moduleBalance_stake, sdk.NewCoin(sdk.DefaultBondDenom, sdk.NewInt(3960))) // 40 fund1 4000 fund2
-	s.Require().Equal(moduleBalance_afet, sdk.NewCoin("afet", sdk.NewInt(3960)))                // 40 fund1 4000 fund2
-	s.Require().Equal(feeCollectorBalance_stake, sdk.NewCoin(sdk.DefaultBondDenom, sdk.NewInt(4040)))
-	s.Require().Equal(feeCollectorBalance_afet, sdk.NewCoin("afet", sdk.NewInt(4040)))
+	s.Require().Equal(moduleBalanceStake, sdk.NewCoin(sdk.DefaultBondDenom, sdk.NewInt(3960))) // 40 fund1 4000 fund2
+	s.Require().Equal(moduleBalanceDenom, sdk.NewCoin("denom", sdk.NewInt(3960)))                // 40 fund1 4000 fund2
+	s.Require().Equal(feeCollectorBalanceStake, sdk.NewCoin(sdk.DefaultBondDenom, sdk.NewInt(4040)))
+	s.Require().Equal(feeCollectorBalanceDenom, sdk.NewCoin("denom", sdk.NewInt(4040)))
 }
 
 func TestKeeperTestSuite(t *testing.T) {
