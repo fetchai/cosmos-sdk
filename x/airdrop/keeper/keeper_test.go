@@ -17,6 +17,8 @@ var (
 	feeCollectorAddress = authtypes.NewModuleAddress(authtypes.FeeCollectorName)
 	addr1               = sdk.AccAddress([]byte("addr1_______________"))
 	addr2               = sdk.AccAddress([]byte("addr2_______________"))
+	addr3               = sdk.AccAddress([]byte("addr3_______________"))
+	addr4               = sdk.AccAddress([]byte("addr4_______________"))
 )
 
 type KeeperTestSuite struct {
@@ -34,7 +36,7 @@ func (s *KeeperTestSuite) SetupTest() {
 		Height: 10,
 	})
 
-	s.app.AirdropKeeper.SetParams(s.ctx, types.NewParams(addr1.String(), addr2.String()))
+	s.app.AirdropKeeper.SetParams(s.ctx, types.NewParams(addr1.String(), addr2.String(), addr3.String(), addr4.String()))
 }
 
 func (s *KeeperTestSuite) TestAddNewFund() {
@@ -162,6 +164,60 @@ func (s *KeeperTestSuite) TestFeeDrip() {
 
 	s.Require().Equal(moduleBalance, sdk.NewCoin(sdk.DefaultBondDenom, sdk.NewInt(3960))) // 40 fund1 4000 fund2
 	s.Require().Equal(feeCollectorBalance, sdk.NewCoin(sdk.DefaultBondDenom, sdk.NewInt(4040)))
+}
+
+func (s *KeeperTestSuite) TestMultiDenomFeeDrip() {
+	amount_stake := sdk.NewInt64Coin(sdk.DefaultBondDenom, 4000)
+	amount_afet := sdk.NewInt64Coin("afet", 4000)
+	fund1 := types.Fund{
+		Amount:     &amount_stake,
+		DripAmount: sdk.NewInt(40)}
+
+	fund2 := types.Fund{
+		Amount:     &amount_stake,
+		DripAmount: sdk.NewInt(4000), // will only last one block
+	}
+
+	fund3 := types.Fund{
+		Amount:     &amount_afet,
+		DripAmount: sdk.NewInt(40)}
+
+	fund4 := types.Fund{
+		Amount:     &amount_afet,
+		DripAmount: sdk.NewInt(4000), // will only last one block
+	}
+	s.Require().NoError(s.app.BankKeeper.SetBalance(s.ctx, addr1, amount_stake))
+	s.Require().NoError(s.app.BankKeeper.SetBalance(s.ctx, addr2, amount_stake))
+	s.Require().NoError(s.app.BankKeeper.SetBalance(s.ctx, addr3, amount_afet))
+	s.Require().NoError(s.app.BankKeeper.SetBalance(s.ctx, addr4, amount_afet))
+
+	s.Require().NoError(s.app.AirdropKeeper.AddFund(s.ctx, addr1, fund1))
+	s.Require().NoError(s.app.AirdropKeeper.AddFund(s.ctx, addr2, fund2))
+	s.Require().NoError(s.app.AirdropKeeper.AddFund(s.ctx, addr3, fund3))
+	s.Require().NoError(s.app.AirdropKeeper.AddFund(s.ctx, addr4, fund4)) // check the balances
+
+	moduleBalance_stake := s.app.BankKeeper.GetBalance(s.ctx, moduleAddress, sdk.DefaultBondDenom)
+	moduleBalance_afet := s.app.BankKeeper.GetBalance(s.ctx, moduleAddress, "afet")
+	feeCollectorBalance_stake := s.app.BankKeeper.GetBalance(s.ctx, feeCollectorAddress, sdk.DefaultBondDenom)
+	feeCollectorBalance_afet := s.app.BankKeeper.GetBalance(s.ctx, feeCollectorAddress, "afet")
+
+	s.Require().Equal(moduleBalance_stake, sdk.NewCoin(sdk.DefaultBondDenom, sdk.NewInt(8000)))
+	s.Require().Equal(moduleBalance_afet, sdk.NewCoin("afet", sdk.NewInt(8000)))
+	s.Require().Equal(feeCollectorBalance_stake, sdk.NewCoin(sdk.DefaultBondDenom, sdk.NewInt(0)))
+	s.Require().Equal(feeCollectorBalance_afet, sdk.NewCoin("afet", sdk.NewInt(0))) // test case - drip the funds
+
+	_, err := s.app.AirdropKeeper.DripAllFunds(s.ctx)
+	s.Require().NoError(err) // check that the fees have been transferred
+
+	moduleBalance_stake = s.app.BankKeeper.GetBalance(s.ctx, moduleAddress, sdk.DefaultBondDenom)
+	moduleBalance_afet = s.app.BankKeeper.GetBalance(s.ctx, moduleAddress, "afet")
+	feeCollectorBalance_stake = s.app.BankKeeper.GetBalance(s.ctx, feeCollectorAddress, sdk.DefaultBondDenom)
+	feeCollectorBalance_afet = s.app.BankKeeper.GetBalance(s.ctx, feeCollectorAddress, "afet")
+
+	s.Require().Equal(moduleBalance_stake, sdk.NewCoin(sdk.DefaultBondDenom, sdk.NewInt(3960))) // 40 fund1 4000 fund2
+	s.Require().Equal(moduleBalance_afet, sdk.NewCoin("afet", sdk.NewInt(3960)))                // 40 fund1 4000 fund2
+	s.Require().Equal(feeCollectorBalance_stake, sdk.NewCoin(sdk.DefaultBondDenom, sdk.NewInt(4040)))
+	s.Require().Equal(feeCollectorBalance_afet, sdk.NewCoin("afet", sdk.NewInt(4040)))
 }
 
 func TestKeeperTestSuite(t *testing.T) {
