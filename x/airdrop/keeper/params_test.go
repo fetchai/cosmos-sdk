@@ -18,7 +18,6 @@ var (
 
 type ParamsTestSuite struct {
 	suite.Suite
-
 	app *simapp.SimApp
 	ctx sdk.Context
 }
@@ -30,7 +29,6 @@ func (s *ParamsTestSuite) SetupTest() {
 		Time:   time.Now(),
 		Height: 10,
 	})
-
 	s.app.AirdropKeeper.SetParams(s.ctx, types.NewParams(AllowedAddress.String()))
 }
 
@@ -41,8 +39,8 @@ func (s *ParamsTestSuite) TestIsAllowedSender () {
 }
 
 func (s *ParamsTestSuite) TestValidateAllowList () {
-	Correct := types.NewParams(AllowedAddress.String()) 							// Allow list contains address with correct format
-	Incorrect := types.NewParams(AllowedAddress.String(), BlockedAddress2.String())	// Allow list contains address with incorrect format
+	Correct := types.NewParams(AllowedAddress.String()) 										// Allow list contains address with correct format
+	Incorrect := types.NewParams(AllowedAddress.String(), BlockedAddress2.String())				// Allow list contains address with incorrect format
 	for _, paramPairs := range Correct.ParamSetPairs() {
 		s.Require().NoError(paramPairs.ValidatorFn(Correct.AllowList))
 	}
