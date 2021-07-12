@@ -40,6 +40,16 @@ func (s *ParamsTestSuite) TestIsAllowedSender () {
 	s.Require().False(s.app.AirdropKeeper.GetParams(s.ctx).IsAllowedSender(BlockedAddress2))	// Address is not in AllowList and has incorrect format
 }
 
+func (s *ParamsTestSuite) TestValidateAllowList () {
+	Correct := types.NewParams(AllowedAddress.String()) 							// Allow list contains address with correct format
+	Incorrect := types.NewParams(AllowedAddress.String(), BlockedAddress2.String())	// Allow list contains address with incorrect format
+	for _, paramPairs := range Correct.ParamSetPairs() {
+		s.Require().NoError(paramPairs.ValidatorFn(Correct.AllowList))
+	}
+	for _, paramPairs := range Incorrect.ParamSetPairs() {
+		s.Require().Error(paramPairs.ValidatorFn(Incorrect.AllowList))
+	}
+}
 
 func TestParamsTestSuite(t *testing.T) {
 	suite.Run(t, new(ParamsTestSuite))

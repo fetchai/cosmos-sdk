@@ -24,11 +24,11 @@ func ParamKeyTable() paramtypes.KeyTable {
 
 func (p *Params) ParamSetPairs() paramtypes.ParamSetPairs {
 	return paramtypes.ParamSetPairs{
-		paramtypes.NewParamSetPair(KeyWhiteList, &p.AllowList, validateWhiteList),
+		paramtypes.NewParamSetPair(KeyWhiteList, &p.AllowList, validateAllowList),
 	}
 }
 
-func validateWhiteList(i interface{}) error {
+func validateAllowList(i interface{}) error {
 	clients, ok := i.([]string)
 	if !ok {
 		return fmt.Errorf("invalid parameter type: %T", i)
