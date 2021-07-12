@@ -8,13 +8,13 @@ import (
 )
 
 var (
-	// KeyWhiteList is store's key for WhiteList Params
-	KeyWhiteList = []byte("AllowList")
+	// KeyAllowList is store's key for AllowList Params
+	KeyAllowList = []byte("AllowList")
 )
 
-func NewParams(whiteListClients ...string) Params {
+func NewParams(allowListClients ...string) Params {
 	return Params{
-		AllowList: whiteListClients,
+		AllowList: allowListClients,
 	}
 }
 
@@ -24,7 +24,7 @@ func ParamKeyTable() paramtypes.KeyTable {
 
 func (p *Params) ParamSetPairs() paramtypes.ParamSetPairs {
 	return paramtypes.ParamSetPairs{
-		paramtypes.NewParamSetPair(KeyWhiteList, &p.AllowList, validateAllowList),
+		paramtypes.NewParamSetPair(KeyAllowList, &p.AllowList, validateAllowList),
 	}
 }
 
