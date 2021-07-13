@@ -1,19 +1,20 @@
 package types_test
 
 import (
+	"testing"
+
 	"github.com/cosmos/cosmos-sdk/simapp"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/x/airdrop/types"
 	"github.com/stretchr/testify/suite"
 	tmproto "github.com/tendermint/tendermint/proto/tendermint/types"
 	"github.com/tendermint/tendermint/types/time"
-	"testing"
 )
 
 var (
 	allowedAddress  = sdk.AccAddress([]byte("allowed_____________"))
 	blockedAddress1 = sdk.AccAddress([]byte("blocked_____________"))
-	blockedAddress2	= sdk.AccAddress([]byte(""))
+	blockedAddress2 = sdk.AccAddress([]byte(""))
 )
 
 type ParamsTestSuite struct {
@@ -31,16 +32,16 @@ func (s *ParamsTestSuite) SetupTest() {
 	})
 }
 
-func (s *ParamsTestSuite) TestIsAllowedSender () {
-	correct := types.NewParams(allowedAddress.String())			// New set of parameters with a new AllowList
-	s.Require().True(correct.IsAllowedSender(allowedAddress))		// Address is in AllowList and has correct format
-	s.Require().False(correct.IsAllowedSender(blockedAddress1))	// Address is not in AllowList and has correct format
-	s.Require().False(correct.IsAllowedSender(blockedAddress2))	// Address is not in AllowList and has incorrect format
+func (s *ParamsTestSuite) TestIsAllowedSender() {
+	correct := types.NewParams(allowedAddress.String())         // New set of parameters with a new AllowList
+	s.Require().True(correct.IsAllowedSender(allowedAddress))   // Address is in AllowList and has correct format
+	s.Require().False(correct.IsAllowedSender(blockedAddress1)) // Address is not in AllowList and has correct format
+	s.Require().False(correct.IsAllowedSender(blockedAddress2)) // Address is not in AllowList and has incorrect format
 }
 
-func (s *ParamsTestSuite) TestValidateAllowList () {
-	correct := types.NewParams(allowedAddress.String()) 										// Allow list contains address with correct format
-	incorrect := types.NewParams(allowedAddress.String(), blockedAddress2.String())				// Allow list contains address with incorrect format
+func (s *ParamsTestSuite) TestValidateAllowList() {
+	correct := types.NewParams(allowedAddress.String())                             // Allow list contains address with correct format
+	incorrect := types.NewParams(allowedAddress.String(), blockedAddress2.String()) // Allow list contains address with incorrect format
 	for _, paramPairs := range correct.ParamSetPairs() {
 		s.Require().NoError(paramPairs.ValidatorFn(correct.AllowList))
 	}
