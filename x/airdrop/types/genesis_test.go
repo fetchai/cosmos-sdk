@@ -14,7 +14,7 @@ import (
 
 var (
 	addr = sdk.AccAddress([]byte("addr________________"))
-	recv = sdk.AccAddress([]byte("recv________________"))
+	//verboseAddr = sdk.AccAddress([]byte("\n\n\n\n\taddr________________\t\n\n\n\n\n"))
 )
 
 type GenesisTestSuite struct {
@@ -37,14 +37,20 @@ func (s *GenesisTestSuite) SetupTest() {
 func (s *GenesisTestSuite) TestNewGenesisState() {
 	p := s.app.AirdropKeeper.GetParams(s.ctx)
 	funds, err := s.app.AirdropKeeper.GetActiveFunds(s.ctx)
-	if err == nil {
-		s.Require().IsType(types.GenesisState{}, *types.NewGenesisState(p, funds))
+	if err != nil {
+		s.Require().FailNow("Failed to get active funds")
 	}
-	return
+	s.Require().IsType(types.GenesisState{}, *types.NewGenesisState(p, funds))
 }
 
 func (s *GenesisTestSuite) TestValidateGenesisState() {
 	p := s.app.AirdropKeeper.GetParams(s.ctx)
+	activeFunds, err := s.app.AirdropKeeper.GetActiveFunds(s.ctx)
+	if err != nil {
+		s.Require().FailNow("Failed to get active funds")
+	}
+	genesis1 := types.NewGenesisState(p, activeFunds)	// First genesis with no active funds
+	s.Require().NoError(genesis1.Validate())
 	amount := sdk.NewCoin("test", sdk.NewInt(1000))
 	fund := types.Fund{
 		Amount:     &amount,
@@ -52,12 +58,9 @@ func (s *GenesisTestSuite) TestValidateGenesisState() {
 	}
 	s.Require().NoError(s.app.BankKeeper.SetBalance(s.ctx, addr, amount))
 	s.Require().NoError(s.app.AirdropKeeper.AddFund(s.ctx, addr, fund))
-	activeFunds, err := s.app.AirdropKeeper.GetActiveFunds(s.ctx)
-	if err == nil {
-		genesis := types.NewGenesisState(p, activeFunds)
-		s.Require().NoError(genesis.Validate())
-	}
-	return
+	genesis2 := types.NewGenesisState(p, activeFunds)	// Second genesis with valid active funds
+	s.Require().NoError(genesis2.Validate())
+
 }
 
 func TestGenesisTestSuite(t *testing.T) {
