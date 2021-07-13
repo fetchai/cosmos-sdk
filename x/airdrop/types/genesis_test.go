@@ -49,7 +49,7 @@ func (s *GenesisTestSuite) TestValidateGenesisState() {
 	if err != nil {
 		s.Require().FailNow("Failed to get active funds")
 	}
-	genesis1 := types.NewGenesisState(p, activeFunds)	// First genesis with no active funds
+	genesis1 := types.NewGenesisState(p, activeFunds) // First genesis with no active funds
 	s.Require().NoError(genesis1.Validate())
 	amount := sdk.NewCoin("test", sdk.NewInt(1000))
 	fund := types.Fund{
@@ -58,7 +58,7 @@ func (s *GenesisTestSuite) TestValidateGenesisState() {
 	}
 	s.Require().NoError(s.app.BankKeeper.SetBalance(s.ctx, addr, amount))
 	s.Require().NoError(s.app.AirdropKeeper.AddFund(s.ctx, addr, fund))
-	genesis2 := types.NewGenesisState(p, activeFunds)	// Second genesis with valid active funds
+	genesis2 := types.NewGenesisState(p, activeFunds) // Second genesis with valid active funds
 	s.Require().NoError(genesis2.Validate())
 
 }
