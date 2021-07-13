@@ -1,9 +1,10 @@
 package types_test
 
 import (
-	"github.com/cosmos/cosmos-sdk/x/airdrop/types"
 	"testing"
 	"time"
+
+	"github.com/cosmos/cosmos-sdk/x/airdrop/types"
 
 	"github.com/cosmos/cosmos-sdk/simapp"
 	sdk "github.com/cosmos/cosmos-sdk/types"
@@ -30,15 +31,16 @@ func (s *GenesisTestSuite) SetupTest() {
 		Time:   time.Now(),
 		Height: 10,
 	})
+	s.app.AirdropKeeper.SetParams(s.ctx, types.NewParams(addr.String()))
 }
 
 func (s *GenesisTestSuite) TestNewGenesisState() {
 	p := s.app.AirdropKeeper.GetParams(s.ctx)
 	funds, err := s.app.AirdropKeeper.GetActiveFunds(s.ctx)
-	if err != nil {
-		s.Require().FailNow("Failed getting Active funds from keeper")
+	if err == nil {
+		s.Require().IsType(types.GenesisState{}, *types.NewGenesisState(p, funds))
 	}
-	s.Require().IsType(types.GenesisState{}, *types.NewGenesisState(p, funds))
+	return
 }
 
 func (s *GenesisTestSuite) TestValidateGenesisState() {
@@ -48,7 +50,6 @@ func (s *GenesisTestSuite) TestValidateGenesisState() {
 		Amount:     &amount,
 		DripAmount: sdk.NewInt(1),
 	}
-	s.app.AirdropKeeper.SetParams(s.ctx, types.NewParams(addr.String()))
 	s.Require().NoError(s.app.BankKeeper.SetBalance(s.ctx, addr, amount))
 	s.Require().NoError(s.app.AirdropKeeper.AddFund(s.ctx, addr, fund))
 	activeFunds, err := s.app.AirdropKeeper.GetActiveFunds(s.ctx)
