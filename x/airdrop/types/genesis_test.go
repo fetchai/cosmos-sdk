@@ -7,17 +7,12 @@ import (
 	"github.com/stretchr/testify/require"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
-	"github.com/stretchr/testify/suite"
 )
 
 var (
 	addr        = sdk.AccAddress([]byte("addr________________"))
-	verboseAddr = sdk.AccAddress([]byte("\n\n\n\n\taddr________________\t\n\n\n\n\n"))
+	invalidAddr = sdk.AccAddress([]byte("\n\n\n\n\taddr________________\t\n\n\n\n\n"))
 )
-
-type GenesisTestSuite struct {
-	suite.Suite
-}
 
 func TestNewGenesisState(t *testing.T) {
 	p := types.NewParams()
@@ -46,7 +41,7 @@ func TestValidateGenesisState(t *testing.T) {
 	}
 	p2 := types.Params{
 		AllowList: []string{
-			verboseAddr.String(), // invalid address
+			invalidAddr.String(), // invalid address
 		},
 	}
 	funds := []types.ActiveFund{
@@ -65,8 +60,4 @@ func TestValidateGenesisState(t *testing.T) {
 	gen2 := types.NewGenesisState(p2, funds)
 	require.NoError(t, gen1.Validate())
 	require.Error(t, gen2.Validate())
-}
-
-func TestGenesisTestSuite(t *testing.T) {
-	suite.Run(t, new(GenesisTestSuite))
 }
