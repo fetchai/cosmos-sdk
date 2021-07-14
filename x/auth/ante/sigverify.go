@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/hex"
 	"fmt"
+	"github.com/cosmos/cosmos-sdk/crypto/keys/bls12381"
 
 	"github.com/cosmos/cosmos-sdk/crypto/keys/ed25519"
 	kmultisig "github.com/cosmos/cosmos-sdk/crypto/keys/multisig"
@@ -83,6 +84,15 @@ func (spkd SetPubKeyDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, simulate b
 		if acc.GetPubKey() != nil {
 			continue
 		}
+
+		//Validate public key for bls12381 so that the public key only needs to be checked once
+		switch pubkey := pk.(type) {
+		case *bls12381.PubKey:
+			if !pubkey.Validate() {
+				return ctx, sdkerrors.Wrap(sdkerrors.ErrInvalidPubKey, "Invalid public key: either infinity or not subgroup element")
+			}
+		}
+
 		err = acc.SetPubKey(pk)
 		if err != nil {
 			return ctx, sdkerrors.Wrap(sdkerrors.ErrInvalidPubKey, err.Error())
@@ -377,6 +387,11 @@ func DefaultSigVerificationGasConsumer(
 		if err != nil {
 			return err
 		}
+		return nil
+
+		// todo: add gas option to params and genesis.json
+	case *bls12381.PubKey:
+		meter.ConsumeGas(6213, "ante verify: bls12381")
 		return nil
 
 	default:
