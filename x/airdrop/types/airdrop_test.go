@@ -1,6 +1,7 @@
 package types
 
 import (
+	"fmt"
 	"testing"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
@@ -29,6 +30,23 @@ func TestFundValidateBasic(t *testing.T) {
 	require.NoError(t, fundPosDrip.ValidateBasic())
 	require.Error(t, fundNilDrip.ValidateBasic())
 	require.Error(t, fundNegDrip.ValidateBasic())
+}
+
+func TestFundDrip(t *testing.T) {
+	amount := sdk.NewInt64Coin("test", 10)
+	fund := Fund{
+		Amount:     &amount,
+		DripAmount: sdk.NewInt(2),
+	}
+	fundHighDrip := Fund{
+		Amount:     &amount,
+		DripAmount: sdk.NewInt(100),
+	}
+	fund, _ = fund.Drip()
+	fundHighDrip, _ = fundHighDrip.Drip()
+	fmt.Println(fundHighDrip.Amount.Amount)
+	require.Equal(t, fund.Amount.Amount, sdk.NewInt(8))
+	require.Equal(t, fundHighDrip.Amount.Amount.Int64(), int64(0))
 }
 
 func TestAirdropTestSuite(t *testing.T) {
