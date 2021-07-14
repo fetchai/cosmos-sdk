@@ -6,17 +6,12 @@ import (
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/stretchr/testify/require"
-	"github.com/stretchr/testify/suite"
 )
 
 var (
 	addr = sdk.AccAddress([]byte("addr________________"))
 	addrInvalid = sdk.AccAddress([]byte(""))
 )
-
-type AirdropTestSuite struct {
-	suite.Suite
-}
 
 func TestFundValidateBasic(t *testing.T) {
 	amount := sdk.NewInt64Coin("test", 1)
@@ -58,8 +53,4 @@ func TestMsgAirdropValidateBasic (t *testing.T) {
 	amount := sdk.NewInt64Coin("test", 100)
 	require.NoError(t, NewMsgAirDrop(addr, amount, sdk.NewInt(20)).ValidateBasic())
 	require.Error(t, NewMsgAirDrop(addrInvalid, amount, sdk.NewInt(20)).ValidateBasic())
-}
-
-func TestAirdropTestSuite(t *testing.T) {
-	suite.Run(t, new(AirdropTestSuite))
 }
