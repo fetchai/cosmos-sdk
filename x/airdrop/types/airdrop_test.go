@@ -9,6 +9,11 @@ import (
 	"github.com/stretchr/testify/suite"
 )
 
+var (
+	addr = sdk.AccAddress([]byte("addr________________"))
+	addrInvalid = sdk.AccAddress([]byte(""))
+)
+
 type AirdropTestSuite struct {
 	suite.Suite
 }
@@ -47,6 +52,12 @@ func TestFundDrip(t *testing.T) {
 	fmt.Println(fundHighDrip.Amount.Amount)
 	require.Equal(t, fund.Amount.Amount, sdk.NewInt(8))
 	require.Equal(t, fundHighDrip.Amount.Amount.Int64(), int64(0))
+}
+
+func TestMsgAirdropValidateBasic (t *testing.T) {
+	amount := sdk.NewInt64Coin("test", 100)
+	require.NoError(t, NewMsgAirDrop(addr, amount, sdk.NewInt(20)).ValidateBasic())
+	require.Error(t, NewMsgAirDrop(addrInvalid, amount, sdk.NewInt(20)).ValidateBasic())
 }
 
 func TestAirdropTestSuite(t *testing.T) {
