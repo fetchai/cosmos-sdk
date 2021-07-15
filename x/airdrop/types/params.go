@@ -2,19 +2,20 @@ package types
 
 import (
 	"fmt"
+	"strings"
+
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	paramtypes "github.com/cosmos/cosmos-sdk/x/params/types"
-	"strings"
 )
 
 var (
-	// KeyWhiteList is store's key for WhiteList Params
-	KeyWhiteList = []byte("AllowList")
+	// KeyAllowList is store's key for AllowList Params
+	KeyAllowList = []byte("AllowList")
 )
 
-func NewParams(whiteListClients ...string) Params {
+func NewParams(allowListClients ...string) Params {
 	return Params{
-		AllowList: whiteListClients,
+		AllowList: allowListClients,
 	}
 }
 
@@ -24,11 +25,11 @@ func ParamKeyTable() paramtypes.KeyTable {
 
 func (p *Params) ParamSetPairs() paramtypes.ParamSetPairs {
 	return paramtypes.ParamSetPairs{
-		paramtypes.NewParamSetPair(KeyWhiteList, &p.AllowList, validateWhiteList),
+		paramtypes.NewParamSetPair(KeyAllowList, &p.AllowList, validateAllowList),
 	}
 }
 
-func validateWhiteList(i interface{}) error {
+func validateAllowList(i interface{}) error {
 	clients, ok := i.([]string)
 	if !ok {
 		return fmt.Errorf("invalid parameter type: %T", i)
