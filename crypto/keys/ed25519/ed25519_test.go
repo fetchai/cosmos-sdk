@@ -3,6 +3,7 @@ package ed25519_test
 import (
 	stded25519 "crypto/ed25519"
 	"encoding/base64"
+	bench "github.com/cosmos/cosmos-sdk/crypto/keys/internal/benchmarking"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -227,4 +228,20 @@ func TestMarshalAmino_BackwardsCompatibility(t *testing.T) {
 			require.Equal(t, bz1, bz2)
 		})
 	}
+}
+
+
+
+func BenchmarkSignEd25519(b *testing.B) {
+	privKey := ed25519.GenPrivKey()
+
+	bench.BenchmarkSigning(b, privKey)
+
+}
+
+
+func BenchmarkVerifyEd25519(b *testing.B) {
+	privKey := ed25519.GenPrivKey()
+
+	bench.BenchmarkVerification(b, privKey)
 }
