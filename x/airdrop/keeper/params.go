@@ -7,7 +7,7 @@ import (
 
 func (k Keeper) GetWhiteListClients(ctx sdk.Context) []string {
 	var res []string
-	k.paramSpace.Get(ctx, types.KeyWhiteList, &res)
+	k.paramSpace.GetIfExists(ctx, types.KeyWhiteList, &res)
 	return res
 }
 
