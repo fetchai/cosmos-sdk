@@ -33,7 +33,7 @@ func (s *GenesisTestSuite) SetupTest() {
 	s.app.AirdropKeeper.SetParams(s.ctx, types.NewParams(addr.String()))
 }
 
-func (s *GenesisTestSuite) TestInitGenesis() {
+func (s *GenesisTestSuite) TestInitAndExportGenesis() {
 	p := types.Params{
 		AllowList: []string{
 			addr.String(),
@@ -53,29 +53,9 @@ func (s *GenesisTestSuite) TestInitGenesis() {
 	}
 	genState := types.NewGenesisState(p, funds)
 	s.app.AirdropKeeper.InitGenesis(s.ctx, genState)
-	s.Require().Equal(s.app.AirdropKeeper.ExportGenesis(s.ctx), genState)
-}
-
-func (s *GenesisTestSuite) TestExportGenesis() {
-	p := types.Params{
-		AllowList: []string{
-			addr.String(),
-		},
-	}
-	funds := []types.ActiveFund{
-		{
-			Sender: addr.String(),
-			Fund: &types.Fund{
-				Amount: &sdk.Coin{
-					Denom:  "test",
-					Amount: sdk.NewInt(10),
-				},
-				DripAmount: sdk.NewInt(1),
-			},
-		},
-	}
-	genState := types.NewGenesisState(p, funds)
-	s.app.AirdropKeeper.InitGenesis(s.ctx, genState)
+	actualFunds, _ := s.app.AirdropKeeper.GetActiveFunds(s.ctx)
+	s.Require().Equal(s.app.AirdropKeeper.GetParams(s.ctx), p)
+	s.Require().Equal(funds, actualFunds)
 	s.Require().Equal(s.app.AirdropKeeper.ExportGenesis(s.ctx), genState)
 }
 
