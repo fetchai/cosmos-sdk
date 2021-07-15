@@ -5,7 +5,6 @@ import (
 	"encoding/hex"
 	"fmt"
 	"github.com/cosmos/cosmos-sdk/crypto/keys/bls12381"
-
 	"github.com/cosmos/cosmos-sdk/crypto/keys/ed25519"
 	kmultisig "github.com/cosmos/cosmos-sdk/crypto/keys/multisig"
 	"github.com/cosmos/cosmos-sdk/crypto/keys/secp256k1"
@@ -389,9 +388,8 @@ func DefaultSigVerificationGasConsumer(
 		}
 		return nil
 
-		// todo: add gas option to params and genesis.json
 	case *bls12381.PubKey:
-		meter.ConsumeGas(6213, "ante verify: bls12381")
+		meter.ConsumeGas(params.SigVerifyCostBls12381, "ante verify: bls12381")
 		return nil
 
 	default:
