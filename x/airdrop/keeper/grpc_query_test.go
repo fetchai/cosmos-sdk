@@ -41,21 +41,21 @@ func (s *KeeperGrpcQueryTestSuite) TestQueryFund() {
 
 	testCases := []struct {
 		msg      string
-		testFunc func() (*types.QueryFundRequest, types.QueryFundResponse)
+		testFunc func() (*types.QueryFundRequest, *types.QueryFundResponse)
 		expPass  bool
 	}{
 		{
 			"without an address being specified",
-			func() (*types.QueryFundRequest, types.QueryFundResponse) {
+			func() (*types.QueryFundRequest, *types.QueryFundResponse) {
 				req := &types.QueryFundRequest{}
-				expResponse := types.QueryFundResponse{}
+				expResponse := &types.QueryFundResponse{}
 				return req, expResponse
 			},
 			false,
 		},
 		{
 			"with an address being specified",
-			func() (*types.QueryFundRequest, types.QueryFundResponse) {
+			func() (*types.QueryFundRequest, *types.QueryFundResponse) {
 				amount := sdk.NewInt64Coin(sdk.DefaultBondDenom, 2000)
 				fund := types.Fund{
 					Amount:     &amount,
@@ -73,18 +73,18 @@ func (s *KeeperGrpcQueryTestSuite) TestQueryFund() {
 				req := &types.QueryFundRequest{
 					Address: queryAddr1.String(),
 				}
-				expResponse := types.QueryFundResponse{Fund: &fund}
+				expResponse := &types.QueryFundResponse{Fund: &fund}
 				return req, expResponse
 			},
 			true,
 		},
 		{
 			"with an address being specified but fund not present",
-			func() (*types.QueryFundRequest, types.QueryFundResponse) {
+			func() (*types.QueryFundRequest, *types.QueryFundResponse) {
 				req := &types.QueryFundRequest{
 					Address: queryAddr1.String(),
 				}
-				expResponse := types.QueryFundResponse{}
+				expResponse := &types.QueryFundResponse{}
 				return req, expResponse
 			},
 			false,
@@ -102,7 +102,7 @@ func (s *KeeperGrpcQueryTestSuite) TestQueryFund() {
 			if tc.expPass {
 				s.Require().NoError(err)
 				s.Require().NotNil(res)
-				s.Require().Equal(&exp, res)
+				s.Require().Equal(exp, res)
 			} else {
 				s.Require().Error(err)
 			}
@@ -119,14 +119,14 @@ func (s *KeeperGrpcQueryTestSuite) TestQueryAllFund() {
 
 	testCases := []struct {
 		msg      string
-		testFunc func() (*types.QueryAllFundsRequest, types.QueryAllFundsResponse)
+		testFunc func() (*types.QueryAllFundsRequest, *types.QueryAllFundsResponse)
 		expPass  bool
 	}{
 		{
 			"when no funds are present",
-			func() (*types.QueryAllFundsRequest, types.QueryAllFundsResponse) {
+			func() (*types.QueryAllFundsRequest, *types.QueryAllFundsResponse) {
 				req := &types.QueryAllFundsRequest{}
-				expResponse := types.QueryAllFundsResponse{
+				expResponse := &types.QueryAllFundsResponse{
 					Pagination: &query.PageResponse{
 						NextKey: nil,
 						Total:   0,
@@ -138,7 +138,7 @@ func (s *KeeperGrpcQueryTestSuite) TestQueryAllFund() {
 		},
 		{
 			"when funds are present",
-			func() (*types.QueryAllFundsRequest, types.QueryAllFundsResponse) {
+			func() (*types.QueryAllFundsRequest, *types.QueryAllFundsResponse) {
 				err := s.app.BankKeeper.SetBalance(s.ctx, queryAddr1, *fund.Amount)
 				if err != nil {
 					panic(err)
@@ -157,7 +157,7 @@ func (s *KeeperGrpcQueryTestSuite) TestQueryAllFund() {
 				}
 
 				req := &types.QueryAllFundsRequest{}
-				expResponse := types.QueryAllFundsResponse{
+				expResponse := &types.QueryAllFundsResponse{
 					Funds: []*types.ActiveFund{
 						{
 							Sender: queryAddr1.String(),
@@ -179,7 +179,7 @@ func (s *KeeperGrpcQueryTestSuite) TestQueryAllFund() {
 		},
 		{
 			"when funds are present with page 1",
-			func() (*types.QueryAllFundsRequest, types.QueryAllFundsResponse) {
+			func() (*types.QueryAllFundsRequest, *types.QueryAllFundsResponse) {
 				err := s.app.BankKeeper.SetBalance(s.ctx, queryAddr1, *fund.Amount)
 				if err != nil {
 					panic(err)
@@ -205,7 +205,7 @@ func (s *KeeperGrpcQueryTestSuite) TestQueryAllFund() {
 						CountTotal: false,
 					},
 				}
-				expResponse := types.QueryAllFundsResponse{
+				expResponse := &types.QueryAllFundsResponse{
 					Funds: []*types.ActiveFund{
 						{
 							Sender: queryAddr1.String(),
@@ -222,7 +222,7 @@ func (s *KeeperGrpcQueryTestSuite) TestQueryAllFund() {
 		},
 		{
 			"when funds are present with page 2",
-			func() (*types.QueryAllFundsRequest, types.QueryAllFundsResponse) {
+			func() (*types.QueryAllFundsRequest, *types.QueryAllFundsResponse) {
 				err := s.app.BankKeeper.SetBalance(s.ctx, queryAddr1, *fund.Amount)
 				if err != nil {
 					panic(err)
@@ -248,7 +248,7 @@ func (s *KeeperGrpcQueryTestSuite) TestQueryAllFund() {
 						CountTotal: false,
 					},
 				}
-				expResponse := types.QueryAllFundsResponse{
+				expResponse := &types.QueryAllFundsResponse{
 					Funds: []*types.ActiveFund{
 						{
 							Sender: queryAddr2.String(),
@@ -273,7 +273,7 @@ func (s *KeeperGrpcQueryTestSuite) TestQueryAllFund() {
 
 			if tc.expPass {
 				s.Require().NoError(err)
-				s.Require().Equal(&exp, res)
+				s.Require().Equal(exp, res)
 			} else {
 				s.Require().Error(err)
 			}
