@@ -10,7 +10,6 @@ import (
 	"github.com/tendermint/tendermint/crypto"
 	"github.com/tendermint/tendermint/crypto/tmhash"
 	"io"
-
 )
 
 const (
@@ -23,24 +22,22 @@ const (
 	PrivKeySize = 32
 	// Compressed signature
 	SignatureSize = 96
-	keyType = "bls12381"
-	SeedSize = 32
+	keyType       = "bls12381"
+	SeedSize      = 32
 )
 
 var _ cryptotypes.PrivKey = &PrivKey{}
 var _ codec.AminoMarshaler = &PrivKey{}
-
 
 // Bytes returns the byte representation of the Private Key.
 func (privKey *PrivKey) Bytes() []byte {
 	return privKey.Key
 }
 
-
 // PubKey performs the point-scalar multiplication from the privKey on the
 // generator point to get the pubkey.
 func (privKey *PrivKey) PubKey() cryptotypes.PubKey {
-	sk :=  new(blst.SecretKey).Deserialize(privKey.Key)
+	sk := new(blst.SecretKey).Deserialize(privKey.Key)
 	if sk == nil {
 		panic("Failed to deserialize secret key!")
 	}
@@ -49,7 +46,6 @@ func (privKey *PrivKey) PubKey() cryptotypes.PubKey {
 
 	return &PubKey{Key: pk_bytes}
 }
-
 
 // Sign produces a signature on the provided message.
 // This assumes the privkey is wellformed in the golang format.
@@ -81,7 +77,6 @@ func (privKey *PrivKey) Type() string {
 	return keyType
 }
 
-
 // MarshalAmino overrides Amino binary marshalling.
 func (privKey PrivKey) MarshalAmino() ([]byte, error) {
 	return privKey.Key, nil
@@ -97,7 +92,6 @@ func (privKey *PrivKey) UnmarshalAmino(bz []byte) error {
 	return nil
 }
 
-
 // MarshalAminoJSON overrides Amino JSON marshalling.
 func (privKey PrivKey) MarshalAminoJSON() ([]byte, error) {
 	// When we marshal to Amino JSON, we don't marshal the "key" field itself,
@@ -109,8 +103,6 @@ func (privKey PrivKey) MarshalAminoJSON() ([]byte, error) {
 func (privKey *PrivKey) UnmarshalAminoJSON(bz []byte) error {
 	return privKey.UnmarshalAmino(bz)
 }
-
-
 
 // GenPrivKey generates a new BLS private key on curve bls12-381 private key.
 // It uses OS randomness to generate the private key.
@@ -147,7 +139,6 @@ func GenPrivKeyFromSecret(secret []byte) *PrivKey {
 	return &PrivKey{Key: sk_bytes}
 }
 
-
 var _ cryptotypes.PubKey = &PubKey{}
 var _ codec.AminoMarshaler = &PubKey{}
 
@@ -156,7 +147,6 @@ func (pubKey *PubKey) Validate() bool {
 	pk := new(blst.P1Affine).Deserialize(pubKey.Key)
 	return pk.KeyValidate()
 }
-
 
 // Address is the SHA256-20 of the raw pubkey bytes.
 func (pubKey *PubKey) Address() crypto.Address {

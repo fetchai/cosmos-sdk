@@ -19,7 +19,7 @@ const (
 	TxSizeCostPerByte      = "tx_size_cost_per_byte"
 	SigVerifyCostED25519   = "sig_verify_cost_ed25519"
 	SigVerifyCostSECP256K1 = "sig_verify_cost_secp256k1"
-	SigVerifyCostBLS12381 = "sig_verify_cost_bls12381"
+	SigVerifyCostBLS12381  = "sig_verify_cost_bls12381"
 )
 
 // RandomGenesisAccounts defines the default RandomGenesisAccountsFn used on the SDK.

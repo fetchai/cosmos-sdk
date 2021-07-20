@@ -75,9 +75,6 @@ func (s secp256k1Algo) Generate() GenerateFn {
 	}
 }
 
-
-
-
 type bls12381Algo struct {
 }
 

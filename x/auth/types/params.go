@@ -15,7 +15,7 @@ const (
 	DefaultTxSizeCostPerByte      uint64 = 10
 	DefaultSigVerifyCostED25519   uint64 = 590
 	DefaultSigVerifyCostSecp256k1 uint64 = 1000
-	DefaultSigVerifyCostBls12381 uint64 = 6300
+	DefaultSigVerifyCostBls12381  uint64 = 6300
 )
 
 // Parameter keys
@@ -25,7 +25,7 @@ var (
 	KeyTxSizeCostPerByte      = []byte("TxSizeCostPerByte")
 	KeySigVerifyCostED25519   = []byte("SigVerifyCostED25519")
 	KeySigVerifyCostSecp256k1 = []byte("SigVerifyCostSecp256k1")
-	KeySigVerifyCostBls12381 = []byte("SigVerifyCostBls12381")
+	KeySigVerifyCostBls12381  = []byte("SigVerifyCostBls12381")
 )
 
 var _ paramtypes.ParamSet = &Params{}
@@ -70,7 +70,7 @@ func DefaultParams() Params {
 		TxSizeCostPerByte:      DefaultTxSizeCostPerByte,
 		SigVerifyCostED25519:   DefaultSigVerifyCostED25519,
 		SigVerifyCostSecp256k1: DefaultSigVerifyCostSecp256k1,
-		SigVerifyCostBls12381: DefaultSigVerifyCostBls12381,
+		SigVerifyCostBls12381:  DefaultSigVerifyCostBls12381,
 	}
 }
 
@@ -118,7 +118,6 @@ func validateSigVerifyCostSecp256k1(i interface{}) error {
 
 	return nil
 }
-
 
 func validateSigVerifyCostBls12381(i interface{}) error {
 	v, ok := i.(uint64)

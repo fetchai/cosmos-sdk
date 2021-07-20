@@ -22,14 +22,12 @@ func TestSignAndValidateBls12381(t *testing.T) {
 
 }
 
-
 func BenchmarkSignBls(b *testing.B) {
 	privKey := bls12381.GenPrivKey()
 
 	bench.BenchmarkSigning(b, privKey)
 
 }
-
 
 func BenchmarkVerifyBls(b *testing.B) {
 	privKey := bls12381.GenPrivKey()

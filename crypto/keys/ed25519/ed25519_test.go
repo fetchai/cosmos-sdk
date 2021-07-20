@@ -230,15 +230,12 @@ func TestMarshalAmino_BackwardsCompatibility(t *testing.T) {
 	}
 }
 
-
-
 func BenchmarkSignEd25519(b *testing.B) {
 	privKey := ed25519.GenPrivKey()
 
 	bench.BenchmarkSigning(b, privKey)
 
 }
-
 
 func BenchmarkVerifyEd25519(b *testing.B) {
 	privKey := ed25519.GenPrivKey()
