@@ -3,13 +3,14 @@ package bls12381
 import (
 	"crypto/subtle"
 	"fmt"
+	"io"
+
 	"github.com/cosmos/cosmos-sdk/codec"
 	cryptotypes "github.com/cosmos/cosmos-sdk/crypto/types"
 	"github.com/cosmos/cosmos-sdk/types/errors"
 	blst "github.com/supranational/blst/bindings/go"
 	"github.com/tendermint/tendermint/crypto"
 	"github.com/tendermint/tendermint/crypto/tmhash"
-	"io"
 )
 
 const (
@@ -20,7 +21,8 @@ const (
 	// PrivKeySize is the size, in bytes, of private keys as used in this package.
 	// Uncompressed public key
 	PrivKeySize = 32
-	// Compressed signature
+	// SignatureSize is the size of a bls signature. Namely the size of a compressed
+	// G2 point.
 	SignatureSize = 96
 	keyType       = "bls12381"
 	SeedSize      = 32
@@ -42,9 +44,9 @@ func (privKey *PrivKey) PubKey() cryptotypes.PubKey {
 		panic("Failed to deserialize secret key!")
 	}
 	pk := new(blst.P1Affine).From(sk)
-	pk_bytes := pk.Serialize()
+	pkBytes := pk.Serialize()
 
-	return &PubKey{Key: pk_bytes}
+	return &PubKey{Key: pkBytes}
 }
 
 // Sign produces a signature on the provided message.
@@ -62,9 +64,9 @@ func (privKey *PrivKey) Sign(msg []byte) ([]byte, error) {
 		panic("Failed to sign message!")
 	}
 
-	sig_bytes := sig.Compress()
+	sigBytes := sig.Compress()
 
-	return sig_bytes, nil
+	return sigBytes, nil
 }
 
 // Equals - you probably don't need to use this.
@@ -123,9 +125,9 @@ func genPrivKey(rand io.Reader) []byte {
 		panic("Failed to generate secret key!")
 	}
 
-	sk_bytes := sk.Serialize()
+	skBytes := sk.Serialize()
 
-	return sk_bytes
+	return skBytes
 }
 
 // GenPrivKeyFromSecret hashes the secret with SHA2, and uses
@@ -134,9 +136,9 @@ func genPrivKey(rand io.Reader) []byte {
 // if it's derived from user input.
 func GenPrivKeyFromSecret(secret []byte) *PrivKey {
 	ikm := crypto.Sha256(secret) // Not Ripemd160 because we want 32 bytes.
-	sk_bytes := blst.KeyGen(ikm[:]).Serialize()
+	skBytes := blst.KeyGen(ikm).Serialize()
 
-	return &PrivKey{Key: sk_bytes}
+	return &PrivKey{Key: skBytes}
 }
 
 var _ cryptotypes.PubKey = &PubKey{}
@@ -161,7 +163,7 @@ func (pubKey *PubKey) Bytes() []byte {
 	return pubKey.Key
 }
 
-// Assume public key is validated
+// VerifySignature assumes public key is already validated
 func (pubKey *PubKey) VerifySignature(msg []byte, sig []byte) bool {
 	// make sure we use the same algorithm to sign
 	pk := new(blst.P1Affine).Deserialize(pubKey.Key)

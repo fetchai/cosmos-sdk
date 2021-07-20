@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/hex"
 	"fmt"
+
 	"github.com/cosmos/cosmos-sdk/crypto/keys/bls12381"
 	"github.com/cosmos/cosmos-sdk/crypto/keys/ed25519"
 	kmultisig "github.com/cosmos/cosmos-sdk/crypto/keys/multisig"
@@ -84,9 +85,9 @@ func (spkd SetPubKeyDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, simulate b
 			continue
 		}
 
-		//Validate public key for bls12381 so that the public key only needs to be checked once
-		switch pubkey := pk.(type) {
-		case *bls12381.PubKey:
+		// Validate public key for bls12381 so that the public key only needs to be checked once
+		pubkey, ok := pk.(*bls12381.PubKey)
+		if ok {
 			if !pubkey.Validate() {
 				return ctx, sdkerrors.Wrap(sdkerrors.ErrInvalidPubKey, "Invalid public key: either infinity or not subgroup element")
 			}
