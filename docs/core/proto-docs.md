@@ -168,6 +168,10 @@
   
     - [Msg](#cosmos.crisis.v1beta1.Msg)
   
+- [cosmos/crypto/bls12381/keys.proto](#cosmos/crypto/bls12381/keys.proto)
+    - [PrivKey](#cosmos.crypto.bls12381.PrivKey)
+    - [PubKey](#cosmos.crypto.bls12381.PubKey)
+  
 - [cosmos/crypto/ed25519/keys.proto](#cosmos/crypto/ed25519/keys.proto)
     - [PrivKey](#cosmos.crypto.ed25519.PrivKey)
     - [PubKey](#cosmos.crypto.ed25519.PubKey)
@@ -1179,6 +1183,7 @@ Params defines the parameters for the auth module.
 | `tx_size_cost_per_byte` | [uint64](#uint64) |  |  |
 | `sig_verify_cost_ed25519` | [uint64](#uint64) |  |  |
 | `sig_verify_cost_secp256k1` | [uint64](#uint64) |  |  |
+| `sig_verify_cost_bls12381` | [uint64](#uint64) |  |  |
 
 
 
@@ -2777,6 +2782,56 @@ Msg defines the bank Msg service.
 | Method Name | Request Type | Response Type | Description | HTTP Verb | Endpoint |
 | ----------- | ------------ | ------------- | ------------| ------- | -------- |
 | `VerifyInvariant` | [MsgVerifyInvariant](#cosmos.crisis.v1beta1.MsgVerifyInvariant) | [MsgVerifyInvariantResponse](#cosmos.crisis.v1beta1.MsgVerifyInvariantResponse) | VerifyInvariant defines a method to verify a particular invariance. | |
+
+ <!-- end services -->
+
+
+
+<a name="cosmos/crypto/bls12381/keys.proto"></a>
+<p align="right"><a href="#top">Top</a></p>
+
+## cosmos/crypto/bls12381/keys.proto
+
+
+
+<a name="cosmos.crypto.bls12381.PrivKey"></a>
+
+### PrivKey
+PrivKey defines a bls private key.
+
+
+| Field | Type | Label | Description |
+| ----- | ---- | ----- | ----------- |
+| `key` | [bytes](#bytes) |  |  |
+
+
+
+
+
+
+<a name="cosmos.crypto.bls12381.PubKey"></a>
+
+### PubKey
+PubKey defines a bls public key
+Key is the uncompressed form of the pubkey. The first byte depends is a 0x02 byte
+if the y-coordinate is the lexicographically largest of the two associated with
+the x-coordinate. Otherwise the first byte is a 0x03.
+This prefix is followed with the x-coordinate.
+
+
+| Field | Type | Label | Description |
+| ----- | ---- | ----- | ----------- |
+| `key` | [bytes](#bytes) |  |  |
+
+
+
+
+
+ <!-- end messages -->
+
+ <!-- end enums -->
+
+ <!-- end HasExtensions -->
 
  <!-- end services -->
 
