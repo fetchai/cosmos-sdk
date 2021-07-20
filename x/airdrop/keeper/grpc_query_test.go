@@ -38,27 +38,24 @@ func (s *KeeperGrpcQueryTestSuite) SetupTest() {
 }
 
 func (s *KeeperGrpcQueryTestSuite) TestQueryFund() {
-	var (
-		req         *types.QueryFundRequest
-		expResponse types.QueryFundResponse
-	)
 
 	testCases := []struct {
 		msg      string
-		malleate func()
+		testFunc func() (*types.QueryFundRequest, *types.QueryFundResponse)
 		expPass  bool
 	}{
 		{
 			"without an address being specified",
-			func() {
-				req = &types.QueryFundRequest{}
-				expResponse = types.QueryFundResponse{}
+			func() (*types.QueryFundRequest, *types.QueryFundResponse) {
+				req := &types.QueryFundRequest{}
+				expResponse := &types.QueryFundResponse{}
+				return req, expResponse
 			},
 			false,
 		},
 		{
 			"with an address being specified",
-			func() {
+			func() (*types.QueryFundRequest, *types.QueryFundResponse) {
 				amount := sdk.NewInt64Coin(sdk.DefaultBondDenom, 2000)
 				fund := types.Fund{
 					Amount:     &amount,
@@ -73,20 +70,22 @@ func (s *KeeperGrpcQueryTestSuite) TestQueryFund() {
 					panic(err)
 				}
 
-				req = &types.QueryFundRequest{
+				req := &types.QueryFundRequest{
 					Address: queryAddr1.String(),
 				}
-				expResponse = types.QueryFundResponse{Fund: &fund}
+				expResponse := &types.QueryFundResponse{Fund: &fund}
+				return req, expResponse
 			},
 			true,
 		},
 		{
 			"with an address being specified but fund not present",
-			func() {
-				req = &types.QueryFundRequest{
+			func() (*types.QueryFundRequest, *types.QueryFundResponse) {
+				req := &types.QueryFundRequest{
 					Address: queryAddr1.String(),
 				}
-				expResponse = types.QueryFundResponse{}
+				expResponse := &types.QueryFundResponse{}
+				return req, expResponse
 			},
 			false,
 		},
@@ -96,14 +95,14 @@ func (s *KeeperGrpcQueryTestSuite) TestQueryFund() {
 		s.Run(fmt.Sprintf("Case %s", tc.msg), func() {
 			s.SetupTest() // reset
 
-			tc.malleate()
+			req, exp := tc.testFunc()
 
 			res, err := s.queryClient.Fund(gocontext.Background(), req)
 
 			if tc.expPass {
 				s.Require().NoError(err)
 				s.Require().NotNil(res)
-				s.Require().Equal(&expResponse, res)
+				s.Require().Equal(exp, res)
 			} else {
 				s.Require().Error(err)
 			}
@@ -118,32 +117,28 @@ func (s *KeeperGrpcQueryTestSuite) TestQueryAllFund() {
 		DripAmount: sdk.NewInt(40),
 	}
 
-	var (
-		req         *types.QueryAllFundsRequest
-		expResponse types.QueryAllFundsResponse
-	)
-
 	testCases := []struct {
 		msg      string
-		malleate func()
+		testFunc func() (*types.QueryAllFundsRequest, *types.QueryAllFundsResponse)
 		expPass  bool
 	}{
 		{
 			"when no funds are present",
-			func() {
-				req = &types.QueryAllFundsRequest{}
-				expResponse = types.QueryAllFundsResponse{
+			func() (*types.QueryAllFundsRequest, *types.QueryAllFundsResponse) {
+				req := &types.QueryAllFundsRequest{}
+				expResponse := &types.QueryAllFundsResponse{
 					Pagination: &query.PageResponse{
 						NextKey: nil,
 						Total:   0,
 					},
 				}
+				return req, expResponse
 			},
 			true,
 		},
 		{
 			"when funds are present",
-			func() {
+			func() (*types.QueryAllFundsRequest, *types.QueryAllFundsResponse) {
 				err := s.app.BankKeeper.SetBalance(s.ctx, queryAddr1, *fund.Amount)
 				if err != nil {
 					panic(err)
@@ -161,8 +156,8 @@ func (s *KeeperGrpcQueryTestSuite) TestQueryAllFund() {
 					panic(err)
 				}
 
-				req = &types.QueryAllFundsRequest{}
-				expResponse = types.QueryAllFundsResponse{
+				req := &types.QueryAllFundsRequest{}
+				expResponse := &types.QueryAllFundsResponse{
 					Funds: []*types.ActiveFund{
 						{
 							Sender: queryAddr1.String(),
@@ -178,12 +173,13 @@ func (s *KeeperGrpcQueryTestSuite) TestQueryAllFund() {
 						Total:   2,
 					},
 				}
+				return req, expResponse
 			},
 			true,
 		},
 		{
 			"when funds are present with page 1",
-			func() {
+			func() (*types.QueryAllFundsRequest, *types.QueryAllFundsResponse) {
 				err := s.app.BankKeeper.SetBalance(s.ctx, queryAddr1, *fund.Amount)
 				if err != nil {
 					panic(err)
@@ -201,7 +197,7 @@ func (s *KeeperGrpcQueryTestSuite) TestQueryAllFund() {
 					panic(err)
 				}
 
-				req = &types.QueryAllFundsRequest{
+				req := &types.QueryAllFundsRequest{
 					Pagination: &query.PageRequest{
 						Key:        nil,
 						Offset:     0,
@@ -209,7 +205,7 @@ func (s *KeeperGrpcQueryTestSuite) TestQueryAllFund() {
 						CountTotal: false,
 					},
 				}
-				expResponse = types.QueryAllFundsResponse{
+				expResponse := &types.QueryAllFundsResponse{
 					Funds: []*types.ActiveFund{
 						{
 							Sender: queryAddr1.String(),
@@ -220,12 +216,13 @@ func (s *KeeperGrpcQueryTestSuite) TestQueryAllFund() {
 						NextKey: queryAddr2,
 					},
 				}
+				return req, expResponse
 			},
 			true,
 		},
 		{
 			"when funds are present with page 2",
-			func() {
+			func() (*types.QueryAllFundsRequest, *types.QueryAllFundsResponse) {
 				err := s.app.BankKeeper.SetBalance(s.ctx, queryAddr1, *fund.Amount)
 				if err != nil {
 					panic(err)
@@ -243,7 +240,7 @@ func (s *KeeperGrpcQueryTestSuite) TestQueryAllFund() {
 					panic(err)
 				}
 
-				req = &types.QueryAllFundsRequest{
+				req := &types.QueryAllFundsRequest{
 					Pagination: &query.PageRequest{
 						Key:        nil,
 						Offset:     1,
@@ -251,7 +248,7 @@ func (s *KeeperGrpcQueryTestSuite) TestQueryAllFund() {
 						CountTotal: false,
 					},
 				}
-				expResponse = types.QueryAllFundsResponse{
+				expResponse := &types.QueryAllFundsResponse{
 					Funds: []*types.ActiveFund{
 						{
 							Sender: queryAddr2.String(),
@@ -260,6 +257,7 @@ func (s *KeeperGrpcQueryTestSuite) TestQueryAllFund() {
 					},
 					Pagination: &query.PageResponse{},
 				}
+				return req, expResponse
 			},
 			true,
 		},
@@ -269,13 +267,13 @@ func (s *KeeperGrpcQueryTestSuite) TestQueryAllFund() {
 		s.Run(fmt.Sprintf("Case %s", tc.msg), func() {
 			s.SetupTest() // reset
 
-			tc.malleate()
+			req, exp := tc.testFunc()
 
 			res, err := s.queryClient.AllFunds(gocontext.Background(), req)
 
 			if tc.expPass {
 				s.Require().NoError(err)
-				s.Require().Equal(&expResponse, res)
+				s.Require().Equal(exp, res)
 			} else {
 				s.Require().Error(err)
 			}
