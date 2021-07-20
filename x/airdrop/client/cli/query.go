@@ -2,12 +2,13 @@ package cli
 
 import (
 	"fmt"
+	"strings"
+
 	"github.com/cosmos/cosmos-sdk/client"
 	"github.com/cosmos/cosmos-sdk/client/flags"
 	"github.com/cosmos/cosmos-sdk/version"
 	"github.com/cosmos/cosmos-sdk/x/airdrop/types"
 	"github.com/spf13/cobra"
-	"strings"
 )
 
 func GetQueryCmd() *cobra.Command {

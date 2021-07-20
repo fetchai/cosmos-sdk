@@ -48,7 +48,7 @@ func (k Keeper) AddFund(ctx sdk.Context, sender sdk.AccAddress, fund types.Fund)
 	if !params.IsAllowedSender(sender) {
 		return sdkerrors.Wrapf(
 			sdkerrors.ErrConflict,
-			"Non-whitelist sender %s", sender.String(),
+			"Non-allowlist sender %s", sender.String(),
 		)
 	}
 
