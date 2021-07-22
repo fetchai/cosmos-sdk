@@ -289,6 +289,40 @@ func (svd SigVerificationDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, simul
 	return next(ctx, tx, simulate)
 }
 
+// SetPopValidDecorator handles the validation status of the proof-of-possession (POP) of an individual public key.
+// A valid transaction and signature can be viewed as a POP for the signer's public key.
+// POP is required when forming a compact multisig group in order to prevent rogue public key attacks.
+type SetPopValidDecorator struct {
+	ak AccountKeeper
+}
+
+func NewSetPopValidDecorator(ak AccountKeeper) SetPopValidDecorator {
+	return SetPopValidDecorator{
+		ak: ak,
+	}
+}
+
+func (spvd SetPopValidDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, simulate bool, next sdk.AnteHandler) (sdk.Context, error) {
+	sigTx, ok := tx.(authsigning.SigVerifiableTx)
+	if !ok {
+		return ctx, sdkerrors.Wrap(sdkerrors.ErrTxDecode, "invalid transaction type")
+	}
+
+	for _, addr := range sigTx.GetSigners() {
+		acc := spvd.ak.GetAccount(ctx, addr)
+		pk := acc.GetPubKey()
+
+		switch pk.(type) {
+		case *bls12381.PubKey, *secp256k1.PubKey, *ed25519.PubKey:
+			if err := acc.SetPopValid(true); err != nil {
+				panic(err)
+			}
+		}
+	}
+
+	return next(ctx, tx, simulate)
+}
+
 // IncrementSequenceDecorator handles incrementing sequences of all signers.
 // Use the IncrementSequenceDecorator decorator to prevent replay attacks. Note,
 // there is no need to execute IncrementSequenceDecorator on RecheckTX since
