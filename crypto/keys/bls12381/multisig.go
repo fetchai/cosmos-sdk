@@ -8,11 +8,11 @@ import (
 	blst "github.com/supranational/blst/bindings/go"
 )
 
-func AggregatePublicKey(pks []*PubKey) *blst.P1Affine {
+func aggregatePublicKey(pks []*PubKey) *blst.P1Affine {
 	pubkeys := make([]*blst.P1Affine, len(pks))
 	for i, pk := range pks {
 		pubkeys[i] = new(blst.P1Affine).Deserialize(pk.Key)
-		if pk == nil {
+		if pubkeys[i] == nil {
 			panic("Failed to deserialize public key")
 		}
 	}
@@ -67,7 +67,7 @@ func Unique(msgs [][]byte) bool {
 }
 
 func VerifyAggregateSignature(msgs [][]byte, sig []byte, pkss [][]*PubKey) bool {
-	//messages must be pairwise distinct
+	// messages must be pairwise distinct
 	if !Unique(msgs) {
 		fmt.Fprintf(os.Stdout, "messages must be pairwise distinct")
 		return false
@@ -75,7 +75,7 @@ func VerifyAggregateSignature(msgs [][]byte, sig []byte, pkss [][]*PubKey) bool 
 
 	apks := make([]*blst.P1Affine, len(pkss))
 	for i, pks := range pkss {
-		apks[i] = AggregatePublicKey(pks)
+		apks[i] = aggregatePublicKey(pks)
 	}
 
 	sigma := new(blst.P2Affine).Uncompress(sig)
