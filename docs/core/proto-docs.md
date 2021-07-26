@@ -1147,6 +1147,7 @@ type for additional functionality (e.g. vesting).
 | `pub_key` | [google.protobuf.Any](#google.protobuf.Any) |  |  |
 | `account_number` | [uint64](#uint64) |  |  |
 | `sequence` | [uint64](#uint64) |  |  |
+| `pop_is_valid` | [bool](#bool) |  |  |
 
 
 

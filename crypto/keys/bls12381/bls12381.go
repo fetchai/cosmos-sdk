@@ -112,7 +112,7 @@ func GenPrivKey() *PrivKey {
 	return &PrivKey{Key: genPrivKey(crypto.CReader())}
 }
 
-// genPrivKey generates a new secp256k1 private key using the provided reader.
+// genPrivKey generates a new bls12381 private key using the provided reader.
 func genPrivKey(rand io.Reader) []byte {
 	var ikm [SeedSize]byte
 	_, err := io.ReadFull(rand, ikm[:])
