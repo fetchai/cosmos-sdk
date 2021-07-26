@@ -27,14 +27,15 @@ func TestBlsMultiSig(t *testing.T) {
 		sigs[i] = sig
 	}
 
-	aggSig := bls.AggregateSignature(sigs)
-	assert.True(t, bls.VerifyMultiSignature(msg, aggSig, pks))
+	aggSig, err := bls.AggregateSignature(sigs)
+	require.Nil(t, err)
+
+	assert.Nil(t, bls.VerifyMultiSignature(msg, aggSig, pks))
 
 }
 
 func TestBlsAggSig(t *testing.T) {
 	total := 5
-	//sks := make([]*bls.PrivKey, total)
 	pks := make([][]*bls.PubKey, total)
 	sigs := make([][]byte, total)
 	msgs := make([][]byte, total)
@@ -51,8 +52,10 @@ func TestBlsAggSig(t *testing.T) {
 		sigs[i] = sig
 	}
 
-	aggSig := bls.AggregateSignature(sigs)
-	assert.True(t, bls.VerifyAggregateSignature(msgs, aggSig, pks))
+	aggSig, err := bls.AggregateSignature(sigs)
+	require.Nil(t, err)
+
+	assert.Nil(t, bls.VerifyAggregateSignature(msgs, aggSig, pks))
 
 }
 
@@ -72,7 +75,8 @@ func benchmarkBlsVerifyMulti(total int, b *testing.B) {
 		sigs[i] = sig
 	}
 
-	aggSig := bls.AggregateSignature(sigs)
+	aggSig, err := bls.AggregateSignature(sigs)
+	require.Nil(b, err)
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
@@ -103,7 +107,9 @@ func benchmarkBlsVerifyAgg(total int, b *testing.B) {
 		sigs[i] = sig
 	}
 
-	aggSig := bls.AggregateSignature(sigs)
+	aggSig, err := bls.AggregateSignature(sigs)
+	require.Nil(b, err)
+
 	b.ResetTimer()
 
 	for i := 0; i < b.N; i++ {

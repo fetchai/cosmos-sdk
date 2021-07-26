@@ -3,51 +3,50 @@ package bls12381
 import (
 	"encoding/base64"
 	"fmt"
-	"os"
 
 	blst "github.com/supranational/blst/bindings/go"
 )
 
-func aggregatePublicKey(pks []*PubKey) *blst.P1Affine {
+func aggregatePublicKey(pks []*PubKey) (*blst.P1Affine, error) {
 	pubkeys := make([]*blst.P1Affine, len(pks))
 	for i, pk := range pks {
 		pubkeys[i] = new(blst.P1Affine).Deserialize(pk.Key)
 		if pubkeys[i] == nil {
-			panic("Failed to deserialize public key")
+			return nil, fmt.Errorf("failed to deserialize public key")
 		}
 	}
 
 	aggregator := new(blst.P1Aggregate)
 	b := aggregator.Aggregate(pubkeys, false)
 	if !b {
-		panic("Failed to aggregate public keys")
+		return nil, fmt.Errorf("failed to aggregate public keys")
 	}
 	apk := aggregator.ToAffine()
 
-	return apk
+	return apk, nil
 }
 
 // AggregateSignature combines a set of verified signatures into a single bls signature
-func AggregateSignature(sigs [][]byte) []byte {
+func AggregateSignature(sigs [][]byte) ([]byte, error) {
 	sigmas := make([]*blst.P2Affine, len(sigs))
 	for i, sig := range sigs {
 		sigmas[i] = new(blst.P2Affine).Uncompress(sig)
 		if sigmas[i] == nil {
-			panic("Failed to deserialize signature")
+			return nil, fmt.Errorf("failed to deserialize the %d-th signature", i)
 		}
 	}
 
 	aggregator := new(blst.P2Aggregate)
 	b := aggregator.Aggregate(sigmas, false)
 	if !b {
-		panic("Failed to aggregate signatures")
+		return nil, fmt.Errorf("failed to aggregate signatures")
 	}
 	aggSigBytes := aggregator.ToAffine().Compress()
-	return aggSigBytes
+	return aggSigBytes, nil
 }
 
 // VerifyMultiSignature assumes public key is already validated
-func VerifyMultiSignature(msg []byte, sig []byte, pks []*PubKey) bool {
+func VerifyMultiSignature(msg []byte, sig []byte, pks []*PubKey) error {
 	return VerifyAggregateSignature([][]byte{msg}, sig, [][]*PubKey{pks})
 }
 
@@ -66,23 +65,38 @@ func Unique(msgs [][]byte) bool {
 	return true
 }
 
-func VerifyAggregateSignature(msgs [][]byte, sig []byte, pkss [][]*PubKey) bool {
-	// messages must be pairwise distinct
+func VerifyAggregateSignature(msgs [][]byte, sig []byte, pkss [][]*PubKey) error {
+	n := len(msgs)
+	if n == 0 {
+		return fmt.Errorf("messages cannot be empty")
+	}
+
+	if len(pkss) != n {
+		return fmt.Errorf("the number of messages and public key sets must match")
+	}
+
 	if !Unique(msgs) {
-		fmt.Fprintf(os.Stdout, "messages must be pairwise distinct")
-		return false
+		return fmt.Errorf("messages must be pairwise distinct")
 	}
 
 	apks := make([]*blst.P1Affine, len(pkss))
 	for i, pks := range pkss {
-		apks[i] = aggregatePublicKey(pks)
+		apk, err := aggregatePublicKey(pks)
+		if err != nil {
+			return fmt.Errorf("cannot aggregate public keys: %s", err.Error())
+		}
+		apks[i] = apk
 	}
 
 	sigma := new(blst.P2Affine).Uncompress(sig)
 	if sigma == nil {
-		panic("Failed to deserialize signature")
+		return fmt.Errorf("failed to deserialize signature")
 	}
 
 	dst := []byte("BLS_SIG_BLS12381G2_XMD:SHA-256_SSWU_RO_POP_")
-	return sigma.AggregateVerify(true, apks, false, msgs, dst)
+	if !sigma.AggregateVerify(true, apks, false, msgs, dst) {
+		return fmt.Errorf("failed to verify signature")
+	}
+
+	return nil
 }
