@@ -218,12 +218,12 @@ $ %s query txs --%s 'message.sender=cosmos1...&message.action=withdraw_delegator
 func QueryTxCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "tx --type=[hash|acc_seq|signature] [hash|acc_seq|signature]",
-		Short: "Query for a transaction by hash, \"<addr>/<seq>\" combination or comma-separated signatures in a committed block",
+		Short: "Query for a transaction by hash, addr++seq combination or signature in a committed block",
 		Long: strings.TrimSpace(fmt.Sprintf(`
 Example:
 $ %s query tx <hash>
-$ %s query tx --%s=%s <addr>/<sequence>
-$ %s query tx --%s=%s <sig1_base64>,<sig2_base64...>
+$ %s query tx --%s=%s <addr>:<sequence>
+$ %s query tx --%s=%s <sig1_base64,sig2_base64...>
 `,
 			version.AppName,
 			version.AppName, flagType, typeAccSeq,
@@ -231,10 +231,6 @@ $ %s query tx --%s=%s <sig1_base64>,<sig2_base64...>
 		Args: cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			clientCtx, err := client.GetClientQueryContext(cmd)
-			if err != nil {
-				return err
-			}
-			output, err := authtx.QueryTx(clientCtx, args[0])
 			if err != nil {
 				return err
 			}
@@ -249,7 +245,7 @@ $ %s query tx --%s=%s <sig1_base64>,<sig2_base64...>
 					}
 
 					// If hash is given, then query the tx by hash.
-					output, err := authclient.QueryTx(clientCtx, args[0])
+					output, err := authtx.QueryTx(clientCtx, args[0])
 					if err != nil {
 						return err
 					}
@@ -271,7 +267,7 @@ $ %s query tx --%s=%s <sig1_base64>,<sig2_base64...>
 						tmEvents[i] = fmt.Sprintf("%s.%s='%s'", sdk.EventTypeTx, sdk.AttributeKeySignature, sig)
 					}
 
-					txs, err := authclient.QueryTxsByEvents(clientCtx, tmEvents, rest.DefaultPage, query.DefaultLimit, "")
+					txs, err := authtx.QueryTxsByEvents(clientCtx, tmEvents, rest.DefaultPage, query.DefaultLimit, "")
 					if err != nil {
 						return err
 					}
@@ -280,7 +276,7 @@ $ %s query tx --%s=%s <sig1_base64>,<sig2_base64...>
 					}
 					if len(txs.Txs) > 1 {
 						// This case means there's a bug somewhere else in the code. Should not happen.
-						return errors.Wrapf(errors.ErrLogic, "found %d txs matching given signatures", len(txs.Txs))
+						return errors.ErrLogic.Wrapf("found %d txs matching given signatures", len(txs.Txs))
 					}
 
 					return clientCtx.PrintProto(txs.Txs[0])
@@ -294,7 +290,7 @@ $ %s query tx --%s=%s <sig1_base64>,<sig2_base64...>
 					tmEvents := []string{
 						fmt.Sprintf("%s.%s='%s'", sdk.EventTypeTx, sdk.AttributeKeyAccountSequence, args[0]),
 					}
-					txs, err := authclient.QueryTxsByEvents(clientCtx, tmEvents, rest.DefaultPage, query.DefaultLimit, "")
+					txs, err := authtx.QueryTxsByEvents(clientCtx, tmEvents, rest.DefaultPage, query.DefaultLimit, "")
 					if err != nil {
 						return err
 					}
