@@ -670,30 +670,37 @@ func newRealPrompt(dir string, buf io.Reader) func(string) (string, error) {
 
 		for {
 			failureCounter++
+			//fmt.Println("counter up ---")
 			if failureCounter > maxPassphraseEntryAttempts {
+				//return "", fmt.Errorf("failure counter = 3 | here -------------- 1")
 				return "", fmt.Errorf("too many failed passphrase attempts")
 			}
-
+			//fmt.Println("After counter check")
 			buf := bufio.NewReader(buf)
-			pass, err := input.GetPassword("Enter keyring passphrase:", buf)
+			//fmt.Println("create buf")
+			pass, err := input.GetPassword("Enter keyring passphrase:", buf) // ERROR CREATED HERE
 			if err != nil {
 				// NOTE: LGTM.io reports a false positive alert that states we are printing the password,
 				// but we only log the error.
 				//
 				// lgtm [go/clear-text-logging]
-				fmt.Fprintln(os.Stderr, err)
+				//fmt.Println("during first pass check")
+				//fmt.Printf("%s %s\n", err, " : error returned from input.GetPassword")
+				fmt.Fprintln(os.Stderr, err)	// ERROR PASSED HERE
+				//fmt.Println("Error passed from first pass check")
 				continue
 			}
-
+			//fmt.Println("after getpass")
 			if keyhashStored {
 				if err := bcrypt.CompareHashAndPassword(keyhash, []byte(pass)); err != nil {
 					fmt.Fprintln(os.Stderr, "incorrect passphrase")
 					continue
+					//fmt.Println("compare hash and pass")
 				}
 
 				return pass, nil
 			}
-
+			//fmt.Println("after key stored check")
 			reEnteredPass, err := input.GetPassword("Re-enter keyring passphrase:", buf)
 			if err != nil {
 				// NOTE: LGTM.io reports a false positive alert that states we are printing the password,
@@ -701,25 +708,30 @@ func newRealPrompt(dir string, buf io.Reader) func(string) (string, error) {
 				//
 				// lgtm [go/clear-text-logging]
 				fmt.Fprintln(os.Stderr, err)
+				fmt.Println("get password")
 				continue
 			}
-
+			fmt.Println("after reenter pass")
 			if pass != reEnteredPass {
 				fmt.Fprintln(os.Stderr, "passphrase do not match")
+				fmt.Println("not rentered password")
 				continue
 			}
-
+			//fmt.Println("after reenter check")
 			saltBytes := tmcrypto.CRandBytes(16)
+			//fmt.Println("saltbytes")
 			passwordHash, err := bcrypt.GenerateFromPassword(saltBytes, []byte(pass), 2)
 			if err != nil {
+				//fmt.Println("generate from password")
 				fmt.Fprintln(os.Stderr, err)
 				continue
 			}
-
+			//fmt.Println("after generate from pass")
 			if err := ioutil.WriteFile(dir+"/keyhash", passwordHash, 0555); err != nil {
+				//fmt.Println("writefile")
 				return "", err
 			}
-
+			//fmt.Println("end ---------")
 			return pass, nil
 		}
 	}

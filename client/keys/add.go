@@ -215,6 +215,7 @@ func RunAddCmd(ctx client.Context, cmd *cobra.Command, args []string, inBuf *buf
 	recover, _ := cmd.Flags().GetBool(flagRecover)
 	if recover {
 		mnemonic, err = input.GetString("Enter your bip39 mnemonic", inBuf)
+		fmt.Println(mnemonic)
 		if err != nil {
 			return err
 		}

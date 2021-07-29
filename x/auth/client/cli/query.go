@@ -52,6 +52,7 @@ func QueryParamsCmd() *cobra.Command {
 $ <appd> query auth params
 `),
 		RunE: func(cmd *cobra.Command, args []string) error {
+			fmt.Println("PARAMS ---------------------------")
 			clientCtx, err := client.GetClientQueryContext(cmd)
 			if err != nil {
 				return err
