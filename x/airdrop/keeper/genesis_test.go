@@ -11,10 +11,6 @@ import (
 	tmproto "github.com/tendermint/tendermint/proto/tendermint/types"
 )
 
-var (
-	addr = sdk.AccAddress([]byte("addr________________"))
-)
-
 type GenesisTestSuite struct {
 	suite.Suite
 
