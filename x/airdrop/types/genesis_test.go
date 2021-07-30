@@ -3,22 +3,19 @@ package types_test
 import (
 	"testing"
 
+	"github.com/cosmos/cosmos-sdk/crypto/keys/secp256k1"
 	"github.com/cosmos/cosmos-sdk/x/airdrop/types"
 	"github.com/stretchr/testify/require"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
 )
 
-var (
-	addr        = sdk.AccAddress([]byte("addr________________"))
-	invalidAddr = sdk.AccAddress([]byte("\n\n\n\n\taddr________________\t\n\n\n\n\n"))
-)
-
 func TestNewGenesisState(t *testing.T) {
 	p := types.NewParams()
+
 	expectedFunds := []types.ActiveFund{
 		{
-			Sender: addr.String(),
+			Sender: sdk.AccAddress(secp256k1.GenPrivKey().PubKey().Address()).String(),
 			Fund: &types.Fund{
 				Amount:     &sdk.Coin{Denom: "test", Amount: sdk.NewInt(10)},
 				DripAmount: sdk.NewInt(1),
@@ -34,6 +31,7 @@ func TestNewGenesisState(t *testing.T) {
 }
 
 func TestValidateGenesisState(t *testing.T) {
+	addr := sdk.AccAddress(secp256k1.GenPrivKey().PubKey().Address())
 	p1 := types.Params{
 		AllowList: []string{
 			addr.String(), // valid address
@@ -41,7 +39,7 @@ func TestValidateGenesisState(t *testing.T) {
 	}
 	p2 := types.Params{
 		AllowList: []string{
-			invalidAddr.String(), // invalid address
+			sdk.AccAddress([]byte("\n\n\n\n\taddr________________\t\n\n\n\n\n")).String(), // invalid address
 		},
 	}
 	funds := []types.ActiveFund{

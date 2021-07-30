@@ -4,13 +4,9 @@ import (
 	"fmt"
 	"testing"
 
+	"github.com/cosmos/cosmos-sdk/crypto/keys/secp256k1"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/stretchr/testify/require"
-)
-
-var (
-	addr = sdk.AccAddress([]byte("addr________________"))
-	addrInvalid = sdk.AccAddress([]byte(""))
 )
 
 func TestFundValidateBasic(t *testing.T) {
@@ -49,8 +45,10 @@ func TestFundDrip(t *testing.T) {
 	require.Equal(t, fundHighDrip.Amount.Amount.Int64(), int64(0))
 }
 
-func TestMsgAirdropValidateBasic (t *testing.T) {
+func TestMsgAirdropValidateBasic(t *testing.T) {
+	addr := sdk.AccAddress(secp256k1.GenPrivKey().PubKey().Address())
+	addrInvalid := sdk.AccAddress([]byte("\n\n\n\n\taddr________________\t\n\n\n\n\n"))
 	amount := sdk.NewInt64Coin("test", 100)
-	require.NoError(t, NewMsgAirDrop(addr, amount, sdk.NewInt(20)).ValidateBasic())
-	require.Error(t, NewMsgAirDrop(addrInvalid, amount, sdk.NewInt(20)).ValidateBasic())
+	require.NoError(t, NewMsgAirDrop(addr.String(), amount, sdk.NewInt(20)).ValidateBasic())
+	require.Error(t, NewMsgAirDrop(addrInvalid.String(), amount, sdk.NewInt(20)).ValidateBasic())
 }

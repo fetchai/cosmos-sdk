@@ -65,7 +65,7 @@ Example:
 				return sdkerrors.Wrapf(sdkerrors.ErrInvalidRequest, "%s is not a valid drip rate", args[2])
 			}
 
-			msg := types.NewMsgAirDrop(clientCtx.GetFromAddress(), coin, dripAmount)
+			msg := types.NewMsgAirDrop(clientCtx.GetFromAddress().String(), coin, dripAmount)
 			if err := msg.ValidateBasic(); err != nil {
 				return err
 			}
