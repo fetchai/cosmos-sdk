@@ -45,8 +45,8 @@ func ApplyMockIODiscardOutErr(c *cobra.Command) BufferReader {
 	mockIn := strings.NewReader("")
 
 	c.SetIn(mockIn)
-	c.SetOut(os.Stdout)
-	c.SetErr(os.Stdout)
+	c.SetOut(ioutil.Discard)
+	c.SetErr(ioutil.Discard)
 
 	return mockIn
 }
