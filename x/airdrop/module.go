@@ -25,7 +25,7 @@ var (
 	_ module.AppModuleBasic = AppModuleBasic{}
 )
 
-//____________________________________________________________________________
+// ____________________________________________________________________________
 
 // AppModuleBasic defines the basic application module used by the airdrop module.
 type AppModuleBasic struct{}

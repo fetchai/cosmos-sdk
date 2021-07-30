@@ -1,11 +1,12 @@
 package simapp
 
 import (
-	airdroptypes "github.com/cosmos/cosmos-sdk/x/airdrop/types"
 	"io"
 	"net/http"
 	"os"
 	"path/filepath"
+
+	airdroptypes "github.com/cosmos/cosmos-sdk/x/airdrop/types"
 
 	"github.com/gorilla/mux"
 	"github.com/rakyll/statik/fs"
