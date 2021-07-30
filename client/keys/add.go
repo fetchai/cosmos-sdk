@@ -87,6 +87,7 @@ func runAddCmdPrepare(cmd *cobra.Command, args []string) error {
 	if err != nil {
 		return err
 	}
+
 	buf := bufio.NewReader(clientCtx.Input)
 	return RunAddCmd(clientCtx, cmd, args, buf)
 }
