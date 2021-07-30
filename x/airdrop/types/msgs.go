@@ -9,8 +9,8 @@ const (
 	TypeMsgAirDrop = "airdrop"
 )
 
-func NewMsgAirDrop(fromAddr sdk.AccAddress, amount sdk.Coin, dripAmount sdk.Int) *MsgAirDrop {
-	return &MsgAirDrop{FromAddress: fromAddr.String(), Fund: &Fund{
+func NewMsgAirDrop(fromAddr string, amount sdk.Coin, dripAmount sdk.Int) *MsgAirDrop {
+	return &MsgAirDrop{FromAddress: fromAddr, Fund: &Fund{
 		Amount:     &amount,
 		DripAmount: dripAmount,
 	}}

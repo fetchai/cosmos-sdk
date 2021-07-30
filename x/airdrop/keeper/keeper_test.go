@@ -40,7 +40,6 @@ func (s *KeeperTestSuite) SetupTest() {
 	s.app.AirdropKeeper.SetParams(s.ctx, types.NewParams(addr1.String(), addr2.String(), addr3.String(), addr4.String()))
 }
 
-
 func (s *KeeperTestSuite) TestAddNewFund() {
 	amount := sdk.NewInt64Coin(sdk.DefaultBondDenom, 4000)
 	s.Require().NoError(s.app.BankKeeper.SetBalance(s.ctx, addr1, amount)) // ensure the account is funded
@@ -232,8 +231,8 @@ func (s *KeeperTestSuite) TestMultiDenomFeeDrip() {
 	s.Require().Equal(feeCollectorBalanceStake, sdk.NewCoin(sdk.DefaultBondDenom, sdk.NewInt(0)))
 	s.Require().Equal(feeCollectorBalanceDenom, sdk.NewCoin("denom", sdk.NewInt(0)))
 
-	_, err := s.app.AirdropKeeper.DripAllFunds(s.ctx)	// test case - drip the funds
-	s.Require().NoError(err) 							// check that the fees have been transferred
+	_, err := s.app.AirdropKeeper.DripAllFunds(s.ctx) // test case - drip the funds
+	s.Require().NoError(err)                          // check that the fees have been transferred
 
 	moduleBalanceStake = s.app.BankKeeper.GetBalance(s.ctx, moduleAddress, sdk.DefaultBondDenom)
 	moduleBalanceDenom = s.app.BankKeeper.GetBalance(s.ctx, moduleAddress, "denom")
@@ -241,9 +240,9 @@ func (s *KeeperTestSuite) TestMultiDenomFeeDrip() {
 	feeCollectorBalanceDenom = s.app.BankKeeper.GetBalance(s.ctx, feeCollectorAddress, "denom")
 
 	s.Require().Equal(feeCollectorBalanceStake, sdk.NewCoin(sdk.DefaultBondDenom, sdk.NewInt(1300))) // 800 drip fund 1, 500 drip fund 2
-	s.Require().Equal(feeCollectorBalanceDenom, sdk.NewCoin("denom", sdk.NewInt(400))) 		// 100 drip fund 3, 300 drip fund 4
-	s.Require().Equal(moduleBalanceStake, sdk.NewCoin(sdk.DefaultBondDenom, sdk.NewInt(700))) 		// remainder 500 from fund 1, remainder 200 from fund 2
-	s.Require().Equal(moduleBalanceDenom, sdk.NewCoin("denom", sdk.NewInt(1600)))       		// remainder 900 from fund 3, remainder 700 from fund 4
+	s.Require().Equal(feeCollectorBalanceDenom, sdk.NewCoin("denom", sdk.NewInt(400)))               // 100 drip fund 3, 300 drip fund 4
+	s.Require().Equal(moduleBalanceStake, sdk.NewCoin(sdk.DefaultBondDenom, sdk.NewInt(700)))        // remainder 500 from fund 1, remainder 200 from fund 2
+	s.Require().Equal(moduleBalanceDenom, sdk.NewCoin("denom", sdk.NewInt(1600)))                    // remainder 900 from fund 3, remainder 700 from fund 4
 
 }
 
