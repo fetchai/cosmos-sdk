@@ -1,6 +1,7 @@
 package keys
 
 import (
+	"bufio"
 	"context"
 	"fmt"
 	"io/ioutil"
@@ -23,11 +24,12 @@ func Test_runImportCmd(t *testing.T) {
 
 	// Now add a temporary keybase
 	kbHome := t.TempDir()
-	kb, err := keyring.New(sdk.KeyringServiceName(), keyring.BackendTest, kbHome, mockIn)
+	kb, err := keyring.New(sdk.KeyringServiceName(), keyring.BackendTest, kbHome, nil)
 
 	clientCtx := client.Context{}.
 		WithKeyringDir(kbHome).
-		WithKeyring(kb)
+		WithKeyring(kb).
+		WithInput(bufio.NewReader(mockIn))
 	ctx := context.WithValue(context.Background(), client.ClientContextKey, &clientCtx)
 
 	require.NoError(t, err)

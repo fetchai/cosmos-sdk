@@ -1,6 +1,7 @@
 package keys
 
 import (
+	"bytes"
 	"context"
 	"fmt"
 	"testing"
@@ -25,7 +26,7 @@ func Test_runExportCmd(t *testing.T) {
 	kbHome := t.TempDir()
 
 	// create a key
-	kb, err := keyring.New(sdk.KeyringServiceName(), keyring.BackendTest, kbHome, mockIn)
+	kb, err := keyring.New(sdk.KeyringServiceName(), keyring.BackendTest, kbHome, nil)
 	require.NoError(t, err)
 	t.Cleanup(func() {
 		kb.Delete("keyname1") // nolint:errcheck
@@ -47,7 +48,8 @@ func Test_runExportCmd(t *testing.T) {
 
 	clientCtx := client.Context{}.
 		WithKeyringDir(kbHome).
-		WithKeyring(kb)
+		WithKeyring(kb).
+		WithInput(mockIn)
 	ctx := context.WithValue(context.Background(), client.ClientContextKey, &clientCtx)
 
 	require.NoError(t, cmd.ExecuteContext(ctx))
@@ -64,7 +66,9 @@ func Test_runExportCmd(t *testing.T) {
 	cmd.SetArgs(argsUnsafeUnarmoredHex)
 	require.Error(t, cmd.ExecuteContext(ctx))
 
-	mockIn, mockOut := testutil.ApplyMockIO(cmd)
+	mockOut := bytes.NewBufferString("")
+	cmd.SetOut(mockOut)
+	cmd.SetErr(mockOut)
 	mockIn.Reset("y\n")
 	require.NoError(t, cmd.ExecuteContext(ctx))
 	require.Equal(t, "2485e33678db4175dc0ecef2d6e1fc493d4a0d7f7ce83324b6ed70afe77f3485\n", mockOut.String())
