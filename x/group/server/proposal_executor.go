@@ -3,7 +3,7 @@ package server
 import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/types/errors"
-	"github.com/regen-network/regen-ledger/x/group"
+	"github.com/cosmos/cosmos-sdk/x/group"
 )
 
 // ensureMsgAuthZ checks that if a message requires signers that all of them are equal to the given group account.

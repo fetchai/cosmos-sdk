@@ -14,10 +14,10 @@ import (
 
 	"github.com/stretchr/testify/suite"
 
+	groupmodule "github.com/cosmos/cosmos-sdk/x/group/module"
+	"github.com/cosmos/cosmos-sdk/x/group/server/testsuite"
 	"github.com/regen-network/regen-ledger/types/module"
 	"github.com/regen-network/regen-ledger/types/module/server"
-	groupmodule "github.com/regen-network/regen-ledger/x/group/module"
-	"github.com/regen-network/regen-ledger/x/group/server/testsuite"
 )
 
 func TestServer(t *testing.T) {

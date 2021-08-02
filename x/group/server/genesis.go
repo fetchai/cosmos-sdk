@@ -7,9 +7,9 @@ import (
 	"github.com/cosmos/cosmos-sdk/types/errors"
 	abci "github.com/tendermint/tendermint/abci/types"
 
+	"github.com/cosmos/cosmos-sdk/x/group"
 	"github.com/regen-network/regen-ledger/orm"
 	"github.com/regen-network/regen-ledger/types"
-	"github.com/regen-network/regen-ledger/x/group"
 )
 
 func (s serverImpl) InitGenesis(ctx types.Context, cdc codec.JSONMarshaler, data json.RawMessage) ([]abci.ValidatorUpdate, error) {

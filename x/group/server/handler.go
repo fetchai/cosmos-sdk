@@ -3,9 +3,9 @@ package server
 import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/types/errors"
+	"github.com/cosmos/cosmos-sdk/x/group"
 	"github.com/regen-network/regen-ledger/types"
 	servermodule "github.com/regen-network/regen-ledger/types/module/server"
-	"github.com/regen-network/regen-ledger/x/group"
 )
 
 // NewHandler creates an sdk.Handler for all the group type messages.

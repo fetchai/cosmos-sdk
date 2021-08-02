@@ -5,7 +5,7 @@ import (
 
 	"github.com/cosmos/cosmos-sdk/client"
 	"github.com/cosmos/cosmos-sdk/client/flags"
-	"github.com/regen-network/regen-ledger/x/group"
+	"github.com/cosmos/cosmos-sdk/x/group"
 	"github.com/spf13/cobra"
 )
 

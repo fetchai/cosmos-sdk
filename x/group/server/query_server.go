@@ -4,9 +4,9 @@ import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
 	"github.com/cosmos/cosmos-sdk/types/query"
+	"github.com/cosmos/cosmos-sdk/x/group"
 	"github.com/regen-network/regen-ledger/orm"
 	"github.com/regen-network/regen-ledger/types"
-	"github.com/regen-network/regen-ledger/x/group"
 )
 
 func (s serverImpl) GroupInfo(ctx types.Context, request *group.QueryGroupInfoRequest) (*group.QueryGroupInfoResponse, error) {

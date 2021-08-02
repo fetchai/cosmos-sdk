@@ -3,20 +3,18 @@ package module
 import (
 	"encoding/json"
 	"fmt"
-
-	"github.com/grpc-ecosystem/grpc-gateway/runtime"
-	climodule "github.com/regen-network/regen-ledger/types/module/client/cli"
-	servermodule "github.com/regen-network/regen-ledger/types/module/server"
-	"github.com/regen-network/regen-ledger/x/group"
-	"github.com/regen-network/regen-ledger/x/group/client"
-	"github.com/regen-network/regen-ledger/x/group/server"
-
 	sdkclient "github.com/cosmos/cosmos-sdk/client"
 	"github.com/cosmos/cosmos-sdk/codec"
 	"github.com/cosmos/cosmos-sdk/codec/types"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/types/module"
+	"github.com/cosmos/cosmos-sdk/x/group"
+	"github.com/cosmos/cosmos-sdk/x/group/client"
+	"github.com/cosmos/cosmos-sdk/x/group/server"
 	"github.com/gorilla/mux"
+	"github.com/grpc-ecosystem/grpc-gateway/runtime"
+	climodule "github.com/regen-network/regen-ledger/types/module/client/cli"
+	servermodule "github.com/regen-network/regen-ledger/types/module/server"
 	"github.com/spf13/cobra"
 )
 

@@ -1,9 +1,9 @@
 package server
 
 import (
+	"github.com/cosmos/cosmos-sdk/x/group"
 	"github.com/regen-network/regen-ledger/orm"
 	servermodule "github.com/regen-network/regen-ledger/types/module/server"
-	"github.com/regen-network/regen-ledger/x/group"
 
 	"github.com/cosmos/cosmos-sdk/codec"
 	sdk "github.com/cosmos/cosmos-sdk/types"
