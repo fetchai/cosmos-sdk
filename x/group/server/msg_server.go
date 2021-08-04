@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/binary"
 	"fmt"
+	"github.com/cosmos/cosmos-sdk/crypto/keys/bls12381"
 	"reflect"
 
 	authtypes "github.com/cosmos/cosmos-sdk/x/auth/types"
@@ -18,6 +19,33 @@ import (
 	"github.com/regen-network/regen-ledger/types"
 )
 
+func (s serverImpl) validateBlsMember(ctx types.Context, mem group.Member) error {
+	addr, err := sdk.AccAddressFromBech32(mem.Address)
+	if err!= nil {
+		return err
+	}
+	acc := s.accKeeper.GetAccount(ctx.Context, addr)
+	if acc == nil {
+		return fmt.Errorf("account %s does not exist", mem.Address)
+	}
+
+	pk := acc.GetPubKey()
+	if pk == nil {
+		return fmt.Errorf("account public key not set yet")
+	}
+
+	if pk.Type() != bls12381.KeyType {
+		return fmt.Errorf("member account %s is not a bls account", mem.Address)
+	}
+
+	if !acc.GetPopValid() {
+		return fmt.Errorf("member account %s hasn't validated pop for public key", mem.Address)
+	}
+
+	return nil
+}
+
+
 func (s serverImpl) CreateGroup(ctx types.Context, req *group.MsgCreateGroupRequest) (*group.MsgCreateGroupResponse, error) {
 	metadata := req.Metadata
 	members := group.Members{Members: req.Members}
@@ -29,6 +57,12 @@ func (s serverImpl) CreateGroup(ctx types.Context, req *group.MsgCreateGroupRequ
 
 	if err := assertMetadataLength(metadata, "group metadata"); err != nil {
 		return nil, err
+	}
+
+	for _, mem := range members.Members {
+		if err := s.validateBlsMember(ctx, mem); err!=nil {
+			return nil, err
+		}
 	}
 
 	totalWeight := apd.New(0, 0)
@@ -94,6 +128,13 @@ func (s serverImpl) UpdateGroupMembers(ctx types.Context, req *group.MsgUpdateGr
 		if err != nil {
 			return err
 		}
+
+		for _, mem := range req.MemberUpdates {
+			if err := s.validateBlsMember(ctx, mem); err!=nil {
+				return err
+			}
+		}
+
 		for i := range req.MemberUpdates {
 			if err := assertMetadataLength(req.MemberUpdates[i].Metadata, "group member metadata"); err != nil {
 				return err
