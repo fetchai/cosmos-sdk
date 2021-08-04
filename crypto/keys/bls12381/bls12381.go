@@ -24,7 +24,7 @@ const (
 	// SignatureSize is the size of a bls signature. Namely the size of a compressed
 	// G2 point.
 	SignatureSize = 96
-	keyType       = "bls12381"
+	KeyType       = "bls12381"
 	SeedSize      = 32
 )
 
@@ -76,7 +76,7 @@ func (privKey *PrivKey) Equals(other cryptotypes.LedgerPrivKey) bool {
 }
 
 func (privKey *PrivKey) Type() string {
-	return keyType
+	return KeyType
 }
 
 // MarshalAmino overrides Amino binary marshalling.
@@ -191,7 +191,7 @@ func (pubKey *PubKey) String() string {
 }
 
 func (pubKey *PubKey) Type() string {
-	return keyType
+	return KeyType
 }
 
 func (pubKey *PubKey) Equals(other cryptotypes.PubKey) bool {
