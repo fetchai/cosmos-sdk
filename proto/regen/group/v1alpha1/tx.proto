@@ -5,8 +5,10 @@ package regen.group.v1alpha1;
 option go_package = "github.com/cosmos/cosmos-sdk/x/group";
 
 import "gogoproto/gogo.proto";
-import "cosmos_proto/cosmos.proto";
+//import "cosmos_proto/cosmos.proto";
+import "cosmos.proto";
 import "google/protobuf/any.proto";
+import "google/protobuf/timestamp.proto";
 import "regen/group/v1alpha1/types.proto";
 
 // Msg is the regen.group.v1alpha1 Msg service.
@@ -41,6 +43,9 @@ service Msg {
 
     // Vote allows a voter to vote on a proposal.
     rpc Vote(MsgVoteRequest) returns (MsgVoteResponse);
+
+    // VoteAgg allows a sender to submit a set of votes
+    rpc VoteAgg(MsgVoteAggRequest)  returns (MsgVoteAggResponse);
 
     // Exec executes a proposal.
     rpc Exec(MsgExecRequest) returns (MsgExecResponse);
@@ -244,6 +249,66 @@ message MsgVoteRequest {
 // MsgVoteResponse is the Msg/Vote response type.
 message MsgVoteResponse { }
 
+
+// MsgVoteRequest is the Msg/Vote request type.
+message MsgVoteBasicRequest {
+
+    // proposal is the unique ID of the proposal.
+    uint64 proposal_id = 1;
+
+    // choice is the voter's choice on the proposal.
+    Choice choice = 2;
+
+    // timeout is the unique timestamp before which all the basic votes need to aggregated and submitted.
+    google.protobuf.Timestamp timeout = 3 [(gogoproto.nullable) = false];
+}
+
+// MsgVoteResponse is the basic vote that can be aggregated together
+message MsgVoteBasicResponse {
+    // proposal is the unique ID of the proposal.
+    uint64 proposal_id = 1;
+
+    // choice is the voter's choice on the proposal.
+    Choice choice = 2;
+
+    // timeout is the unique timestamp before which the aggregated vote needs to submitted.
+    google.protobuf.Timestamp timeout = 3 [(gogoproto.nullable) = false];
+
+    // voter is the account address of the voter.
+    string voter = 4;
+
+    // pub_key is the voter's public key
+    google.protobuf.Any pub_key = 5
+    [(gogoproto.jsontag) = "public_key,omitempty", (gogoproto.moretags) = "yaml:\"public_key\""];
+
+    // sig is the individual signature which will be aggregated with other signatures
+    bytes sig = 6;
+}
+
+// MsgVoteRequest is the Msg/Vote request type.
+message MsgVoteAggRequest {
+    // sender is the person who submits the votes
+    string sender = 1;
+
+    // proposal is the unique ID of the proposal.
+    uint64 proposal_id = 2;
+
+    // votes are the list of voters' choices on the proposal.
+    repeated Choice votes = 3;
+
+    // timeout is the unique timestamp before which all the basic votes need to aggregated and submitted.
+    google.protobuf.Timestamp timeout = 4 [(gogoproto.nullable) = false];
+
+    // agg_sig is the bls aggregated signature for all the votes
+    bytes agg_sig = 5;
+
+    // metadata is any arbitrary metadata to attached to the vote.
+    bytes metadata = 6;
+}
+
+// MsgVoteResponse is the Msg/Vote response type.
+message MsgVoteAggResponse { }
+
 // MsgExecRequest is the Msg/Exec request type.
 message MsgExecRequest {
 
@@ -256,3 +321,5 @@ message MsgExecRequest {
 
 // MsgExecResponse is the Msg/Exec request type.
 message MsgExecResponse { }
+
+

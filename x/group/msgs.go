@@ -2,8 +2,9 @@ package group
 
 import (
 	"fmt"
-
 	"github.com/cosmos/cosmos-sdk/codec/types"
+	"github.com/cosmos/cosmos-sdk/crypto/keys/bls12381"
+	cryptotypes "github.com/cosmos/cosmos-sdk/crypto/types"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
 	proto "github.com/gogo/protobuf/proto"
@@ -22,6 +23,9 @@ const (
 	TypeMsgUpdateGroupAccountComment        = "update_group_account_comment"
 	TypeMsgCreateProposal                   = "create_proposal"
 	TypeMsgVote                             = "vote"
+	TypeMsgVoteBasic                        = "vote_basic"
+	TypeMsgVoteBasicOutput                  = "vote_basic_output"
+	TypeMsgVoteAgg                          = "vote_agg"
 	TypeMsgExec                             = "exec"
 )
 
@@ -641,6 +645,171 @@ func (m MsgVoteRequest) ValidateBasic() error {
 	}
 	return nil
 }
+
+
+var _ sdk.Msg = &MsgVoteBasicRequest{}
+
+// Route Implements Msg.
+func (m MsgVoteBasicRequest) Route() string { return RouterKey }
+
+// Type Implements Msg.
+func (m MsgVoteBasicRequest) Type() string { return TypeMsgVoteBasic }
+
+// GetSignBytes Implements Msg.
+func (m MsgVoteBasicRequest) GetSignBytes() []byte {
+	req := MsgVoteBasicRequest{
+		ProposalId: m.ProposalId,
+		Choice:     m.Choice,
+		Timeout:    m.Timeout,
+	}
+	return sdk.MustSortJSON(ModuleCdc.MustMarshalJSON(&req))
+}
+
+// GetSigners returns the expected signers for a MsgVoteRequest.
+func (m MsgVoteBasicRequest) GetSigners() []sdk.AccAddress {
+	panic("this message does not include signers")
+}
+
+// ValidateBasic does a sanity check on the provided data
+func (m MsgVoteBasicRequest) ValidateBasic() error {
+	if m.ProposalId == 0 {
+		return sdkerrors.Wrap(ErrEmpty, "proposal")
+	}
+	if m.Choice == Choice_CHOICE_UNSPECIFIED {
+		return sdkerrors.Wrap(ErrEmpty, "choice")
+	}
+	if _, ok := Choice_name[int32(m.Choice)]; !ok {
+		return sdkerrors.Wrap(ErrInvalid, "choice")
+	}
+	return nil
+}
+
+
+var _ sdk.Msg = &MsgVoteBasicResponse{}
+var _ types.UnpackInterfacesMessage = MsgVoteBasicResponse{}
+
+// Route Implements Msg.
+func (m MsgVoteBasicResponse) Route() string { return RouterKey }
+
+// Type Implements Msg.
+func (m MsgVoteBasicResponse) Type() string { return TypeMsgVoteBasicOutput }
+
+// GetSignBytes Implements Msg.
+func (m MsgVoteBasicResponse) GetSignBytes() []byte {
+	res :=  MsgVoteBasicRequest{
+		ProposalId: m.ProposalId,
+		Choice:     m.Choice,
+		Timeout:    m.Timeout,
+	}
+	return sdk.MustSortJSON(ModuleCdc.MustMarshalJSON(&res))
+}
+
+// GetSigners returns the expected signers for a MsgVoteRequest.
+func (m MsgVoteBasicResponse) GetSigners() []sdk.AccAddress {
+	addr, err := sdk.AccAddressFromBech32(m.Voter)
+	if err != nil {
+		panic(err)
+	}
+	return []sdk.AccAddress{addr}
+}
+
+// ValidateBasic does a sanity check on the provided data
+func (m MsgVoteBasicResponse) ValidateBasic() error {
+	if m.ProposalId == 0 {
+		return sdkerrors.Wrap(ErrEmpty, "proposal")
+	}
+	if m.Choice == Choice_CHOICE_UNSPECIFIED {
+		return sdkerrors.Wrap(ErrEmpty, "choice")
+	}
+	if _, ok := Choice_name[int32(m.Choice)]; !ok {
+		return sdkerrors.Wrap(ErrInvalid, "choice")
+	}
+	return nil
+}
+
+// UnpackInterfaces implements UnpackInterfacesMessage.UnpackInterfaces
+func (m MsgVoteBasicResponse) UnpackInterfaces(unpacker types.AnyUnpacker) error {
+	var pk cryptotypes.PubKey
+	return unpacker.UnpackAny(m.PubKey, &pk)
+}
+
+
+var _ sdk.Msg = &MsgVoteAggRequest{}
+
+// Route Implements Msg.
+func (m MsgVoteAggRequest) Route() string { return RouterKey }
+
+// Type Implements Msg.
+func (m MsgVoteAggRequest) Type() string { return TypeMsgVoteAgg }
+
+// GetSignBytes Implements Msg.
+func (m MsgVoteAggRequest) GetSignBytes() []byte {
+	return sdk.MustSortJSON(ModuleCdc.MustMarshalJSON(&m))
+}
+
+// GetSigners returns the expected signers for a MsgVoteRequest.
+func (m MsgVoteAggRequest) GetSigners() []sdk.AccAddress {
+	addr, err := sdk.AccAddressFromBech32(m.Sender)
+	if err != nil {
+		panic(err)
+	}
+	return []sdk.AccAddress{addr}
+}
+
+// ValidateBasic does a sanity check on the provided data
+func (m MsgVoteAggRequest) ValidateBasic() error {
+	_, err := sdk.AccAddressFromBech32(m.Sender)
+	if err != nil {
+		return sdkerrors.Wrap(err, "sender")
+	}
+	if m.ProposalId == 0 {
+		return sdkerrors.Wrap(ErrEmpty, "proposal")
+	}
+	for _, c := range m.Votes {
+		if _, ok := Choice_name[int32(c)]; !ok {
+			return sdkerrors.Wrap(ErrInvalid, "choice")
+		}
+	}
+	return nil
+}
+
+
+
+func (m MsgVoteAggRequest) VerifyAggSig(pks  []cryptotypes.PubKey) error {
+	n := len(m.Votes)
+	if n <= 0 {
+		return fmt.Errorf("empty votes")
+	}
+	if len(pks) != n {
+		return fmt.Errorf("the length of public keys and votes must equal")
+	}
+
+	pkeys := make([][]*bls12381.PubKey, len(Choice_name))
+	for i, pk := range pks {
+		pkey, ok := pk.(*bls12381.PubKey)
+		if !ok {
+			return fmt.Errorf("only support bls12381 public key")
+		}
+		c := m.Votes[i]
+		pkeys[c] = append(pkeys[c], pkey)
+	}
+
+	var votes [][]byte
+	var pubkeys [][]*bls12381.PubKey
+
+	// skip the unspecified choice
+	for i := 1; i<len(Choice_name); i++ {
+		if len(pkeys[i]) != 0 {
+			vote := MsgVoteBasicRequest{m.ProposalId, Choice(i), m.Timeout}
+			voteBytes := vote.GetSignBytes()
+			votes = append(votes, voteBytes)
+			pubkeys = append(pubkeys, pkeys[i])
+		}
+	}
+
+	return bls12381.VerifyAggregateSignature(votes, false, m.AggSig, pubkeys)
+}
+
 
 var _ sdk.Msg = &MsgExecRequest{}
 

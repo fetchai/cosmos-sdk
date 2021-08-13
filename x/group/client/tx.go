@@ -1,8 +1,15 @@
 package client
 
 import (
+	"bytes"
 	"encoding/base64"
 	"fmt"
+	codectypes "github.com/cosmos/cosmos-sdk/codec/types"
+	"github.com/cosmos/cosmos-sdk/crypto/keys/bls12381"
+	cryptotypes "github.com/cosmos/cosmos-sdk/crypto/types"
+
+	"github.com/gogo/protobuf/types"
+	tmcli "github.com/tendermint/tendermint/libs/cli"
 	"strconv"
 	"strings"
 
@@ -16,6 +23,7 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/cosmos/cosmos-sdk/x/group"
+	gogotypes "github.com/gogo/protobuf/types"
 )
 
 const flagMembers = "members"
@@ -42,6 +50,9 @@ func TxCmd(name string) *cobra.Command {
 		MsgCreateProposalCmd(),
 		MsgVoteCmd(),
 		MsgExecCmd(),
+		MsgVoteAggCmd(),
+		GetVoteBasicCmd(),
+		GetVerifyVoteBasicCmd(),
 	)
 
 	return txCmd
@@ -639,3 +650,264 @@ func MsgExecCmd() *cobra.Command {
 
 	return cmd
 }
+
+func MsgVoteAggCmd() *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "vote-agg [sender] [propsal_id] [timeout] [group-members-json-file] [[vote-json-file]...]",
+		Short: "Aggregate signatures of basic votes into aggregated signature and submit the combined votes",
+		Long: `Aggregate signatures of basic votes into aggregated signature and submit the combined votes.
+
+Parameters:
+			sender: sender's account address
+			proposal-id: unique ID of the proposal
+			timeout: UTC time for the submission deadline of the aggregated vote, e.g., 2021-08-15T12:00:00Z
+			group-members-json-file: path to json file that contains group members
+			vote-json-file: path to json file that contains a basic vote with a verified signature
+`,
+		Args: cobra.MinimumNArgs(5),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			err := cmd.Flags().Set(flags.FlagFrom, args[0])
+			if err != nil {
+				return err
+			}
+
+			clientCtx, err := client.GetClientTxContext(cmd)
+			if err != nil {
+				return err
+			}
+
+			proposalID, err := strconv.ParseUint(args[1], 10, 64)
+			if err != nil {
+				return err
+			}
+
+			timeString := fmt.Sprintf("\"%s\"", args[2])
+			var timeout types.Timestamp
+			err = clientCtx.JSONMarshaler.UnmarshalJSON([]byte(timeString), &timeout)
+			if err != nil {
+				return err
+			}
+			timeNow := gogotypes.TimestampNow()
+			if timeout.Compare(timeNow) <= 0 {
+				return fmt.Errorf("deadline for submitting the vote has passed")
+			}
+
+			groupMembers, err := parseGroupMembers(clientCtx, args[3])
+			if err != nil {
+				return err
+			}
+			for _, mem := range groupMembers {
+				if err = mem.ValidateBasic(); err != nil {
+					return err
+				}
+			}
+
+			index := make(map[string]int, len(groupMembers))
+			for i, mem := range groupMembers {
+				addr := mem.Member.Address
+				if _, exists := index[addr]; exists {
+					return fmt.Errorf("duplicate address: %s", addr)
+				}
+				index[addr] = i
+			}
+
+			votes := make([]group.Choice, len(groupMembers))
+			for i := range votes {
+				votes[i] = group.Choice_CHOICE_UNSPECIFIED
+			}
+
+			var sigs [][]byte
+			for i := 4; i < len(args); i++ {
+				vote, err := parseVoteBasic(clientCtx, args[i])
+				if err != nil {
+					return err
+				}
+
+				if vote.ProposalId != proposalID || !vote.Timeout.Equal(timeout) {
+					return fmt.Errorf("invalid vote from %s: expected proposal id %d and timeout %s", vote.Voter, proposalID, timeout.String())
+				}
+
+				memIndex, ok := index[vote.Voter]
+				if !ok {
+					return fmt.Errorf("invalid voter")
+				}
+
+				votes[memIndex] = vote.Choice
+				sigs = append(sigs, vote.Sig)
+			}
+
+			sigma, err := bls12381.AggregateSignature(sigs)
+			if err != nil {
+				return err
+			}
+
+			msg := &group.MsgVoteAggRequest{
+				Sender: args[0],
+				ProposalId: proposalID,
+				Votes: votes,
+				Timeout: timeout,
+				AggSig: sigma,
+				Metadata: nil,
+			}
+
+			if err = msg.ValidateBasic(); err != nil {
+				return fmt.Errorf("message validation failed: %w", err)
+			}
+
+			return tx.GenerateOrBroadcastTxCLI(clientCtx, cmd.Flags(), msg)
+		},
+	}
+
+	flags.AddTxFlagsToCmd(cmd)
+
+	return cmd
+}
+
+
+// GetVoteBasicCmd creates a CLI command for Msg/VoteBasic.
+func GetVoteBasicCmd() *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "vote-basic [voter] [proposal-id] [choice] [timeout]",
+		Short: "Vote on a proposal",
+		Long: `Vote on a proposal and the vote will be aggregated with other votes.
+
+Parameters:
+			voter: voter account addresses.
+			proposal-id: unique ID of the proposal
+			choice: choice of the voter(s)
+				CHOICE_UNSPECIFIED: no-op
+				CHOICE_NO: no
+				CHOICE_YES: yes
+				CHOICE_ABSTAIN: abstain
+				CHOICE_VETO: veto
+			timeout: UTC time for the submission deadline of the vote, e.g., 2021-08-15T12:00:00Z
+`,
+		Args: cobra.ExactArgs(4),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			err := cmd.Flags().Set(flags.FlagFrom, args[0])
+			if err != nil {
+				return err
+			}
+
+			clientCtx, err := client.GetClientTxContext(cmd)
+			if err != nil {
+				return err
+			}
+
+			proposalID, err := strconv.ParseUint(args[1], 10, 64)
+			if err != nil {
+				return err
+			}
+
+			choice, err := group.ChoiceFromString(args[2])
+			if err != nil {
+				return err
+			}
+
+			timeString := fmt.Sprintf("\"%s\"", args[3])
+			var timeout types.Timestamp
+			err = clientCtx.JSONMarshaler.UnmarshalJSON([]byte(timeString), &timeout)
+			if err != nil {
+				return err
+			}
+
+			timeNow := gogotypes.TimestampNow()
+			if timeout.Compare(timeNow) <= 0 {
+				return fmt.Errorf("deadline for submitting the vote has passed")
+			}
+
+			msg := &group.MsgVoteBasicRequest{
+				ProposalId: proposalID,
+				Choice:     choice,
+				Timeout:	timeout,
+			}
+
+			if err = msg.ValidateBasic(); err != nil {
+				return fmt.Errorf("message validation failed: %w", err)
+			}
+
+			bytesToSign := msg.GetSignBytes()
+			sigBytes, pubKey, err := clientCtx.Keyring.Sign(clientCtx.GetFromName(), bytesToSign)
+
+			pubKeyAny, err := codectypes.NewAnyWithValue(pubKey)
+			if err != nil {
+				return err
+			}
+
+			vote := &group.MsgVoteBasicResponse{
+				ProposalId: proposalID,
+				Choice:     choice,
+				Timeout:    timeout,
+				Voter:      args[0],
+				PubKey:     pubKeyAny,
+				Sig:        sigBytes,
+			}
+
+			return clientCtx.PrintProto(vote)
+		},
+	}
+
+	cmd.Flags().String(flags.FlagFrom, "", "Name or address of private key with which to sign")
+	cmd.Flags().StringP(tmcli.OutputFlag, "o", "text", "Output format (text|json)")
+
+	return cmd
+}
+
+
+
+// GetVerifyVoteBasicCmd creates a CLI command for aggregating basic votes.
+func GetVerifyVoteBasicCmd() *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "verify-vote-basic [file]",
+		Short: "Verify signature for a basic vote",
+		Long: `Verify signature for a basic vote.
+
+Parameters:
+			file: a basic vote with signature
+`,
+		Args: cobra.ExactArgs(1),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			clientCtx, err := client.GetClientTxContext(cmd)
+			if err != nil {
+				return err
+			}
+
+			vote, err := parseVoteBasic(clientCtx, args[0])
+			if err != nil {
+				return err
+			}
+
+			if err = vote.ValidateBasic(); err != nil {
+				return fmt.Errorf("message validation failed: %w", err)
+			}
+
+			msgBytes := vote.GetSignBytes()
+
+			pubKey, ok := vote.PubKey.GetCachedValue().(cryptotypes.PubKey)
+			if !ok {
+				return fmt.Errorf("failed to get public key")
+			}
+
+			voterAddress, err := sdk.AccAddressFromBech32(vote.Voter)
+			if err != nil {
+				return err
+			}
+			if !bytes.Equal(pubKey.Address(), voterAddress) {
+				return fmt.Errorf("public key does not match the voter's address %s", vote.Voter)
+			}
+
+			if !pubKey.VerifySignature(msgBytes, vote.Sig) {
+				return fmt.Errorf("verification failed")
+			}
+
+			cmd.Println("Verification Successful!")
+
+			return nil
+		},
+	}
+
+	return cmd
+}
+
+
+

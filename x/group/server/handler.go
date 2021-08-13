@@ -1,6 +1,7 @@
 package server
 
 import (
+	"fmt"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/types/errors"
 	"github.com/cosmos/cosmos-sdk/x/group"
@@ -60,6 +61,11 @@ func NewHandler(configurator servermodule.Configurator, accountKeeper AccountKee
 
 		case *group.MsgExecRequest:
 			res, err := impl.Exec(regenCtx, msg)
+			return sdk.WrapServiceResult(ctx, res, err)
+
+		case *group.MsgVoteAggRequest:
+			fmt.Println("\n\n\n in new handler \n\n\n")
+			res, err := impl.VoteAgg(regenCtx, msg)
 			return sdk.WrapServiceResult(ctx, res, err)
 
 		default:

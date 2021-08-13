@@ -5,6 +5,7 @@ import (
 	"encoding/binary"
 	"fmt"
 	"github.com/cosmos/cosmos-sdk/crypto/keys/bls12381"
+	cryptotypes "github.com/cosmos/cosmos-sdk/crypto/types"
 	"reflect"
 
 	authtypes "github.com/cosmos/cosmos-sdk/x/auth/types"
@@ -465,6 +466,8 @@ func (s serverImpl) CreateProposal(ctx types.Context, req *group.MsgCreatePropos
 		return nil, sdkerrors.Wrap(err, "end time conversion")
 	}
 
+	fmt.Printf("blocktime = ", ctx.BlockTime())
+
 	m := &group.Proposal{
 		ProposalId:          s.proposalTable.Sequence().PeekNextVal(ctx),
 		Address:             req.Address,
@@ -611,6 +614,152 @@ func doTally(ctx types.Context, p *group.Proposal, electorate group.GroupInfo, a
 		p.Status = group.ProposalStatusClosed
 	}
 	return nil
+}
+
+func (s serverImpl) VoteAgg(ctx types.Context, req *group.MsgVoteAggRequest) (*group.MsgVoteAggResponse, error) {
+	id := req.ProposalId
+	choices := req.Votes
+	metadata := req.Metadata
+	votesExpire := req.Timeout
+
+	if err := assertMetadataLength(metadata, "metadata"); err != nil {
+		return nil, err
+	}
+
+	blockTime, err := gogotypes.TimestampProto(ctx.BlockTime())
+	if err != nil {
+		return nil, err
+	}
+
+	if votesExpire.Compare(blockTime) <= 0 {
+		return nil, fmt.Errorf("the aggregated votes have expired")
+	}
+
+	proposal, err := s.getProposal(ctx, id)
+	if err != nil {
+		return nil, err
+	}
+	// Ensure that we can still accept votes for this proposal.
+	if proposal.Status != group.ProposalStatusSubmitted {
+		return nil, sdkerrors.Wrap(group.ErrInvalid, "proposal not open for voting")
+	}
+	votingPeriodEnd, err := gogotypes.TimestampFromProto(&proposal.Timeout)
+	if err != nil {
+		return nil, err
+	}
+	if votingPeriodEnd.Before(ctx.BlockTime()) || votingPeriodEnd.Equal(ctx.BlockTime()) {
+		return nil, sdkerrors.Wrap(group.ErrExpired, "voting period has ended already")
+	}
+
+	var accountInfo group.GroupAccountInfo
+	// Ensure that group account hasn't been modified since the proposal submission.
+	address, err := sdk.AccAddressFromBech32(proposal.Address)
+	if err != nil {
+		return nil, sdkerrors.Wrap(err, "group account")
+	}
+	if err := s.groupAccountTable.GetOne(ctx, address.Bytes(), &accountInfo); err != nil {
+		return nil, sdkerrors.Wrap(err, "load group account")
+	}
+	if proposal.GroupAccountVersion != accountInfo.Version {
+		return nil, sdkerrors.Wrap(group.ErrModified, "group account was modified")
+	}
+
+	// Ensure that group hasn't been modified since the proposal submission.
+	electorate, err := s.getGroupInfo(ctx, accountInfo.GroupId)
+	if err != nil {
+		return nil, err
+	}
+	if electorate.Version != proposal.GroupVersion {
+		return nil, sdkerrors.Wrap(group.ErrModified, "group was modified")
+	}
+
+	membersIter, err := s.groupMemberByGroupIndex.Get(ctx, electorate.GroupId)
+	if err != nil {
+		return nil, err
+	}
+
+	var pubKeys []cryptotypes.PubKey
+	var votes []group.Vote
+	var weights []string
+	for i:=0; ; i++ {
+		var mem group.GroupMember
+		_, err := membersIter.LoadNext(&mem)
+		if err != nil {
+			if orm.ErrIteratorDone.Is(err) {
+				break
+			}
+			return nil, err
+		}
+
+		memAddr, err := sdk.AccAddressFromBech32(mem.Member.Address)
+		if err != nil {
+			return nil, err
+		}
+
+		if i >= len(choices) {
+			return nil, fmt.Errorf("wrong number of votes")
+		}
+
+		acc := s.accKeeper.GetAccount(ctx.Context, memAddr)
+		if acc == nil {
+			return nil, fmt.Errorf("account does not exist")
+		}
+		pk := acc.GetPubKey()
+		if pk == nil {
+			return nil, fmt.Errorf("public key not set yet")
+		}
+		pubKeys = append(pubKeys, pk)
+
+		meta := fmt.Sprintf("submitted through aggregated vote by %s", req.Sender)
+		if choices[i] != group.Choice_CHOICE_UNSPECIFIED {
+			vote := group.Vote{
+				ProposalId:  id,
+				Voter:       mem.Member.Address,
+				Choice:      choices[i],
+				Metadata:    []byte(meta),
+				SubmittedAt: *blockTime,
+			}
+			votes = append(votes, vote)
+			weights = append(weights, mem.Member.Weight)
+		}
+	}
+
+	if err = req.VerifyAggSig(pubKeys); err != nil {
+		return nil, err
+	}
+
+	// Count and store votes.
+	for i := range votes {
+		if err := proposal.VoteState.Add(votes[i], weights[i]); err != nil {
+			return nil, sdkerrors.Wrap(err, "add new vote")
+		}
+
+		// If the vote already exists, skip the new vote
+		if err := s.voteTable.Create(ctx, &votes[i]); err != nil {
+			if orm.ErrUniqueConstraint.Is(err) {
+				if err := proposal.VoteState.Sub(votes[i], weights[i]); err != nil {
+					return nil, sdkerrors.Wrap(err, "sub new vote")
+				}
+				continue
+			}
+			return nil, err
+		}
+	}
+
+	if err := doTally(ctx, &proposal, electorate, accountInfo); err != nil {
+		return nil, err
+	}
+
+	if err = s.proposalTable.Save(ctx, id, &proposal); err != nil {
+		return nil, err
+	}
+
+	err = ctx.EventManager().EmitTypedEvent(&group.EventVote{ProposalId: id})
+	if err != nil {
+		return nil, err
+	}
+
+	return &group.MsgVoteAggResponse{}, nil
 }
 
 // Exec executes the messages from a proposal.

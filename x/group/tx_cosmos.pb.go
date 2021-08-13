@@ -36,6 +36,8 @@ type MsgClient interface {
 	CreateProposal(ctx context.Context, in *MsgCreateProposalRequest, opts ...grpc.CallOption) (*MsgCreateProposalResponse, error)
 	// Vote allows a voter to vote on a proposal.
 	Vote(ctx context.Context, in *MsgVoteRequest, opts ...grpc.CallOption) (*MsgVoteResponse, error)
+	// VoteAgg allows a sender to submit a set of votes
+	VoteAgg(ctx context.Context, in *MsgVoteAggRequest, opts ...grpc.CallOption) (*MsgVoteAggResponse, error)
 	// Exec executes a proposal.
 	Exec(ctx context.Context, in *MsgExecRequest, opts ...grpc.CallOption) (*MsgExecResponse, error)
 }
@@ -52,6 +54,7 @@ type msgClient struct {
 	_UpdateGroupAccountMetadata       types.Invoker
 	_CreateProposal                   types.Invoker
 	_Vote                             types.Invoker
+	_VoteAgg                          types.Invoker
 	_Exec                             types.Invoker
 }
 
@@ -289,6 +292,29 @@ func (c *msgClient) Vote(ctx context.Context, in *MsgVoteRequest, opts ...grpc.C
 	return out, nil
 }
 
+func (c *msgClient) VoteAgg(ctx context.Context, in *MsgVoteAggRequest, opts ...grpc.CallOption) (*MsgVoteAggResponse, error) {
+	if invoker := c._VoteAgg; invoker != nil {
+		var out MsgVoteAggResponse
+		err := invoker(ctx, in, &out)
+		return &out, err
+	}
+	if invokerConn, ok := c.cc.(types.InvokerConn); ok {
+		var err error
+		c._VoteAgg, err = invokerConn.Invoker("/regen.group.v1alpha1.Msg/VoteAgg")
+		if err != nil {
+			var out MsgVoteAggResponse
+			err = c._VoteAgg(ctx, in, &out)
+			return &out, err
+		}
+	}
+	out := new(MsgVoteAggResponse)
+	err := c.cc.Invoke(ctx, "/regen.group.v1alpha1.Msg/VoteAgg", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 func (c *msgClient) Exec(ctx context.Context, in *MsgExecRequest, opts ...grpc.CallOption) (*MsgExecResponse, error) {
 	if invoker := c._Exec; invoker != nil {
 		var out MsgExecResponse
@@ -334,6 +360,8 @@ type MsgServer interface {
 	CreateProposal(types.Context, *MsgCreateProposalRequest) (*MsgCreateProposalResponse, error)
 	// Vote allows a voter to vote on a proposal.
 	Vote(types.Context, *MsgVoteRequest) (*MsgVoteResponse, error)
+	// VoteAgg allows a sender to submit a set of votes
+	VoteAgg(types.Context, *MsgVoteAggRequest) (*MsgVoteAggResponse, error)
 	// Exec executes a proposal.
 	Exec(types.Context, *MsgExecRequest) (*MsgExecResponse, error)
 }
@@ -522,6 +550,24 @@ func _Msg_Vote_Handler(srv interface{}, ctx context.Context, dec func(interface{
 	return interceptor(ctx, in, info, handler)
 }
 
+func _Msg_VoteAgg_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(MsgVoteAggRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(MsgServer).VoteAgg(types.UnwrapSDKContext(ctx), in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/regen.group.v1alpha1.Msg/VoteAgg",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(MsgServer).VoteAgg(types.UnwrapSDKContext(ctx), req.(*MsgVoteAggRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 func _Msg_Exec_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(MsgExecRequest)
 	if err := dec(in); err != nil {
@@ -588,6 +634,10 @@ var Msg_ServiceDesc = grpc.ServiceDesc{
 			Handler:    _Msg_Vote_Handler,
 		},
 		{
+			MethodName: "VoteAgg",
+			Handler:    _Msg_VoteAgg_Handler,
+		},
+		{
 			MethodName: "Exec",
 			Handler:    _Msg_Exec_Handler,
 		},
@@ -606,5 +656,6 @@ const (
 	MsgUpdateGroupAccountMetadataMethod       = "/regen.group.v1alpha1.Msg/UpdateGroupAccountMetadata"
 	MsgCreateProposalMethod                   = "/regen.group.v1alpha1.Msg/CreateProposal"
 	MsgVoteMethod                             = "/regen.group.v1alpha1.Msg/Vote"
+	MsgVoteAggMethod                          = "/regen.group.v1alpha1.Msg/VoteAgg"
 	MsgExecMethod                             = "/regen.group.v1alpha1.Msg/Exec"
 )
