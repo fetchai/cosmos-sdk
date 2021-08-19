@@ -182,7 +182,7 @@ func (s *IntegrationTestSuite) TestGetCmdQueryTotalSupply() {
 			expected: &types.QueryTotalSupplyResponse{
 				Supply: sdk.NewCoins(
 					sdk.NewCoin(fmt.Sprintf("%stoken", val.Moniker), s.cfg.AccountTokens),
-					sdk.NewCoin(s.cfg.BondDenom, s.cfg.StakingTokens.Add(sdk.NewInt(10))),
+					sdk.NewCoin(s.cfg.BondDenom, s.cfg.StakingTokens.Add(sdk.NewInt(2))),
 				),
 				Pagination: &query.PageResponse{Total: 2},
 			},
@@ -197,7 +197,7 @@ func (s *IntegrationTestSuite) TestGetCmdQueryTotalSupply() {
 			respType: &sdk.Coin{},
 			expected: &sdk.Coin{
 				Denom:  s.cfg.BondDenom,
-				Amount: s.cfg.StakingTokens.Add(sdk.NewInt(10)),
+				Amount: s.cfg.StakingTokens.Add(sdk.NewInt(2)),
 			},
 		},
 		{

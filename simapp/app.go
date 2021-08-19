@@ -290,6 +290,7 @@ func NewSimApp(
 	app.AirdropKeeper = airdropkeeper.NewKeeper(
 		appCodec, keys[airdroptypes.StoreKey], app.GetSubspace(airdroptypes.ModuleName), app.BankKeeper,
 		authtypes.FeeCollectorName,
+	)
 	app.GovKeeper = *govKeeper.SetHooks(
 		govtypes.NewMultiGovHooks(
 		// register the governance hooks

@@ -160,7 +160,7 @@ func (s *IntegrationTestSuite) TestTotalSupplyHandlerFn() {
 			&types.QueryTotalSupplyResponse{
 				Supply: sdk.NewCoins(
 					sdk.NewCoin(fmt.Sprintf("%stoken", val.Moniker), s.cfg.AccountTokens),
-					sdk.NewCoin(s.cfg.BondDenom, s.cfg.StakingTokens.Add(sdk.NewInt(10))),
+					sdk.NewCoin(s.cfg.BondDenom, s.cfg.StakingTokens.Add(sdk.NewInt(2))),
 				),
 				Pagination: &query.PageResponse{Total: 2},
 			},
