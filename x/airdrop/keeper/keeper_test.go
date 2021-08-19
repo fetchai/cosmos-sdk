@@ -1,14 +1,18 @@
 package keeper_test
 
 import (
+	"sort"
 	"testing"
 	"time"
 
+	"github.com/cosmos/cosmos-sdk/crypto/keys/secp256k1"
 	"github.com/cosmos/cosmos-sdk/simapp"
-	"github.com/cosmos/cosmos-sdk/x/airdrop/types"
-
 	sdk "github.com/cosmos/cosmos-sdk/types"
+	"github.com/cosmos/cosmos-sdk/x/airdrop/keeper"
+	"github.com/cosmos/cosmos-sdk/x/airdrop/types"
 	authtypes "github.com/cosmos/cosmos-sdk/x/auth/types"
+	minttypes "github.com/cosmos/cosmos-sdk/x/mint/types"
+	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
 	tmproto "github.com/tendermint/tendermint/proto/tendermint/types"
 )
@@ -16,11 +20,22 @@ import (
 var (
 	moduleAddress       = authtypes.NewModuleAddress(types.ModuleName)
 	feeCollectorAddress = authtypes.NewModuleAddress(authtypes.FeeCollectorName)
-	addr1               = sdk.AccAddress([]byte("addr1_______________"))
-	addr2               = sdk.AccAddress([]byte("addr2_______________"))
-	addr3               = sdk.AccAddress([]byte("addr3_______________"))
-	addr4               = sdk.AccAddress([]byte("addr4_______________"))
+
+	keeperAddr1 = sdk.AccAddress(secp256k1.GenPrivKey().PubKey().Address())
+	keeperAddr2 = sdk.AccAddress(secp256k1.GenPrivKey().PubKey().Address())
+	keeperAddr3 = sdk.AccAddress(secp256k1.GenPrivKey().PubKey().Address())
+	keeperAddr4 = sdk.AccAddress(secp256k1.GenPrivKey().PubKey().Address())
 )
+
+// sendCoinToAccount is a helper to replace the deprecated bankKeeper.SetBalance
+// it does mint the coins on the mintmodule before transfering them to the destination account
+func sendCoinToAccount(t *testing.T, app *simapp.SimApp, ctx sdk.Context, destAddr sdk.AccAddress, amount sdk.Coin) {
+	err := app.BankKeeper.MintCoins(ctx, minttypes.ModuleName, sdk.NewCoins(amount))
+	require.NoError(t, err)
+
+	err = app.BankKeeper.SendCoinsFromModuleToAccount(ctx, minttypes.ModuleName, destAddr, sdk.NewCoins(amount))
+	require.NoError(t, err)
+}
 
 type KeeperTestSuite struct {
 	suite.Suite
@@ -37,14 +52,14 @@ func (s *KeeperTestSuite) SetupTest() {
 		Height: 10,
 	})
 
-	s.app.AirdropKeeper.SetParams(s.ctx, types.NewParams(addr1.String(), addr2.String(), addr3.String(), addr4.String()))
+	s.app.AirdropKeeper.SetParams(s.ctx, types.NewParams(keeperAddr1.String(), keeperAddr2.String(), keeperAddr3.String(), keeperAddr4.String()))
 }
 
 func (s *KeeperTestSuite) TestAddNewFund() {
 	amount := sdk.NewInt64Coin(sdk.DefaultBondDenom, 4000)
-	s.Require().NoError(s.app.BankKeeper.SetBalance(s.ctx, addr1, amount)) // ensure the account is funded
+	sendCoinToAccount(s.T(), s.app, s.ctx, keeperAddr1, amount)
 
-	addrBalance := s.app.BankKeeper.GetBalance(s.ctx, addr1, sdk.DefaultBondDenom)
+	addrBalance := s.app.BankKeeper.GetBalance(s.ctx, keeperAddr1, sdk.DefaultBondDenom)
 	moduleBalance := s.app.BankKeeper.GetBalance(s.ctx, moduleAddress, sdk.DefaultBondDenom)
 
 	// sanity check
@@ -55,9 +70,9 @@ func (s *KeeperTestSuite) TestAddNewFund() {
 		Amount:     &amount,
 		DripAmount: sdk.NewInt(40),
 	}
-	s.Require().NoError(s.app.AirdropKeeper.AddFund(s.ctx, addr1, fund))
+	s.Require().NoError(s.app.AirdropKeeper.AddFund(s.ctx, keeperAddr1, fund))
 
-	addrBalance = s.app.BankKeeper.GetBalance(s.ctx, addr1, sdk.DefaultBondDenom)
+	addrBalance = s.app.BankKeeper.GetBalance(s.ctx, keeperAddr1, sdk.DefaultBondDenom)
 	moduleBalance = s.app.BankKeeper.GetBalance(s.ctx, moduleAddress, sdk.DefaultBondDenom)
 
 	s.Require().Equal(addrBalance, sdk.NewCoin(sdk.DefaultBondDenom, sdk.NewInt(0)))
@@ -66,15 +81,15 @@ func (s *KeeperTestSuite) TestAddNewFund() {
 
 func (s *KeeperTestSuite) TestCreateRetrieveFund() {
 	amount := sdk.NewInt64Coin(sdk.DefaultBondDenom, 4000)
-	s.Require().NoError(s.app.BankKeeper.SetBalance(s.ctx, addr1, amount)) // ensure the account is funded
+	sendCoinToAccount(s.T(), s.app, s.ctx, keeperAddr1, amount)
 
 	fund := types.Fund{
 		Amount:     &amount,
 		DripAmount: sdk.NewInt(40),
 	}
-	s.Require().NoError(s.app.AirdropKeeper.AddFund(s.ctx, addr1, fund))
+	s.Require().NoError(s.app.AirdropKeeper.AddFund(s.ctx, keeperAddr1, fund))
 
-	recoveredFund, err := s.app.AirdropKeeper.GetFund(s.ctx, addr1)
+	recoveredFund, err := s.app.AirdropKeeper.GetFund(s.ctx, keeperAddr1)
 	s.Require().NoError(err)
 	s.Require().Equal(*recoveredFund, fund)
 }
@@ -82,52 +97,68 @@ func (s *KeeperTestSuite) TestCreateRetrieveFund() {
 func (s *KeeperTestSuite) TestUnableToCreateDuplicateFunds() {
 	amount := sdk.NewInt64Coin(sdk.DefaultBondDenom, 4000)
 	addrAmount := sdk.NewInt64Coin(sdk.DefaultBondDenom, 8000)
-	s.Require().NoError(s.app.BankKeeper.SetBalance(s.ctx, addr1, addrAmount)) // ensure the account is funded for the two funds
+
+	sendCoinToAccount(s.T(), s.app, s.ctx, keeperAddr1, addrAmount)
 
 	fund := types.Fund{
 		Amount:     &amount,
 		DripAmount: sdk.NewInt(40),
 	}
-	s.Require().NoError(s.app.AirdropKeeper.AddFund(s.ctx, addr1, fund))
-	s.Require().Error(s.app.AirdropKeeper.AddFund(s.ctx, addr1, fund)) // this should fail
+	s.Require().NoError(s.app.AirdropKeeper.AddFund(s.ctx, keeperAddr1, fund))
+	s.Require().Error(s.app.AirdropKeeper.AddFund(s.ctx, keeperAddr1, fund)) // this should fail
 }
 
 func (s *KeeperTestSuite) TestUnableToCreateFundWithNecessaryFunds() {
 	amount := sdk.NewInt64Coin(sdk.DefaultBondDenom, 4000)
-	addrAmount := sdk.NewInt64Coin(sdk.DefaultBondDenom, 2000)                 // not enough
-	s.Require().NoError(s.app.BankKeeper.SetBalance(s.ctx, addr1, addrAmount)) // ensure the account is funded for the two funds
+	addrAmount := sdk.NewInt64Coin(sdk.DefaultBondDenom, 2000) // not enough
+
+	sendCoinToAccount(s.T(), s.app, s.ctx, keeperAddr1, addrAmount)
 
 	fund := types.Fund{
 		Amount:     &amount,
 		DripAmount: sdk.NewInt(40),
 	}
-	s.Require().Error(s.app.AirdropKeeper.AddFund(s.ctx, addr1, fund)) // this should fail - user doesn't have enough funds
+	s.Require().Error(s.app.AirdropKeeper.AddFund(s.ctx, keeperAddr1, fund)) // this should fail - user doesn't have enough funds
 }
 
 func (s *KeeperTestSuite) TestQueryOfAllFunds() {
-	amount := sdk.NewInt64Coin(sdk.DefaultBondDenom, 4000)
-	fund := types.Fund{
-		Amount:     &amount,
+	amount1 := sdk.NewInt64Coin(sdk.DefaultBondDenom, 4000)
+	fund1 := types.Fund{
+		Amount:     &amount1,
 		DripAmount: sdk.NewInt(40),
 	}
-	s.Require().NoError(s.app.BankKeeper.SetBalance(s.ctx, addr1, amount))
-	s.Require().NoError(s.app.BankKeeper.SetBalance(s.ctx, addr2, amount))
+	amount2 := sdk.NewInt64Coin(sdk.DefaultBondDenom, 5000)
+	fund2 := types.Fund{
+		Amount:     &amount2,
+		DripAmount: sdk.NewInt(50),
+	}
 
-	s.Require().NoError(s.app.AirdropKeeper.AddFund(s.ctx, addr1, fund))
-	s.Require().NoError(s.app.AirdropKeeper.AddFund(s.ctx, addr2, fund))
+	sendCoinToAccount(s.T(), s.app, s.ctx, keeperAddr1, amount1)
+	sendCoinToAccount(s.T(), s.app, s.ctx, keeperAddr2, amount2)
+
+	s.Require().NoError(s.app.AirdropKeeper.AddFund(s.ctx, keeperAddr1, fund1))
+	s.Require().NoError(s.app.AirdropKeeper.AddFund(s.ctx, keeperAddr2, fund2))
 
 	funds, err := s.app.AirdropKeeper.GetAllFunds(s.ctx)
 	s.Require().NoError(err)
 	s.Require().Equal(len(funds), 2)
 
-	s.Require().Equal(funds[0].Fund, fund)
-	s.Require().Equal(funds[0].Account, addr1)
+	expectedFunds := []keeper.FundPair{
+		{Account: keeperAddr1, Fund: fund1},
+		{Account: keeperAddr2, Fund: fund2},
+	}
 
-	s.Require().Equal(funds[1].Fund, fund)
-	s.Require().Equal(funds[1].Account, addr2)
+	// sort the funds to have a consistent comparison
+	sort.SliceStable(expectedFunds, func(i, j int) bool {
+		return expectedFunds[i].Account.String() < expectedFunds[j].Account.String()
+	})
+	sort.SliceStable(funds, func(i, j int) bool {
+		return funds[i].Account.String() < funds[j].Account.String()
+	})
+	s.Require().Equal(expectedFunds, funds)
 
 	moduleBalance := s.app.BankKeeper.GetBalance(s.ctx, moduleAddress, sdk.DefaultBondDenom)
-	s.Require().Equal(moduleBalance, sdk.NewCoin(sdk.DefaultBondDenom, sdk.NewInt(8000)))
+	s.Require().Equal(moduleBalance, sdk.NewCoin(sdk.DefaultBondDenom, sdk.NewInt(9000)))
 }
 
 func (s *KeeperTestSuite) TestFeeDrip() {
@@ -141,11 +172,11 @@ func (s *KeeperTestSuite) TestFeeDrip() {
 		DripAmount: sdk.NewInt(4000), // will only last one block
 	}
 
-	s.Require().NoError(s.app.BankKeeper.SetBalance(s.ctx, addr1, amount))
-	s.Require().NoError(s.app.BankKeeper.SetBalance(s.ctx, addr2, amount))
+	sendCoinToAccount(s.T(), s.app, s.ctx, keeperAddr1, amount)
+	sendCoinToAccount(s.T(), s.app, s.ctx, keeperAddr2, amount)
 
-	s.Require().NoError(s.app.AirdropKeeper.AddFund(s.ctx, addr1, fund1))
-	s.Require().NoError(s.app.AirdropKeeper.AddFund(s.ctx, addr2, fund2))
+	s.Require().NoError(s.app.AirdropKeeper.AddFund(s.ctx, keeperAddr1, fund1))
+	s.Require().NoError(s.app.AirdropKeeper.AddFund(s.ctx, keeperAddr2, fund2))
 
 	// check the balances
 	moduleBalance := s.app.BankKeeper.GetBalance(s.ctx, moduleAddress, sdk.DefaultBondDenom)
@@ -169,9 +200,9 @@ func (s *KeeperTestSuite) TestFeeDrip() {
 
 func (s *KeeperTestSuite) TestAddNewFundWithDiffDenom() {
 	amount := sdk.NewInt64Coin("denom", 4000)
-	s.Require().NoError(s.app.BankKeeper.SetBalance(s.ctx, addr1, amount)) // ensure the account is funded
+	sendCoinToAccount(s.T(), s.app, s.ctx, keeperAddr1, amount)
 
-	addrBalance := s.app.BankKeeper.GetBalance(s.ctx, addr1, "denom")
+	addrBalance := s.app.BankKeeper.GetBalance(s.ctx, keeperAddr1, "denom")
 	moduleBalance := s.app.BankKeeper.GetBalance(s.ctx, moduleAddress, "denom")
 
 	// sanity check
@@ -182,9 +213,9 @@ func (s *KeeperTestSuite) TestAddNewFundWithDiffDenom() {
 		Amount:     &amount,
 		DripAmount: sdk.NewInt(40),
 	}
-	s.Require().NoError(s.app.AirdropKeeper.AddFund(s.ctx, addr1, fund))
+	s.Require().NoError(s.app.AirdropKeeper.AddFund(s.ctx, keeperAddr1, fund))
 
-	addrBalance = s.app.BankKeeper.GetBalance(s.ctx, addr1, "denom")
+	addrBalance = s.app.BankKeeper.GetBalance(s.ctx, keeperAddr1, "denom")
 	moduleBalance = s.app.BankKeeper.GetBalance(s.ctx, moduleAddress, "denom")
 
 	s.Require().Equal(addrBalance, sdk.NewCoin("denom", sdk.NewInt(0)))
@@ -211,15 +242,15 @@ func (s *KeeperTestSuite) TestMultiDenomFeeDrip() {
 		Amount:     &amountDenom,
 		DripAmount: sdk.NewInt(300),
 	}
-	s.Require().NoError(s.app.BankKeeper.SetBalance(s.ctx, addr1, amountStake))
-	s.Require().NoError(s.app.BankKeeper.SetBalance(s.ctx, addr2, amountStake))
-	s.Require().NoError(s.app.BankKeeper.SetBalance(s.ctx, addr3, amountDenom))
-	s.Require().NoError(s.app.BankKeeper.SetBalance(s.ctx, addr4, amountDenom))
+	sendCoinToAccount(s.T(), s.app, s.ctx, keeperAddr1, amountStake)
+	sendCoinToAccount(s.T(), s.app, s.ctx, keeperAddr2, amountStake)
+	sendCoinToAccount(s.T(), s.app, s.ctx, keeperAddr3, amountDenom)
+	sendCoinToAccount(s.T(), s.app, s.ctx, keeperAddr4, amountDenom)
 
-	s.Require().NoError(s.app.AirdropKeeper.AddFund(s.ctx, addr1, fund1))
-	s.Require().NoError(s.app.AirdropKeeper.AddFund(s.ctx, addr2, fund2))
-	s.Require().NoError(s.app.AirdropKeeper.AddFund(s.ctx, addr3, fund3))
-	s.Require().NoError(s.app.AirdropKeeper.AddFund(s.ctx, addr4, fund4)) // check the balances
+	s.Require().NoError(s.app.AirdropKeeper.AddFund(s.ctx, keeperAddr1, fund1))
+	s.Require().NoError(s.app.AirdropKeeper.AddFund(s.ctx, keeperAddr2, fund2))
+	s.Require().NoError(s.app.AirdropKeeper.AddFund(s.ctx, keeperAddr3, fund3))
+	s.Require().NoError(s.app.AirdropKeeper.AddFund(s.ctx, keeperAddr4, fund4)) // check the balances
 
 	moduleBalanceStake := s.app.BankKeeper.GetBalance(s.ctx, moduleAddress, sdk.DefaultBondDenom)
 	moduleBalanceDenom := s.app.BankKeeper.GetBalance(s.ctx, moduleAddress, "denom")

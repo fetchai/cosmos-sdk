@@ -13,7 +13,6 @@ import (
 	"github.com/cosmos/cosmos-sdk/x/airdrop/client/cli"
 	"github.com/cosmos/cosmos-sdk/x/airdrop/keeper"
 	"github.com/cosmos/cosmos-sdk/x/airdrop/types"
-	host "github.com/cosmos/cosmos-sdk/x/ibc/core/24-host"
 	"github.com/gorilla/mux"
 	"github.com/grpc-ecosystem/grpc-gateway/runtime"
 	"github.com/spf13/cobra"
@@ -44,15 +43,15 @@ func (a AppModuleBasic) RegisterInterfaces(registry codectypes.InterfaceRegistry
 }
 
 // DefaultGenesis returns default genesis state as raw bytes for the airdrop module
-func (a AppModuleBasic) DefaultGenesis(cdc codec.JSONMarshaler) json.RawMessage {
+func (a AppModuleBasic) DefaultGenesis(cdc codec.JSONCodec) json.RawMessage {
 	return cdc.MustMarshalJSON(types.DefaultGenesisState())
 }
 
 // ValidateGenesis performs genesis state validation for the airdrop module.
-func (a AppModuleBasic) ValidateGenesis(cdc codec.JSONMarshaler, _ client.TxEncodingConfig, bz json.RawMessage) error {
+func (a AppModuleBasic) ValidateGenesis(cdc codec.JSONCodec, _ client.TxEncodingConfig, bz json.RawMessage) error {
 	var gs types.GenesisState
 	if err := cdc.UnmarshalJSON(bz, &gs); err != nil {
-		return fmt.Errorf("failed to unmarshal %s genesis state: %w", host.ModuleName, err)
+		return fmt.Errorf("failed to unmarshal %s genesis state: %w", types.ModuleName, err)
 	}
 
 	return gs.Validate()
@@ -96,7 +95,7 @@ func (a AppModule) Name() string {
 }
 
 // InitGenesis performs genesis initialization for the airdrop module
-func (a AppModule) InitGenesis(ctx sdk.Context, cdc codec.JSONMarshaler, data json.RawMessage) []abci.ValidatorUpdate {
+func (a AppModule) InitGenesis(ctx sdk.Context, cdc codec.JSONCodec, data json.RawMessage) []abci.ValidatorUpdate {
 	var genesisState types.GenesisState
 	cdc.MustUnmarshalJSON(data, &genesisState)
 	a.keeper.InitGenesis(ctx, &genesisState)
@@ -104,7 +103,7 @@ func (a AppModule) InitGenesis(ctx sdk.Context, cdc codec.JSONMarshaler, data js
 }
 
 // ExportGenesis returns the exported genesis state as raw bytes for the airdrop module
-func (a AppModule) ExportGenesis(ctx sdk.Context, cdc codec.JSONMarshaler) json.RawMessage {
+func (a AppModule) ExportGenesis(ctx sdk.Context, cdc codec.JSONCodec) json.RawMessage {
 	gs := a.keeper.ExportGenesis(ctx)
 	return cdc.MustMarshalJSON(gs)
 }
@@ -137,4 +136,8 @@ func (a AppModule) BeginBlock(ctx sdk.Context, _ abci.RequestBeginBlock) {
 // EndBlock returns the end blocker for the airdrop module.
 func (a AppModule) EndBlock(_ sdk.Context, _ abci.RequestEndBlock) []abci.ValidatorUpdate {
 	return []abci.ValidatorUpdate{}
+}
+
+func (a AppModule) ConsensusVersion() uint64 {
+	return 1
 }

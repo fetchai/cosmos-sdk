@@ -24,7 +24,7 @@ func (k Keeper) AllFunds(ctx context.Context, req *types.QueryAllFundsRequest) (
 		account := sdk.AccAddress(key)
 
 		var fund types.Fund
-		err := k.cdc.UnmarshalBinaryBare(value, &fund)
+		err := k.cdc.Unmarshal(value, &fund)
 		if err != nil {
 			return err
 		}
