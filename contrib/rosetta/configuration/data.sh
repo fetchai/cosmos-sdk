@@ -19,10 +19,10 @@ addr=$(simd keys show fd -a --keyring-backend=test)
 val_addr=$(simd keys show fd  --keyring-backend=test --bech val -a)
 
 # give the accounts some money
-simd add-genesis-account "$addr" 1000000000000stake --keyring-backend=test
+simd add-genesis-account "$addr" 100000000000000000000000stake --keyring-backend=test
 
 # save configs for the daemon
-simd gentx fd 10000000stake --chain-id testing --keyring-backend=test
+simd gentx fd 1000000000000000000stake --chain-id testing --keyring-backend=test
 
 # input genTx to the genesis file
 simd collect-gentxs
