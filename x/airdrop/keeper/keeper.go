@@ -5,14 +5,13 @@ import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
 	"github.com/cosmos/cosmos-sdk/x/airdrop/types"
-	authtypes "github.com/cosmos/cosmos-sdk/x/auth/types"
 	paramtypes "github.com/cosmos/cosmos-sdk/x/params/types"
 	"github.com/tendermint/tendermint/libs/log"
 )
 
 type Keeper struct {
 	bankKeeper       types.BankKeeper
-	cdc              codec.BinaryMarshaler
+	cdc              codec.BinaryCodec
 	storeKey         sdk.StoreKey
 	feeCollectorName string
 	paramSpace       paramtypes.Subspace
@@ -23,7 +22,7 @@ type FundPair struct {
 	Account sdk.AccAddress
 }
 
-func NewKeeper(cdc codec.BinaryMarshaler, storeKey sdk.StoreKey, paramSpace paramtypes.Subspace, bankKeeper types.BankKeeper, feeCollectorName string) *Keeper {
+func NewKeeper(cdc codec.BinaryCodec, storeKey sdk.StoreKey, paramSpace paramtypes.Subspace, bankKeeper types.BankKeeper, feeCollectorName string) *Keeper {
 
 	// set KeyTable if it has not already been set
 	if !paramSpace.HasKeyTable() {
@@ -86,7 +85,7 @@ func (k Keeper) setFund(ctx sdk.Context, sender sdk.AccAddress, fund types.Fund,
 		if fund.Amount.IsNegative() || fund.Amount.IsZero() {
 			store.Delete(key) // remove the entry
 		} else {
-			store.Set(key, k.cdc.MustMarshalBinaryBare(&fund)) // update the entry
+			store.Set(key, k.cdc.MustMarshal(&fund)) // update the entry
 		}
 
 	} else {
@@ -99,7 +98,7 @@ func (k Keeper) setFund(ctx sdk.Context, sender sdk.AccAddress, fund types.Fund,
 		}
 
 		// update the fund
-		store.Set(key, k.cdc.MustMarshalBinaryBare(&fund))
+		store.Set(key, k.cdc.MustMarshal(&fund))
 	}
 
 	return nil
@@ -115,7 +114,7 @@ func (k Keeper) GetFund(ctx sdk.Context, sender sdk.AccAddress) (*types.Fund, er
 	}
 
 	fund := &types.Fund{}
-	err := k.cdc.UnmarshalBinaryBare(bz, fund)
+	err := k.cdc.Unmarshal(bz, fund)
 	if err != nil {
 		return nil, err
 	}
@@ -129,16 +128,21 @@ func (k Keeper) GetAllFunds(ctx sdk.Context) ([]FundPair, error) {
 
 	funds := []FundPair{}
 	for ; iter.Valid(); iter.Next() {
-		pair := FundPair{
-			Account: types.GetAddressFromActiveFundKey(iter.Key()),
-		}
-
-		err := k.cdc.UnmarshalBinaryBare(iter.Value(), &pair.Fund)
+		addr, err := types.GetAddressFromActiveFundKey(iter.Key())
 		if err != nil {
 			return nil, err
 		}
 
-		funds = append(funds, pair)
+		fund := types.Fund{}
+		err = k.cdc.Unmarshal(iter.Value(), &fund)
+		if err != nil {
+			return nil, err
+		}
+
+		funds = append(funds, FundPair{
+			Account: addr,
+			Fund:    fund,
+		})
 	}
 
 	return funds, nil
@@ -180,12 +184,13 @@ func (k Keeper) GetActiveFunds(ctx sdk.Context) ([]types.ActiveFund, error) {
 		return nil, err
 	}
 
-	activeFunds := make([]types.ActiveFund, len(allFunds))
-	for i, fund := range allFunds {
-		activeFunds[i] = types.ActiveFund{
+	activeFunds := make([]types.ActiveFund, 0, len(allFunds))
+	for _, fund := range allFunds {
+		f := &fund.Fund // need to deref the loop variable
+		activeFunds = append(activeFunds, types.ActiveFund{
 			Sender: fund.Account.String(),
-			Fund:   &fund.Fund,
-		}
+			Fund:   f,
+		})
 	}
 
 	return activeFunds, nil
@@ -193,8 +198,6 @@ func (k Keeper) GetActiveFunds(ctx sdk.Context) ([]types.ActiveFund, error) {
 
 // SetActiveFunds forcibly sets the active funds that should be used
 func (k Keeper) SetActiveFunds(ctx sdk.Context, funds []types.ActiveFund) error {
-	coins := sdk.NewCoins()
-
 	for _, fund := range funds {
 		account, err := sdk.AccAddressFromBech32(fund.Sender)
 		if err != nil {
@@ -205,19 +208,14 @@ func (k Keeper) SetActiveFunds(ctx sdk.Context, funds []types.ActiveFund) error 
 			return sdkerrors.Wrapf(sdkerrors.ErrConflict, "Invalid fund")
 		}
 
-		// update the coins
-		coins = coins.Add(*fund.Fund.Amount)
-
 		err = k.setFund(ctx, account, *fund.Fund, false)
 		if err != nil {
 			return sdkerrors.Wrapf(sdkerrors.ErrConflict, "Failed to set active fund: %s", err.Error())
 		}
-	}
 
-	// finally set the balance for this module
-	err := k.bankKeeper.SetBalances(ctx, authtypes.NewModuleAddress(types.ModuleName), coins)
-	if err != nil {
-		return sdkerrors.Wrapf(sdkerrors.ErrConflict, "Failed to set active coins: %s", err.Error())
+		if err := k.bankKeeper.SendCoinsFromAccountToModule(ctx, account, types.ModuleName, sdk.NewCoins(*fund.Fund.Amount)); err != nil {
+			return sdkerrors.Wrapf(sdkerrors.ErrConflict, "Failed to set active coins: %s", err.Error())
+		}
 	}
 
 	return nil

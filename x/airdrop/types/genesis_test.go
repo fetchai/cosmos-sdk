@@ -1,9 +1,11 @@
 package types_test
 
 import (
+	"crypto/rand"
 	"testing"
 
 	"github.com/cosmos/cosmos-sdk/crypto/keys/secp256k1"
+	"github.com/cosmos/cosmos-sdk/types/address"
 	"github.com/cosmos/cosmos-sdk/x/airdrop/types"
 	"github.com/stretchr/testify/require"
 
@@ -37,9 +39,13 @@ func TestValidateGenesisState(t *testing.T) {
 			addr.String(), // valid address
 		},
 	}
+
+	invalidAddrBytes := make([]byte, address.MaxAddrLen+1)
+	rand.Read(invalidAddrBytes)
+
 	p2 := types.Params{
 		AllowList: []string{
-			sdk.AccAddress([]byte("\n\n\n\n\taddr________________\t\n\n\n\n\n")).String(), // invalid address
+			sdk.AccAddress(invalidAddrBytes).String(), // invalid address
 		},
 	}
 	funds := []types.ActiveFund{

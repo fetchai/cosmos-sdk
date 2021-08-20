@@ -12,8 +12,7 @@ import (
 )
 
 var (
-	addr    = sdk.AccAddress([]byte("addr________________"))
-	addrSet = sdk.AccAddress([]byte("addrSet_____________"))
+	paramTestAddr = sdk.AccAddress([]byte("addr________________"))
 )
 
 type ParamsTestSuite struct {
@@ -31,24 +30,24 @@ func (s *ParamsTestSuite) SetupTest() {
 		Height: 10,
 	})
 
-	s.app.AirdropKeeper.SetParams(s.ctx, types.NewParams(addr.String()))
+	s.app.AirdropKeeper.SetParams(s.ctx, types.NewParams(paramTestAddr.String()))
 }
 
 func (s *ParamsTestSuite) TestGetAllowListClients() {
-	list := []string{addr.String()}
+	list := []string{paramTestAddr.String()}
 	s.Require().Equal(s.app.AirdropKeeper.GetAllowListClients(s.ctx), list)
 }
 
 func (s *ParamsTestSuite) TestGetParams() {
 	p := types.Params{
-		AllowList: []string{addr.String()},
+		AllowList: []string{paramTestAddr.String()},
 	}
 	s.Require().Equal(s.app.AirdropKeeper.GetParams(s.ctx), p)
 }
 
 func (s *ParamsTestSuite) TestSetParams() {
 	p := types.Params{
-		AllowList: []string{addr.String(), addrSet.String()},
+		AllowList: []string{paramTestAddr.String(), sdk.AccAddress([]byte("addrSet_____________")).String()},
 	}
 	s.app.AirdropKeeper.SetParams(s.ctx, p)
 	s.Require().Equal(s.app.AirdropKeeper.GetParams(s.ctx), p)

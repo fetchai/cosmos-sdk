@@ -54,7 +54,7 @@ func ValidateGenesis(gs *GenesisState) error {
 
 // GetGenesisStateFromAppState returns x/distribution GenesisState given raw application
 // genesis state.
-func GetGenesisStateFromAppState(cdc codec.JSONMarshaler, appState map[string]json.RawMessage) *GenesisState {
+func GetGenesisStateFromAppState(cdc codec.JSONCodec, appState map[string]json.RawMessage) *GenesisState {
 	var genesisState GenesisState
 
 	if appState[ModuleName] != nil {

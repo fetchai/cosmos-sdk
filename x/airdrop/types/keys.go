@@ -1,6 +1,10 @@
 package types
 
-import sdk "github.com/cosmos/cosmos-sdk/types"
+import (
+	fmt "fmt"
+
+	sdk "github.com/cosmos/cosmos-sdk/types"
+)
 
 const (
 	ModuleName = "airdrop"
@@ -16,10 +20,11 @@ func GetActiveFundKey(address sdk.AccAddress) []byte {
 	return append(ActiveFundKeyPrefix, address.Bytes()...)
 }
 
-func GetAddressFromActiveFundKey(key []byte) sdk.AccAddress {
+func GetAddressFromActiveFundKey(key []byte) (sdk.AccAddress, error) {
 	addr := key[1:]
-	if len(addr) != sdk.AddrLen {
-		panic("unexpected key length")
+	if err := sdk.VerifyAddressFormat(addr); err != nil {
+		return nil, fmt.Errorf("invalid address: %v", err)
 	}
-	return sdk.AccAddress(addr)
+
+	return sdk.AccAddress(addr), nil
 }

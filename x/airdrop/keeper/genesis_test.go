@@ -11,6 +11,10 @@ import (
 	tmproto "github.com/tendermint/tendermint/proto/tendermint/types"
 )
 
+var (
+	genesisAddr = sdk.AccAddress([]byte("addr________________"))
+)
+
 type GenesisTestSuite struct {
 	suite.Suite
 
@@ -26,23 +30,28 @@ func (s *GenesisTestSuite) SetupTest() {
 		Height: 10,
 	})
 
-	s.app.AirdropKeeper.SetParams(s.ctx, types.NewParams(addr.String()))
+	s.app.AirdropKeeper.SetParams(s.ctx, types.NewParams(genesisAddr.String()))
 }
 
 func (s *GenesisTestSuite) TestInitAndExportGenesis() {
 	p := types.Params{
 		AllowList: []string{
-			addr.String(),
+			genesisAddr.String(),
 		},
 	}
+
+	coinAmount := sdk.Coin{
+		Denom:  "test",
+		Amount: sdk.NewInt(10),
+	}
+
+	sendCoinToAccount(s.T(), s.app, s.ctx, genesisAddr, coinAmount)
+
 	funds := []types.ActiveFund{
 		{
-			Sender: addr.String(),
+			Sender: genesisAddr.String(),
 			Fund: &types.Fund{
-				Amount: &sdk.Coin{
-					Denom:  "test",
-					Amount: sdk.NewInt(10),
-				},
+				Amount:     &coinAmount,
 				DripAmount: sdk.NewInt(1),
 			},
 		},
