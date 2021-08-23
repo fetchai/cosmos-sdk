@@ -71,8 +71,20 @@ func VerifyAggregateSignature(msgs [][]byte, msgCheck bool, sig []byte, pkss [][
 		return fmt.Errorf("messages cannot be empty")
 	}
 
+	for i, msg := range msgs {
+		if len(msg) <= 0 {
+			return fmt.Errorf("%d-th message is empty", i)
+		}
+	}
+
 	if len(pkss) != n {
 		return fmt.Errorf("the number of messages and public key sets must match")
+	}
+
+	for i, pks := range pkss {
+		if len(pks) <= 0 {
+			return fmt.Errorf("%d-th public key set is empty", i)
+		}
 	}
 
 	if msgCheck {
