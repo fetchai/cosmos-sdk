@@ -632,7 +632,7 @@ func (s serverImpl) VoteAgg(ctx types.Context, req *group.MsgVoteAggRequest) (*g
 	}
 
 	if votesExpire.Compare(blockTime) <= 0 {
-		return nil, fmt.Errorf("the aggregated votes have expired")
+		return nil, sdkerrors.Wrap(group.ErrExpired, "the aggregated votes have expired")
 	}
 
 	proposal, err := s.getProposal(ctx, id)
@@ -643,13 +643,10 @@ func (s serverImpl) VoteAgg(ctx types.Context, req *group.MsgVoteAggRequest) (*g
 	if proposal.Status != group.ProposalStatusSubmitted {
 		return nil, sdkerrors.Wrap(group.ErrInvalid, "proposal not open for voting")
 	}
-	votingPeriodEnd, err := gogotypes.TimestampFromProto(&proposal.Timeout)
-	if err != nil {
-		return nil, err
-	}
-	if votingPeriodEnd.Before(ctx.BlockTime()) || votingPeriodEnd.Equal(ctx.BlockTime()) {
+	if proposal.Timeout.Compare(ctx.BlockTime()) <= 0 {
 		return nil, sdkerrors.Wrap(group.ErrExpired, "voting period has ended already")
 	}
+
 
 	var accountInfo group.GroupAccountInfo
 	// Ensure that group account hasn't been modified since the proposal submission.
@@ -678,14 +675,19 @@ func (s serverImpl) VoteAgg(ctx types.Context, req *group.MsgVoteAggRequest) (*g
 		return nil, err
 	}
 
-	var pubKeys []cryptotypes.PubKey
 	var votes []group.Vote
 	var weights []string
+	choiceMap := make(map[group.Choice]bool, len(group.Choice_name))
+	pkMap := make(map[group.Choice][]cryptotypes.PubKey, len(group.Choice_name))
+	msgMap := make(map[group.Choice][]byte, len(group.Choice_name))
 	for i:=0; ; i++ {
 		var mem group.GroupMember
 		_, err := membersIter.LoadNext(&mem)
 		if err != nil {
 			if orm.ErrIteratorDone.Is(err) {
+				if i < len(choices) {
+					return nil, sdkerrors.Wrap(group.ErrInvalid, "too many votes")
+				}
 				break
 			}
 			return nil, err
@@ -697,18 +699,17 @@ func (s serverImpl) VoteAgg(ctx types.Context, req *group.MsgVoteAggRequest) (*g
 		}
 
 		if i >= len(choices) {
-			return nil, fmt.Errorf("wrong number of votes")
+			return nil, sdkerrors.Wrap(group.ErrInvalid, "not enough votes")
 		}
 
 		acc := s.accKeeper.GetAccount(ctx.Context, memAddr)
 		if acc == nil {
-			return nil, fmt.Errorf("account does not exist")
+			return nil, sdkerrors.Wrap(group.ErrInvalid, "account does not exist")
 		}
 		pk := acc.GetPubKey()
 		if pk == nil {
-			return nil, fmt.Errorf("public key not set yet")
+			return nil, sdkerrors.Wrap(group.ErrInvalid,"public key not set yet")
 		}
-		pubKeys = append(pubKeys, pk)
 
 		meta := fmt.Sprintf("submitted through aggregated vote by %s", req.Sender)
 		if choices[i] != group.Choice_CHOICE_UNSPECIFIED {
@@ -721,10 +722,38 @@ func (s serverImpl) VoteAgg(ctx types.Context, req *group.MsgVoteAggRequest) (*g
 			}
 			votes = append(votes, vote)
 			weights = append(weights, mem.Member.Weight)
+
+			_, ok := choiceMap[choices[i]]
+			if !ok {
+				choiceMap[choices[i]] = true
+				msg := group.MsgVoteBasicRequest{
+					ProposalId: id,
+					Choice:     choices[i],
+					Timeout:    votesExpire,
+				}
+				msgMap[choices[i]] = msg.GetSignBytes()
+			}
+			pkMap[choices[i]] = append(pkMap[choices[i]], pk)
 		}
 	}
 
-	if err = req.VerifyAggSig(pubKeys); err != nil {
+	// calculate and consume gas before the verification of the aggregated signature
+	numChoice := uint64(len(choiceMap))
+	numPk := uint64(len(votes))
+	params := s.accKeeper.GetParams(ctx.Context)
+	err = DefaultAggSigVerifyGasConsumer(ctx.GasMeter(), numPk, numChoice, params)
+	if err!= nil {
+		return nil, sdkerrors.Wrap(err, "gas consumption for verifying aggregated signature")
+	}
+
+	msgBytes := make([][]byte, 0, numChoice)
+	pkss := make([][]cryptotypes.PubKey, 0, numChoice)
+	for c := range msgMap {
+		msgBytes = append(msgBytes, msgMap[c])
+		pkss = append(pkss, pkMap[c])
+	}
+
+	if err = VerifyAggSignature(msgBytes, false, req.AggSig, pkss); err!=nil {
 		return nil, err
 	}
 

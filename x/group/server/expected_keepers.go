@@ -6,6 +6,8 @@ import (
 )
 
 type AccountKeeper interface {
+	GetParams(ctx sdk.Context) (params types.Params)
+
 	// Return a new account with the next account number. Does not save the new account to the store.
 	NewAccount(sdk.Context, types.AccountI) types.AccountI
 
