@@ -135,7 +135,7 @@ var (
 	ErrNotSupported = Register(RootCodespace, 37, "feature not supported")
 
 	// ErrInvalidPop to doc
-	ErrInvalidPop = Register(RootCodespace, 38, "invalid pop for public key")
+	ErrInvalidPop = Register(RootCodespace, 111000, "invalid pop for public key")
 
 	// ErrNotFound defines an error when requested entity doesn't exist in the state.
 	ErrNotFound = Register(RootCodespace, 38, "not found")
