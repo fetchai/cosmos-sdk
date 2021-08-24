@@ -34,7 +34,7 @@ func subUint64Overflow(a, b uint64) (uint64, bool) {
 // gas := base + pairingCost * (numMsg - 1) + additionCost * (numPk - numMsg)
 func DefaultAggSigVerifyGasConsumer(meter sdk.GasMeter, numPk uint64, numMsg uint64, params authtypes.Params) error {
 	base := params.SigVerifyCostBls12381
-	pairingCost := base/3
+	pairingCost := base*33/10
 	additionCost := base/1215
 
 	sub, overflow := subUint64Overflow(numMsg, 1)
