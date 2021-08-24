@@ -46,7 +46,7 @@ func convertBaseVestingAccount(old *v039auth.BaseVestingAccount) *v040vesting.Ba
 //
 // - Removing coins from account encoding.
 // - Re-encode in v0.40 GenesisState.
-func Migrate(authGenState v039auth.GenesisState) *v040auth.GenesisState {
+func Migrate(authGenState v039auth.GenesisState, blsCost uint64) *v040auth.GenesisState {
 	// Convert v0.39 accounts to v0.40 ones.
 	var v040Accounts = make([]v040auth.GenesisAccount, len(authGenState.Accounts))
 	for i, v039Account := range authGenState.Accounts {
@@ -117,6 +117,7 @@ func Migrate(authGenState v039auth.GenesisState) *v040auth.GenesisState {
 			MaxMemoCharacters:      authGenState.Params.MaxMemoCharacters,
 			TxSigLimit:             authGenState.Params.TxSigLimit,
 			TxSizeCostPerByte:      authGenState.Params.TxSizeCostPerByte,
+			SigVerifyCostBls12381:  blsCost,
 			SigVerifyCostED25519:   authGenState.Params.SigVerifyCostED25519,
 			SigVerifyCostSecp256k1: authGenState.Params.SigVerifyCostSecp256k1,
 		},
