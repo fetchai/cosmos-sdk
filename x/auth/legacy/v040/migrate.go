@@ -8,6 +8,9 @@ import (
 	v040vesting "github.com/cosmos/cosmos-sdk/x/auth/vesting/types"
 )
 
+// blsCostMultiplier is used to calculate bls signature verification cost = blsCostMultiplier * SigVerifyCostED25519
+const blsCostMultiplier = 10
+
 // convertBaseAccount converts a 0.39 BaseAccount to a 0.40 BaseAccount.
 func convertBaseAccount(old *v039auth.BaseAccount) *v040auth.BaseAccount {
 	var any *codectypes.Any
@@ -46,7 +49,7 @@ func convertBaseVestingAccount(old *v039auth.BaseVestingAccount) *v040vesting.Ba
 //
 // - Removing coins from account encoding.
 // - Re-encode in v0.40 GenesisState.
-func Migrate(authGenState v039auth.GenesisState, blsCost uint64) *v040auth.GenesisState {
+func Migrate(authGenState v039auth.GenesisState) *v040auth.GenesisState {
 	// Convert v0.39 accounts to v0.40 ones.
 	var v040Accounts = make([]v040auth.GenesisAccount, len(authGenState.Accounts))
 	for i, v039Account := range authGenState.Accounts {
@@ -117,7 +120,7 @@ func Migrate(authGenState v039auth.GenesisState, blsCost uint64) *v040auth.Genes
 			MaxMemoCharacters:      authGenState.Params.MaxMemoCharacters,
 			TxSigLimit:             authGenState.Params.TxSigLimit,
 			TxSizeCostPerByte:      authGenState.Params.TxSizeCostPerByte,
-			SigVerifyCostBls12381:  blsCost,
+			SigVerifyCostBls12381:  blsCostMultiplier * authGenState.Params.SigVerifyCostED25519,
 			SigVerifyCostED25519:   authGenState.Params.SigVerifyCostED25519,
 			SigVerifyCostSecp256k1: authGenState.Params.SigVerifyCostSecp256k1,
 		},

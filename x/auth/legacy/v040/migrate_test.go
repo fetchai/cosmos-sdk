@@ -82,7 +82,7 @@ func TestMigrate(t *testing.T) {
 		Accounts: v038auth.GenesisAccounts{acc1, acc2, acc3, acc4, acc5, acc6, acc7},
 	}
 
-	migrated := v040auth.Migrate(gs, 400)
+	migrated := v040auth.Migrate(gs)
 	expected := `{
   "accounts": [
     {
