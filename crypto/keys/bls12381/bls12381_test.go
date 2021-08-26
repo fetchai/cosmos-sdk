@@ -22,6 +22,18 @@ func TestSignAndValidateBls12381(t *testing.T) {
 
 }
 
+func TestKeyFromSecret(t *testing.T) {
+	insecureSeed := []byte("a random number for testing")
+	privKey := bls12381.GenPrivKeyFromSecret(insecureSeed)
+	pubKey := privKey.PubKey()
+
+	msg := []byte("hello")
+	sig, err := privKey.Sign(msg)
+	require.Nil(t, err)
+	assert.True(t, pubKey.VerifySignature(msg, sig))
+
+}
+
 func BenchmarkSignBls(b *testing.B) {
 	privKey := bls12381.GenPrivKey()
 

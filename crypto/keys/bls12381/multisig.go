@@ -47,7 +47,7 @@ func AggregateSignature(sigs [][]byte) ([]byte, error) {
 
 // VerifyMultiSignature assumes public key is already validated
 func VerifyMultiSignature(msg []byte, sig []byte, pks []*PubKey) error {
-	return VerifyAggregateSignature([][]byte{msg}, sig, [][]*PubKey{pks})
+	return VerifyAggregateSignature([][]byte{msg}, false, sig, [][]*PubKey{pks})
 }
 
 func Unique(msgs [][]byte) bool {
@@ -65,18 +65,32 @@ func Unique(msgs [][]byte) bool {
 	return true
 }
 
-func VerifyAggregateSignature(msgs [][]byte, sig []byte, pkss [][]*PubKey) error {
+func VerifyAggregateSignature(msgs [][]byte, msgCheck bool, sig []byte, pkss [][]*PubKey) error {
 	n := len(msgs)
 	if n == 0 {
 		return fmt.Errorf("messages cannot be empty")
+	}
+
+	for i, msg := range msgs {
+		if len(msg) <= 0 {
+			return fmt.Errorf("%d-th message is empty", i)
+		}
 	}
 
 	if len(pkss) != n {
 		return fmt.Errorf("the number of messages and public key sets must match")
 	}
 
-	if !Unique(msgs) {
-		return fmt.Errorf("messages must be pairwise distinct")
+	for i, pks := range pkss {
+		if len(pks) <= 0 {
+			return fmt.Errorf("%d-th public key set is empty", i)
+		}
+	}
+
+	if msgCheck {
+		if !Unique(msgs) {
+			return fmt.Errorf("messages must be pairwise distinct")
+		}
 	}
 
 	apks := make([]*blst.P1Affine, len(pkss))
