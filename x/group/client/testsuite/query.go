@@ -387,7 +387,7 @@ func (s *IntegrationTestSuite) TestQueryGroupAccountsByAdmin() {
 				s.Require().NoError(err, out.String())
 
 				var res group.QueryGroupAccountsByAdminResponse
-				s.Require().NoError(clientCtx.JSONMarshaler.UnmarshalJSON(out.Bytes(), &res))
+				s.Require().NoError(clientCtx.Codec.UnmarshalJSON(out.Bytes(), &res))
 				s.Require().Equal(len(res.GroupAccounts), len(tc.expectGroupAccounts))
 				for i := range res.GroupAccounts {
 					s.Require().Equal(res.GroupAccounts[i].GroupId, tc.expectGroupAccounts[i].GroupId)
@@ -497,7 +497,7 @@ func (s *IntegrationTestSuite) TestQueryProposalsByGroupAccount() {
 				s.Require().NoError(err, out.String())
 
 				var res group.QueryProposalsByGroupAccountResponse
-				s.Require().NoError(clientCtx.JSONMarshaler.UnmarshalJSON(out.Bytes(), &res))
+				s.Require().NoError(clientCtx.Codec.UnmarshalJSON(out.Bytes(), &res))
 				s.Require().Equal(len(res.Proposals), len(tc.expectProposals))
 				for i := range res.Proposals {
 					s.Require().Equal(res.Proposals[i], tc.expectProposals[i])

@@ -78,9 +78,8 @@ func (s *IntegrationTestSuite) SetupSuite() {
 	s.sdkCtx, _ = sdkCtx.CacheContext()
 	s.ctx = types.Context{Context: s.sdkCtx}
 	s.genesisCtx = types.Context{Context: sdkCtx}
+	s.Require().NoError(s.bankKeeper.MintCoins(s.sdkCtx, minttypes.ModuleName, sdk.NewCoins(sdk.NewInt64Coin("test", 400000000))))
 
-	totalSupply := banktypes.NewSupply(sdk.NewCoins(sdk.NewInt64Coin("test", 400000000)))
-	s.bankKeeper.SetSupply(sdkCtx, totalSupply)
 	s.bankKeeper.SetParams(sdkCtx, banktypes.DefaultParams())
 
 	s.msgClient = group.NewMsgClient(s.fixture.TxConn())
@@ -1865,20 +1864,6 @@ func (s *IntegrationTestSuite) TestExecProposal() {
 			expExecutorResult: group.ProposalExecutorResultSuccess,
 			expFromBalances:   sdk.Coins{sdk.NewInt64Coin("test", 9800)},
 			expToBalances:     sdk.Coins{sdk.NewInt64Coin("test", 200)},
-		},
-		"proposal with ADR 033 executed when accepted": {
-			setupProposal: func(ctx context.Context) uint64 {
-				msgs := []sdk.Msg{&ecocredit.MsgCreateClass{
-					Designer:   s.groupAccountAddr.String(),
-					Issuers:    []string{s.groupAccountAddr.String()},
-					CreditType: "carbon",
-				},
-				}
-				return createProposalAndVote(ctx, s, msgs, proposers, group.Choice_CHOICE_YES)
-			},
-			expProposalStatus: group.ProposalStatusClosed,
-			expProposalResult: group.ProposalResultAccepted,
-			expExecutorResult: group.ProposalExecutorResultSuccess,
 		},
 		"proposal with multiple messages executed when accepted": {
 			setupProposal: func(ctx context.Context) uint64 {
