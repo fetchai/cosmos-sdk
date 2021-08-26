@@ -87,6 +87,9 @@ message GroupInfo {
 
     // total_weight is the sum of the group members' weights.
     string total_weight = 5;
+
+    // bls_only requires all the group members to use bls public keys so their votes can be aggregated together
+    bool bls_only = 6;
 }
 
 // GroupMember represents the relationship between a group and a member.

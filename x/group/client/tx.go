@@ -4,14 +4,16 @@ import (
 	"bytes"
 	"encoding/base64"
 	"fmt"
+
 	codectypes "github.com/cosmos/cosmos-sdk/codec/types"
 	"github.com/cosmos/cosmos-sdk/crypto/keys/bls12381"
 	cryptotypes "github.com/cosmos/cosmos-sdk/crypto/types"
 
-	"github.com/gogo/protobuf/types"
-	tmcli "github.com/tendermint/tendermint/libs/cli"
 	"strconv"
 	"strings"
+
+	"github.com/gogo/protobuf/types"
+	tmcli "github.com/tendermint/tendermint/libs/cli"
 
 	"github.com/cosmos/cosmos-sdk/client"
 	"github.com/cosmos/cosmos-sdk/client/flags"
@@ -27,8 +29,9 @@ import (
 )
 
 const (
-	FlagExec = "exec"
-	ExecTry  = "try"
+	FlagExec    = "exec"
+	ExecTry     = "try"
+	FlagBlsOnly = "bls"
 )
 
 // TxCmd returns a root CLI command handler for all x/group transaction commands.
@@ -119,10 +122,13 @@ Where members.json contains:
 				return sdkerrors.Wrap(sdkerrors.ErrInvalidRequest, "metadata is malformed, proper base64 string is required")
 			}
 
+			bls, _ := cmd.Flags().GetBool(FlagBlsOnly)
+
 			msg := &group.MsgCreateGroup{
 				Admin:    clientCtx.GetFromAddress().String(),
 				Members:  members,
 				Metadata: b,
+				BlsOnly:  bls,
 			}
 			if err = msg.ValidateBasic(); err != nil {
 				return fmt.Errorf("message validation failed: %w", err)
@@ -133,6 +139,7 @@ Where members.json contains:
 	}
 
 	flags.AddTxFlagsToCmd(cmd)
+	cmd.Flags().Bool(FlagBlsOnly, false, "Only accept members with bls public keys")
 
 	return cmd
 }
@@ -750,13 +757,13 @@ Parameters:
 				return err
 			}
 
-			msg := &group.MsgVoteAggRequest{
-				Sender: args[0],
+			msg := &group.MsgVoteAgg{
+				Sender:     args[0],
 				ProposalId: proposalID,
-				Votes: votes,
-				Timeout: timeout,
-				AggSig: sigma,
-				Metadata: nil,
+				Votes:      votes,
+				Timeout:    timeout,
+				AggSig:     sigma,
+				Metadata:   nil,
 			}
 
 			if err = msg.ValidateBasic(); err != nil {
@@ -771,7 +778,6 @@ Parameters:
 
 	return cmd
 }
-
 
 // GetVoteBasicCmd creates a CLI command for Msg/VoteBasic.
 func GetVoteBasicCmd() *cobra.Command {
@@ -825,10 +831,10 @@ Parameters:
 				return fmt.Errorf("deadline for submitting the vote has passed")
 			}
 
-			msg := &group.MsgVoteBasicRequest{
+			msg := &group.MsgVoteBasic{
 				ProposalId: proposalID,
 				Choice:     choice,
-				Timeout:	timeout,
+				Timeout:    timeout,
 			}
 
 			if err = msg.ValidateBasic(); err != nil {
@@ -861,8 +867,6 @@ Parameters:
 
 	return cmd
 }
-
-
 
 // GetVerifyVoteBasicCmd creates a CLI command for aggregating basic votes.
 func GetVerifyVoteBasicCmd() *cobra.Command {
@@ -917,6 +921,3 @@ Parameters:
 
 	return cmd
 }
-
-
-

@@ -45,7 +45,7 @@ service Msg {
     rpc Vote(MsgVote) returns (MsgVoteResponse);
 
     // VoteAgg allows a sender to submit a set of votes
-    rpc VoteAgg(MsgVoteAggRequest)  returns (MsgVoteAggResponse);
+    rpc VoteAgg(MsgVoteAgg)  returns (MsgVoteAggResponse);
 
     // Exec executes a proposal.
     rpc Exec(MsgExec) returns (MsgExecResponse);
@@ -66,6 +66,9 @@ message MsgCreateGroup {
     
     // metadata is any arbitrary metadata to attached to the group.
     bytes metadata = 3;
+
+    // bls_only requires all the group members to use bls public keys so their votes can be aggregated together
+    bool bls_only = 4;
 }
 
 // MsgCreateGroupResponse is the Msg/CreateGroup response type.
@@ -274,7 +277,7 @@ message MsgVoteResponse { }
 
 
 // MsgVoteBasicRequest is the Msg/Vote request type.
-message MsgVoteBasicRequest {
+message MsgVoteBasic {
 
     // proposal is the unique ID of the proposal.
     uint64 proposal_id = 1;
@@ -309,7 +312,7 @@ message MsgVoteBasicResponse {
 }
 
 // MsgVoteRequest is the Msg/Vote request type.
-message MsgVoteAggRequest {
+message MsgVoteAgg {
     // sender is the person who submits the votes
     string sender = 1;
 

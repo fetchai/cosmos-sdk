@@ -5,9 +5,10 @@ import (
 	"context"
 	"encoding/binary"
 	"fmt"
+	"reflect"
+
 	"github.com/cosmos/cosmos-sdk/crypto/keys/bls12381"
 	cryptotypes "github.com/cosmos/cosmos-sdk/crypto/types"
-	"reflect"
 
 	authtypes "github.com/cosmos/cosmos-sdk/x/auth/types"
 
@@ -23,7 +24,7 @@ import (
 
 func (s serverImpl) validateBlsMember(ctx types.Context, mem group.Member) error {
 	addr, err := sdk.AccAddressFromBech32(mem.Address)
-	if err!= nil {
+	if err != nil {
 		return err
 	}
 	acc := s.accKeeper.GetAccount(ctx.Context, addr)
@@ -56,6 +57,7 @@ func (s serverImpl) CreateGroup(goCtx context.Context, req *group.MsgCreateGroup
 	metadata := req.Metadata
 	members := group.Members{Members: req.Members}
 	admin := req.Admin
+	bls := req.BlsOnly
 
 	if err := members.ValidateBasic(); err != nil {
 		return nil, err
@@ -65,9 +67,11 @@ func (s serverImpl) CreateGroup(goCtx context.Context, req *group.MsgCreateGroup
 		return nil, err
 	}
 
-	for _, mem := range members.Members {
-		if err := s.validateBlsMember(ctx, mem); err!=nil {
-			return nil, err
+	if bls {
+		for _, mem := range members.Members {
+			if err := s.validateBlsMember(ctx, mem); err != nil {
+				return nil, err
+			}
 		}
 	}
 
@@ -98,6 +102,7 @@ func (s serverImpl) CreateGroup(goCtx context.Context, req *group.MsgCreateGroup
 		Metadata:    metadata,
 		Version:     1,
 		TotalWeight: math.DecimalString(totalWeight),
+		BlsOnly:     bls,
 	}
 	groupID, err := s.groupTable.Create(ctx, groupInfo)
 	if err != nil {
@@ -136,9 +141,11 @@ func (s serverImpl) UpdateGroupMembers(goCtx context.Context, req *group.MsgUpda
 			return err
 		}
 
-		for _, mem := range req.MemberUpdates {
-			if err := s.validateBlsMember(ctx, mem); err!=nil {
-				return err
+		if g.BlsOnly {
+			for _, mem := range req.MemberUpdates {
+				if err := s.validateBlsMember(ctx, mem); err != nil {
+					return err
+				}
 			}
 		}
 
@@ -337,6 +344,7 @@ func (s serverImpl) CreateGroupAccount(goCtx context.Context, req *group.MsgCrea
 		metadata,
 		1,
 		policy,
+		accountDerivationKey,
 	)
 	if err != nil {
 		return nil, err
@@ -663,7 +671,8 @@ func doTally(ctx types.Context, p *group.Proposal, electorate group.GroupInfo, a
 	return nil
 }
 
-func (s serverImpl) VoteAgg(ctx types.Context, req *group.MsgVoteAggRequest) (*group.MsgVoteAggResponse, error) {
+func (s serverImpl) VoteAgg(goCtx context.Context, req *group.MsgVoteAgg) (*group.MsgVoteAggResponse, error) {
+	ctx := types.UnwrapSDKContext(goCtx)
 	id := req.ProposalId
 	choices := req.Votes
 	metadata := req.Metadata
@@ -693,7 +702,6 @@ func (s serverImpl) VoteAgg(ctx types.Context, req *group.MsgVoteAggRequest) (*g
 	if proposal.Timeout.Compare(ctx.BlockTime()) <= 0 {
 		return nil, sdkerrors.Wrap(group.ErrExpired, "voting period has ended already")
 	}
-
 
 	var accountInfo group.GroupAccountInfo
 	// Ensure that group account hasn't been modified since the proposal submission.
@@ -727,7 +735,7 @@ func (s serverImpl) VoteAgg(ctx types.Context, req *group.MsgVoteAggRequest) (*g
 	choiceMap := make(map[group.Choice]bool, len(group.Choice_name))
 	pkMap := make(map[group.Choice][]cryptotypes.PubKey, len(group.Choice_name))
 	msgMap := make(map[group.Choice][]byte, len(group.Choice_name))
-	for i:=0; ; i++ {
+	for i := 0; ; i++ {
 		var mem group.GroupMember
 		_, err := membersIter.LoadNext(&mem)
 		if err != nil {
@@ -755,7 +763,7 @@ func (s serverImpl) VoteAgg(ctx types.Context, req *group.MsgVoteAggRequest) (*g
 		}
 		pk := acc.GetPubKey()
 		if pk == nil {
-			return nil, sdkerrors.Wrap(group.ErrInvalid,"public key not set yet")
+			return nil, sdkerrors.Wrap(group.ErrInvalid, "public key not set yet")
 		}
 
 		meta := fmt.Sprintf("submitted through aggregated vote by %s", req.Sender)
@@ -773,7 +781,7 @@ func (s serverImpl) VoteAgg(ctx types.Context, req *group.MsgVoteAggRequest) (*g
 			_, ok := choiceMap[choices[i]]
 			if !ok {
 				choiceMap[choices[i]] = true
-				msg := group.MsgVoteBasicRequest{
+				msg := group.MsgVoteBasic{
 					ProposalId: id,
 					Choice:     choices[i],
 					Timeout:    votesExpire,
@@ -789,7 +797,7 @@ func (s serverImpl) VoteAgg(ctx types.Context, req *group.MsgVoteAggRequest) (*g
 	numPk := uint64(len(votes))
 	params := s.accKeeper.GetParams(ctx.Context)
 	err = DefaultAggSigVerifyGasConsumer(ctx.GasMeter(), numPk, numChoice, params)
-	if err!= nil {
+	if err != nil {
 		return nil, sdkerrors.Wrap(err, "gas consumption for verifying aggregated signature")
 	}
 
@@ -800,7 +808,7 @@ func (s serverImpl) VoteAgg(ctx types.Context, req *group.MsgVoteAggRequest) (*g
 		pkss = append(pkss, pkMap[c])
 	}
 
-	if err = VerifyAggSignature(msgBytes, false, req.AggSig, pkss); err!=nil {
+	if err = VerifyAggSignature(msgBytes, false, req.AggSig, pkss); err != nil {
 		return nil, err
 	}
 

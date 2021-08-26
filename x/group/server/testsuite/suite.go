@@ -3,10 +3,11 @@ package testsuite
 import (
 	"bytes"
 	"context"
-	"github.com/cosmos/cosmos-sdk/x/group/testdata"
 	"sort"
 	"strings"
 	"time"
+
+	"github.com/cosmos/cosmos-sdk/x/group/testdata"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	authkeeper "github.com/cosmos/cosmos-sdk/x/auth/keeper"
@@ -14,7 +15,7 @@ import (
 	banktypes "github.com/cosmos/cosmos-sdk/x/bank/types"
 	mintkeeper "github.com/cosmos/cosmos-sdk/x/mint/keeper"
 	minttypes "github.com/cosmos/cosmos-sdk/x/mint/types"
-	paramstypes "github.com/cosmos/cosmos-sdk/x/params/types"
+
 	gogotypes "github.com/gogo/protobuf/types"
 	"github.com/stretchr/testify/suite"
 
@@ -45,9 +46,9 @@ type IntegrationTestSuite struct {
 	groupID          uint64
 
 	accountKeeper authkeeper.AccountKeeper
-	paramSpace    paramstypes.Subspace
-	bankKeeper    bankkeeper.Keeper
-	mintKeeper    mintkeeper.Keeper
+	//	paramSpace    paramstypes.Subspace
+	bankKeeper bankkeeper.Keeper
+	mintKeeper mintkeeper.Keeper
 
 	blockTime time.Time
 }
@@ -57,14 +58,15 @@ func NewIntegrationTestSuite(
 	accountKeeper authkeeper.AccountKeeper,
 	bankKeeper bankkeeper.BaseKeeper,
 	mintKeeper mintkeeper.Keeper,
-	paramSpace paramstypes.Subspace) *IntegrationTestSuite {
+	//paramSpace paramstypes.Subspace
+) *IntegrationTestSuite {
 
 	return &IntegrationTestSuite{
 		fixtureFactory: fixtureFactory,
 		accountKeeper:  accountKeeper,
 		bankKeeper:     bankKeeper,
 		mintKeeper:     mintKeeper,
-		paramSpace:     paramSpace,
+		//	paramSpace:     paramSpace,
 	}
 }
 

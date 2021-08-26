@@ -24,7 +24,7 @@ func RegisterLegacyAminoCodec(cdc *codec.LegacyAmino) {
 	cdc.RegisterConcrete(&MsgCreateProposal{}, "cosmos-sdk/group/MsgCreateProposal", nil)
 	cdc.RegisterConcrete(&MsgVote{}, "cosmos-sdk/group/MsgVote", nil)
 	cdc.RegisterConcrete(&MsgExec{}, "cosmos-sdk/group/MsgExec", nil)
-	cdc.RegisterConcrete(&MsgVoteAggRequest{}, "cosmos-sdk/group/MsgVoteAgg", nil)
+	cdc.RegisterConcrete(&MsgVoteAgg{}, "cosmos-sdk/group/MsgVoteAgg", nil)
 	cdc.RegisterConcrete(&MsgVoteBasicResponse{}, "cosmos-sdk/group/MsgVoteBasic", nil)
 }
 
@@ -41,7 +41,7 @@ func RegisterTypes(registry cdctypes.InterfaceRegistry) {
 		&MsgCreateProposal{},
 		&MsgVote{},
 		&MsgExec{},
-		&MsgVoteAggRequest{},
+		&MsgVoteAgg{},
 		&MsgVoteBasicResponse{},
 	)
 
