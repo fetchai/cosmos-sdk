@@ -330,6 +330,10 @@ message MsgVoteAgg {
 
     // metadata is any arbitrary metadata to attached to the vote.
     bytes metadata = 6;
+
+    // exec defines whether the proposal should be executed
+    // immediately after voting or not.
+    Exec exec = 7;
 }
 
 // MsgVoteResponse is the Msg/Vote response type.

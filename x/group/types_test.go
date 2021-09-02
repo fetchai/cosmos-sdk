@@ -4,11 +4,11 @@ import (
 	"testing"
 	"time"
 
+	"github.com/cosmos/cosmos-sdk/regen/orm"
+	"github.com/cosmos/cosmos-sdk/regen/types/math"
 	"github.com/cosmos/cosmos-sdk/testutil/testdata"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	proto "github.com/gogo/protobuf/types"
-	"github.com/cosmos/cosmos-sdk/regen/orm"
-	"github.com/cosmos/cosmos-sdk/regen/types/math"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )

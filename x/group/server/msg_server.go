@@ -703,13 +703,13 @@ func (s serverImpl) VoteAgg(goCtx context.Context, req *group.MsgVoteAgg) (*grou
 		return nil, sdkerrors.Wrap(group.ErrExpired, "voting period has ended already")
 	}
 
-	var accountInfo group.GroupAccountInfo
 	// Ensure that group account hasn't been modified since the proposal submission.
 	address, err := sdk.AccAddressFromBech32(proposal.Address)
 	if err != nil {
 		return nil, sdkerrors.Wrap(err, "group account")
 	}
-	if err := s.groupAccountTable.GetOne(ctx, address.Bytes(), &accountInfo); err != nil {
+	accountInfo, err := s.getGroupAccountInfo(ctx, address.Bytes())
+	if err != nil {
 		return nil, sdkerrors.Wrap(err, "load group account")
 	}
 	if proposal.GroupAccountVersion != accountInfo.Version {
@@ -759,11 +759,11 @@ func (s serverImpl) VoteAgg(goCtx context.Context, req *group.MsgVoteAgg) (*grou
 
 		acc := s.accKeeper.GetAccount(ctx.Context, memAddr)
 		if acc == nil {
-			return nil, sdkerrors.Wrap(group.ErrInvalid, "account does not exist")
+			return nil, sdkerrors.Wrapf(group.ErrInvalid, "account %s does not exist", memAddr.String())
 		}
 		pk := acc.GetPubKey()
 		if pk == nil {
-			return nil, sdkerrors.Wrap(group.ErrInvalid, "public key not set yet")
+			return nil, sdkerrors.Wrapf(group.ErrInvalid, "public key for account %s not set yet", memAddr.String())
 		}
 
 		meta := fmt.Sprintf("submitted through aggregated vote by %s", req.Sender)
@@ -841,6 +841,17 @@ func (s serverImpl) VoteAgg(goCtx context.Context, req *group.MsgVoteAgg) (*grou
 	err = ctx.EventManager().EmitTypedEvent(&group.EventVote{ProposalId: id})
 	if err != nil {
 		return nil, err
+	}
+
+	// Try to execute proposal immediately
+	if req.Exec == group.Exec_EXEC_TRY {
+		_, err = s.Exec(ctx, &group.MsgExec{
+			ProposalId: id,
+			Signer:     req.Sender,
+		})
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	return &group.MsgVoteAggResponse{}, nil

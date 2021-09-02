@@ -14,6 +14,7 @@ require (
 	github.com/cosmos/go-bip39 v1.0.0
 	github.com/cosmos/iavl v0.16.0
 	github.com/cosmos/ledger-cosmos-go v0.11.1
+	github.com/desertbit/timer v0.0.0-20180107155436-c41aec40b27f // indirect
 	github.com/enigmampc/btcutil v1.0.3-0.20200723161021-e2fb6adb2a25
 	github.com/gogo/gateway v1.1.0
 	github.com/gogo/protobuf v1.3.3
@@ -36,7 +37,6 @@ require (
 	github.com/prometheus/common v0.29.0
 	github.com/rakyll/statik v0.1.7
 	github.com/regen-network/cosmos-proto v0.3.1
-	github.com/regen-network/regen-ledger/types v0.0.0-20210823092432-9005905bc310
 	github.com/rs/zerolog v1.23.0
 	github.com/spf13/cast v1.3.1
 	github.com/spf13/cobra v1.1.3
@@ -54,6 +54,7 @@ require (
 	google.golang.org/grpc v1.38.0
 	google.golang.org/protobuf v1.26.0
 	gopkg.in/yaml.v2 v2.4.0
+	nhooyr.io/websocket v1.8.6 // indirect
 	pgregory.net/rapid v0.4.7
 )
 
