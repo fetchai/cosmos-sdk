@@ -7,6 +7,8 @@ import (
 	"os"
 	"path/filepath"
 
+	regenserver "github.com/cosmos/cosmos-sdk/regen/types/module/server"
+
 	airdroptypes "github.com/cosmos/cosmos-sdk/x/airdrop/types"
 
 	"github.com/gorilla/mux"
@@ -101,24 +103,26 @@ var (
 	// non-dependant module elements, such as codec registration
 	// and genesis verification.
 	ModuleBasics = module.NewBasicManager(
-		auth.AppModuleBasic{},
-		genutil.AppModuleBasic{},
-		bank.AppModuleBasic{},
-		capability.AppModuleBasic{},
-		staking.AppModuleBasic{},
-		mint.AppModuleBasic{},
-		distr.AppModuleBasic{},
-		gov.NewAppModuleBasic(
-			paramsclient.ProposalHandler, distrclient.ProposalHandler, upgradeclient.ProposalHandler, upgradeclient.CancelProposalHandler,
-		),
-		params.AppModuleBasic{},
-		crisis.AppModuleBasic{},
-		slashing.AppModuleBasic{},
-		feegrantmodule.AppModuleBasic{},
-		upgrade.AppModuleBasic{},
-		evidence.AppModuleBasic{},
-		authzmodule.AppModuleBasic{},
-		vesting.AppModuleBasic{},
+		append([]module.AppModuleBasic{
+			auth.AppModuleBasic{},
+			genutil.AppModuleBasic{},
+			bank.AppModuleBasic{},
+			capability.AppModuleBasic{},
+			staking.AppModuleBasic{},
+			mint.AppModuleBasic{},
+			distr.AppModuleBasic{},
+			gov.NewAppModuleBasic(
+				paramsclient.ProposalHandler, distrclient.ProposalHandler, upgradeclient.ProposalHandler, upgradeclient.CancelProposalHandler,
+			),
+			params.AppModuleBasic{},
+			crisis.AppModuleBasic{},
+			slashing.AppModuleBasic{},
+			feegrantmodule.AppModuleBasic{},
+			upgrade.AppModuleBasic{},
+			evidence.AppModuleBasic{},
+			authzmodule.AppModuleBasic{},
+			vesting.AppModuleBasic{},
+		}, setCustomModuleBasics()...)...,
 	)
 
 	// module account permissions
@@ -177,6 +181,13 @@ type SimApp struct {
 	// simulation manager
 	sm *module.SimulationManager
 
+	// server module manager
+	// NOTE: We will likely want to make this new manager compatible
+	// with module.Manager so that we can have existing cosmos-sdk modules
+	// use ADR 33 approach without the need for removing their keepers
+	// and a larger refactoring.
+	smm *regenserver.Manager
+
 	// module configurator
 	configurator module.Configurator
 }
@@ -207,12 +218,14 @@ func NewSimApp(
 	bApp.SetInterfaceRegistry(interfaceRegistry)
 
 	keys := sdk.NewKVStoreKeys(
-		authtypes.StoreKey, banktypes.StoreKey, stakingtypes.StoreKey,
-		minttypes.StoreKey, distrtypes.StoreKey, slashingtypes.StoreKey,
-		govtypes.StoreKey, paramstypes.StoreKey, upgradetypes.StoreKey, feegrant.StoreKey,
-		evidencetypes.StoreKey, capabilitytypes.StoreKey,
-		airdroptypes.StoreKey,
-		authzkeeper.StoreKey,
+		append([]string{
+			authtypes.StoreKey, banktypes.StoreKey, stakingtypes.StoreKey,
+			minttypes.StoreKey, distrtypes.StoreKey, slashingtypes.StoreKey,
+			govtypes.StoreKey, paramstypes.StoreKey, upgradetypes.StoreKey, feegrant.StoreKey,
+			evidencetypes.StoreKey, capabilitytypes.StoreKey,
+			airdroptypes.StoreKey,
+			authzkeeper.StoreKey,
+		}, setCustomKVStoreKeys()...)...,
 	)
 	tkeys := sdk.NewTransientStoreKeys(paramstypes.TStoreKey)
 	// NOTE: The testingkey is just mounted for testing purposes. Actual applications should
@@ -287,6 +300,9 @@ func NewSimApp(
 		&stakingKeeper, govRouter,
 	)
 
+	// register custom modules here
+	app.smm = setCustomModules(app, interfaceRegistry)
+
 	app.AirdropKeeper = airdropkeeper.NewKeeper(
 		appCodec, keys[airdroptypes.StoreKey], app.GetSubspace(airdroptypes.ModuleName), app.BankKeeper,
 		authtypes.FeeCollectorName,
@@ -313,25 +329,27 @@ func NewSimApp(
 	// NOTE: Any module instantiated in the module manager that is later modified
 	// must be passed by reference here.
 	app.mm = module.NewManager(
-		genutil.NewAppModule(
-			app.AccountKeeper, app.StakingKeeper, app.BaseApp.DeliverTx,
-			encodingConfig.TxConfig,
-		),
-		auth.NewAppModule(appCodec, app.AccountKeeper, authsims.RandomGenesisAccounts),
-		vesting.NewAppModule(app.AccountKeeper, app.BankKeeper),
-		bank.NewAppModule(appCodec, app.BankKeeper, app.AccountKeeper),
-		capability.NewAppModule(appCodec, *app.CapabilityKeeper),
-		crisis.NewAppModule(&app.CrisisKeeper, skipGenesisInvariants),
-		feegrantmodule.NewAppModule(appCodec, app.AccountKeeper, app.BankKeeper, app.FeeGrantKeeper, app.interfaceRegistry),
-		gov.NewAppModule(appCodec, app.GovKeeper, app.AccountKeeper, app.BankKeeper),
-		mint.NewAppModule(appCodec, app.MintKeeper, app.AccountKeeper),
-		slashing.NewAppModule(appCodec, app.SlashingKeeper, app.AccountKeeper, app.BankKeeper, app.StakingKeeper),
-		distr.NewAppModule(appCodec, app.DistrKeeper, app.AccountKeeper, app.BankKeeper, app.StakingKeeper),
-		staking.NewAppModule(appCodec, app.StakingKeeper, app.AccountKeeper, app.BankKeeper),
-		upgrade.NewAppModule(app.UpgradeKeeper),
-		evidence.NewAppModule(app.EvidenceKeeper),
-		params.NewAppModule(app.ParamsKeeper),
-		authzmodule.NewAppModule(appCodec, app.AuthzKeeper, app.AccountKeeper, app.BankKeeper, app.interfaceRegistry),
+		append([]module.AppModule{
+			genutil.NewAppModule(
+				app.AccountKeeper, app.StakingKeeper, app.BaseApp.DeliverTx,
+				encodingConfig.TxConfig,
+			),
+			auth.NewAppModule(appCodec, app.AccountKeeper, authsims.RandomGenesisAccounts),
+			vesting.NewAppModule(app.AccountKeeper, app.BankKeeper),
+			bank.NewAppModule(appCodec, app.BankKeeper, app.AccountKeeper),
+			capability.NewAppModule(appCodec, *app.CapabilityKeeper),
+			crisis.NewAppModule(&app.CrisisKeeper, skipGenesisInvariants),
+			feegrantmodule.NewAppModule(appCodec, app.AccountKeeper, app.BankKeeper, app.FeeGrantKeeper, app.interfaceRegistry),
+			gov.NewAppModule(appCodec, app.GovKeeper, app.AccountKeeper, app.BankKeeper),
+			mint.NewAppModule(appCodec, app.MintKeeper, app.AccountKeeper),
+			slashing.NewAppModule(appCodec, app.SlashingKeeper, app.AccountKeeper, app.BankKeeper, app.StakingKeeper),
+			distr.NewAppModule(appCodec, app.DistrKeeper, app.AccountKeeper, app.BankKeeper, app.StakingKeeper),
+			staking.NewAppModule(appCodec, app.StakingKeeper, app.AccountKeeper, app.BankKeeper),
+			upgrade.NewAppModule(app.UpgradeKeeper),
+			evidence.NewAppModule(app.EvidenceKeeper),
+			params.NewAppModule(app.ParamsKeeper),
+			authzmodule.NewAppModule(appCodec, app.AuthzKeeper, app.AccountKeeper, app.BankKeeper, app.interfaceRegistry),
+		}, app.setCustomModuleManager()...)...,
 	)
 
 	// During begin block slashing happens after distr.BeginBlocker so that
@@ -351,10 +369,12 @@ func NewSimApp(
 	// so that other modules that want to create or claim capabilities afterwards in InitChain
 	// can do so safely.
 	app.mm.SetOrderInitGenesis(
-		capabilitytypes.ModuleName, authtypes.ModuleName, banktypes.ModuleName, distrtypes.ModuleName, stakingtypes.ModuleName,
-		slashingtypes.ModuleName, govtypes.ModuleName, minttypes.ModuleName, crisistypes.ModuleName,
-		genutiltypes.ModuleName, evidencetypes.ModuleName, authz.ModuleName,
-		feegrant.ModuleName,
+		append([]string{
+			capabilitytypes.ModuleName, authtypes.ModuleName, banktypes.ModuleName, distrtypes.ModuleName, stakingtypes.ModuleName,
+			slashingtypes.ModuleName, govtypes.ModuleName, minttypes.ModuleName, crisistypes.ModuleName,
+			genutiltypes.ModuleName, evidencetypes.ModuleName, authz.ModuleName,
+			feegrant.ModuleName,
+		}, setCustomOrderInitGenesis()...)...,
 	)
 
 	app.mm.RegisterInvariants(&app.CrisisKeeper)
@@ -370,18 +390,20 @@ func NewSimApp(
 	// NOTE: this is not required apps that don't use the simulator for fuzz testing
 	// transactions
 	app.sm = module.NewSimulationManager(
-		auth.NewAppModule(appCodec, app.AccountKeeper, authsims.RandomGenesisAccounts),
-		bank.NewAppModule(appCodec, app.BankKeeper, app.AccountKeeper),
-		capability.NewAppModule(appCodec, *app.CapabilityKeeper),
-		feegrantmodule.NewAppModule(appCodec, app.AccountKeeper, app.BankKeeper, app.FeeGrantKeeper, app.interfaceRegistry),
-		gov.NewAppModule(appCodec, app.GovKeeper, app.AccountKeeper, app.BankKeeper),
-		mint.NewAppModule(appCodec, app.MintKeeper, app.AccountKeeper),
-		staking.NewAppModule(appCodec, app.StakingKeeper, app.AccountKeeper, app.BankKeeper),
-		distr.NewAppModule(appCodec, app.DistrKeeper, app.AccountKeeper, app.BankKeeper, app.StakingKeeper),
-		slashing.NewAppModule(appCodec, app.SlashingKeeper, app.AccountKeeper, app.BankKeeper, app.StakingKeeper),
-		params.NewAppModule(app.ParamsKeeper),
-		evidence.NewAppModule(app.EvidenceKeeper),
-		authzmodule.NewAppModule(appCodec, app.AuthzKeeper, app.AccountKeeper, app.BankKeeper, app.interfaceRegistry),
+		append([]module.AppModuleSimulation{
+			auth.NewAppModule(appCodec, app.AccountKeeper, authsims.RandomGenesisAccounts),
+			bank.NewAppModule(appCodec, app.BankKeeper, app.AccountKeeper),
+			capability.NewAppModule(appCodec, *app.CapabilityKeeper),
+			feegrantmodule.NewAppModule(appCodec, app.AccountKeeper, app.BankKeeper, app.FeeGrantKeeper, app.interfaceRegistry),
+			gov.NewAppModule(appCodec, app.GovKeeper, app.AccountKeeper, app.BankKeeper),
+			mint.NewAppModule(appCodec, app.MintKeeper, app.AccountKeeper),
+			staking.NewAppModule(appCodec, app.StakingKeeper, app.AccountKeeper, app.BankKeeper),
+			distr.NewAppModule(appCodec, app.DistrKeeper, app.AccountKeeper, app.BankKeeper, app.StakingKeeper),
+			slashing.NewAppModule(appCodec, app.SlashingKeeper, app.AccountKeeper, app.BankKeeper, app.StakingKeeper),
+			params.NewAppModule(app.ParamsKeeper),
+			evidence.NewAppModule(app.EvidenceKeeper),
+			authzmodule.NewAppModule(appCodec, app.AuthzKeeper, app.AccountKeeper, app.BankKeeper, app.interfaceRegistry),
+		}, app.setCustomSimulationManager()...)...,
 	)
 
 	app.sm.RegisterStoreDecoders()

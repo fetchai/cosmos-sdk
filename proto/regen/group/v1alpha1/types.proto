@@ -275,3 +275,90 @@ message Vote {
     // submitted_at is the timestamp when the vote was submitted.
     google.protobuf.Timestamp submitted_at = 5 [(gogoproto.nullable) = false];
 }
+
+// TallyPoll represents the sum of weighted votes for a poll.
+message TallyPoll {
+    option (gogoproto.goproto_getters) = false;
+    map<string, string> counts = 1;
+}
+
+message Options {
+    option (gogoproto.goproto_getters) = false;
+
+    repeated string titles = 1;
+}
+
+message Poll {
+    option (gogoproto.goproto_getters) = false;
+
+    // poll_id is the unique id of the poll.
+    uint64 poll_id = 1;
+
+    // group_id is the unique ID of the group.
+    uint64 group_id = 2;
+
+    string title = 3;
+
+    Options options = 4 [(gogoproto.nullable) = false];;
+
+    string creator = 5;
+
+    int32 vote_limit = 6;
+
+    // vote_state contains the sums of all weighted votes for this poll.
+    TallyPoll vote_state = 7 [(gogoproto.nullable) = false];
+
+    // metadata is any arbitrary metadata to attached to the proposal.
+    bytes metadata = 8;
+
+    // submitted_at is a timestamp specifying when a proposal was submitted.
+    google.protobuf.Timestamp submitted_at = 9 [(gogoproto.nullable) = false];
+
+    // group_version tracks the version of the group that this proposal corresponds to.
+    // When group membership is changed, existing proposals from previous group versions will become invalid.
+    uint64 group_version = 10;
+
+    // Status defines poll statuses.
+    enum Status {
+        option (gogoproto.goproto_enum_prefix) = false;
+
+        // An empty value is invalid and not allowed.
+        STATUS_UNSPECIFIED = 0 [(gogoproto.enumvalue_customname) = "PollStatusInvalid"];
+
+        // Initial status of a poll when persisted.
+        STATUS_SUBMITTED = 1 [(gogoproto.enumvalue_customname) = "PollStatusSubmitted"];
+
+        // Final status of a poll when the final tally was executed.
+        STATUS_CLOSED = 2 [(gogoproto.enumvalue_customname) = "PollStatusClosed"];
+
+        // Final status of a poll when the group was modified before the final tally.
+        STATUS_ABORTED = 3 [(gogoproto.enumvalue_customname) = "PollStatusAborted"];
+    }
+
+    // Status represents the high level position in the life cycle of the proposal. Initial value is Submitted.
+    Status status = 11;
+
+    // timeout is the timestamp of the block where the poll times out. Header times of the votes
+    // must be before this end time to be included in the election.
+    google.protobuf.Timestamp timeout = 12 [(gogoproto.nullable) = false];
+}
+
+
+// VotePoll represents a vote for a poll.
+message VotePoll {
+
+    // poll_id is the unique ID of the pool.
+    uint64 poll_id = 1;
+
+    // voter is the account address of the voter.
+    string voter = 2;
+
+    // options are the voter's choices on the poll.
+    Options options = 3 [(gogoproto.nullable) = false];;
+
+    // metadata is any arbitrary metadata to attached to the vote.
+    bytes metadata = 4;
+
+    // submitted_at is the timestamp when the vote was submitted.
+    google.protobuf.Timestamp submitted_at = 5 [(gogoproto.nullable) = false];
+}

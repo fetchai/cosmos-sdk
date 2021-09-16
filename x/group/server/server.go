@@ -37,6 +37,17 @@ const (
 	VoteTablePrefix           byte = 0x40
 	VoteByProposalIndexPrefix byte = 0x41
 	VoteByVoterIndexPrefix    byte = 0x42
+
+	// Poll Table
+	PollTablePrefix          byte = 0x90
+	PollTableSeqPrefix       byte = 0x91
+	PollByGroupIndexPrefix   byte = 0x92
+	PollByCreatorIndexPrefix byte = 0x93
+
+	// VotePoll Table
+	VotePollTablePrefix        byte = 0xa0
+	VotePollByPollIndexPrefix  byte = 0xa1
+	VotePollByVoterIndexPrefix byte = 0xa2
 )
 
 type serverImpl struct {
@@ -69,6 +80,16 @@ type serverImpl struct {
 	voteTable           orm.PrimaryKeyTable
 	voteByProposalIndex orm.UInt64Index
 	voteByVoterIndex    orm.Index
+
+	// Poll Table
+	pollTable          orm.AutoUInt64Table
+	pollByGroupIndex   orm.UInt64Index
+	pollByCreatorIndex orm.Index
+
+	// VotePoll Table
+	votePollTable        orm.PrimaryKeyTable
+	votePollByPollIndex  orm.UInt64Index
+	votePollByVoterIndex orm.Index
 }
 
 func newServer(storeKey servermodule.RootModuleKey, accKeeper exported.AccountKeeper, bankKeeper exported.BankKeeper, cdc codec.Codec) serverImpl {
@@ -155,6 +176,36 @@ func newServer(storeKey servermodule.RootModuleKey, accKeeper exported.AccountKe
 		return []orm.RowID{addr.Bytes()}, nil
 	})
 	s.voteTable = voteTableBuilder.Build()
+
+	// Poll Table
+	pollTableBuilder := orm.NewAutoUInt64TableBuilder(PollTablePrefix, PollTableSeqPrefix, storeKey, &group.Poll{}, cdc)
+	s.pollByGroupIndex = orm.NewUInt64Index(pollTableBuilder, PollByGroupIndexPrefix, func(value interface{}) ([]uint64, error) {
+		group := value.(*group.Poll).GroupId
+		return []uint64{group}, nil
+	})
+	s.pollByCreatorIndex = orm.NewIndex(pollTableBuilder, PollByCreatorIndexPrefix, func(value interface{}) ([]orm.RowID, error) {
+		creator := value.(*group.Poll).Creator
+		addr, err := sdk.AccAddressFromBech32(creator)
+		if err != nil {
+			return nil, err
+		}
+		return []orm.RowID{addr.Bytes()}, nil
+	})
+	s.pollTable = pollTableBuilder.Build()
+
+	// VotePoll Table
+	votePollTableBuilder := orm.NewPrimaryKeyTableBuilder(VotePollTablePrefix, storeKey, &group.VotePoll{}, orm.Max255DynamicLengthIndexKeyCodec{}, cdc)
+	s.votePollByPollIndex = orm.NewUInt64Index(votePollTableBuilder, VotePollByPollIndexPrefix, func(value interface{}) ([]uint64, error) {
+		return []uint64{value.(*group.VotePoll).PollId}, nil
+	})
+	s.votePollByVoterIndex = orm.NewIndex(votePollTableBuilder, VotePollByVoterIndexPrefix, func(value interface{}) ([]orm.RowID, error) {
+		addr, err := sdk.AccAddressFromBech32(value.(*group.VotePoll).Voter)
+		if err != nil {
+			return nil, err
+		}
+		return []orm.RowID{addr.Bytes()}, nil
+	})
+	s.votePollTable = votePollTableBuilder.Build()
 
 	return s
 }

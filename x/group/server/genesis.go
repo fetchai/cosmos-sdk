@@ -39,6 +39,14 @@ func (s serverImpl) InitGenesis(ctx types.Context, cdc codec.Codec, data json.Ra
 		return nil, errors.Wrap(err, "votes")
 	}
 
+	if err := orm.ImportTableData(ctx, s.pollTable, genesisState.Polls, genesisState.PollSeq); err != nil {
+		return nil, errors.Wrap(err, "polls")
+	}
+
+	if err := orm.ImportTableData(ctx, s.votePollTable, genesisState.VotesForPoll, 0); err != nil {
+		return nil, errors.Wrap(err, "votes")
+	}
+
 	return []abci.ValidatorUpdate{}, nil
 }
 
@@ -82,6 +90,21 @@ func (s serverImpl) ExportGenesis(ctx types.Context, cdc codec.Codec) (json.RawM
 		return nil, errors.Wrap(err, "votes")
 	}
 	genesisState.Votes = votes
+
+	var polls []*group.Poll
+	pollSeq, err := orm.ExportTableData(ctx, s.pollTable, &polls)
+	if err != nil {
+		return nil, errors.Wrap(err, "polls")
+	}
+	genesisState.Polls = polls
+	genesisState.PollSeq = pollSeq
+
+	var votesForPoll []*group.VotePoll
+	_, err = orm.ExportTableData(ctx, s.votePollTable, &votesForPoll)
+	if err != nil {
+		return nil, errors.Wrap(err, "votes for poll")
+	}
+	genesisState.VotesForPoll = votesForPoll
 
 	genesisBytes := cdc.MustMarshalJSON(genesisState)
 	return genesisBytes, nil

@@ -1,6 +1,7 @@
 package client
 
 import (
+	"fmt"
 	"io/ioutil"
 
 	"github.com/cosmos/cosmos-sdk/client"
@@ -45,11 +46,15 @@ func parseGroupMembers(clientCtx client.Context, membersFile string) ([]*group.G
 
 	contents, err := ioutil.ReadFile(membersFile)
 	if err != nil {
-		return  nil, err
+		return nil, err
 	}
 	err = clientCtx.Codec.UnmarshalJSON(contents, &res)
 	if err != nil {
-		return  nil, err
+		return nil, err
+	}
+
+	if res.Pagination.NextKey != nil {
+		return nil, fmt.Errorf("require all the group members")
 	}
 
 	return res.Members, nil
@@ -73,5 +78,24 @@ func parseVoteBasic(clientCtx client.Context, voteFile string) (group.MsgVoteBas
 	}
 
 	return vote, nil
+}
 
+func parseVotePollBasic(clientCtx client.Context, voteFile string) (group.MsgVotePollBasicResponse, error) {
+	vote := group.MsgVotePollBasicResponse{}
+
+	if voteFile == "" {
+		return vote, nil
+	}
+
+	contents, err := ioutil.ReadFile(voteFile)
+	if err != nil {
+		return vote, err
+	}
+
+	err = clientCtx.Codec.UnmarshalJSON(contents, &vote)
+	if err != nil {
+		return vote, err
+	}
+
+	return vote, nil
 }

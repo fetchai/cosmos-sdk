@@ -4,6 +4,9 @@ import (
 	"fmt"
 	"strconv"
 	"strings"
+	"time"
+
+	gogotypes "github.com/gogo/protobuf/types"
 
 	tmcli "github.com/tendermint/tendermint/libs/cli"
 
@@ -31,8 +34,16 @@ type IntegrationTestSuite struct {
 
 	group         *group.GroupInfo
 	groupAccounts []*group.GroupAccountInfo
-	proposal      *group.Proposal
-	vote          *group.Vote
+
+	groupBls         *group.GroupInfo
+	groupAccountsBls []*group.GroupAccountInfo
+
+	proposal *group.Proposal
+	vote     *group.Vote
+
+	proposalBls *group.Proposal
+	pollBls     *group.Poll
+	votePoll    *group.VotePoll
 }
 
 const validMetadata = "AQ=="
@@ -68,6 +79,57 @@ func (s *IntegrationTestSuite) SetupSuite() {
 	)
 	s.Require().NoError(err)
 
+	// Create new bls account in the keyring.
+	aliceInfo, _, err := val.ClientCtx.Keyring.NewMnemonic("alice", keyring.English, sdk.FullFundraiserPath, keyring.DefaultBIP39Passphrase, hd.Bls12381)
+	s.Require().NoError(err)
+	aliceAddr := sdk.AccAddress(aliceInfo.GetPubKey().Address())
+	_, err = banktestutil.MsgSendExec(
+		val.ClientCtx,
+		val.Address,
+		aliceAddr,
+		sdk.NewCoins(sdk.NewCoin(s.cfg.BondDenom, sdk.NewInt(2000))), fmt.Sprintf("--%s=true", flags.FlagSkipConfirmation),
+		fmt.Sprintf("--%s=%s", flags.FlagBroadcastMode, flags.BroadcastBlock),
+		fmt.Sprintf("--%s=%s", flags.FlagFees, sdk.NewCoins(sdk.NewCoin(s.cfg.BondDenom, sdk.NewInt(10))).String()),
+	)
+	s.Require().NoError(err)
+
+	// perform a transaction to set pop for bls public key
+	bobInfo, _, err := val.ClientCtx.Keyring.NewMnemonic("bob", keyring.English, sdk.FullFundraiserPath, keyring.DefaultBIP39Passphrase, hd.Bls12381)
+	s.Require().NoError(err)
+	bobAddr := sdk.AccAddress(bobInfo.GetPubKey().Address())
+	_, err = banktestutil.MsgSendExec(
+		val.ClientCtx,
+		aliceAddr,
+		bobAddr,
+		sdk.NewCoins(sdk.NewCoin(s.cfg.BondDenom, sdk.NewInt(1000))), fmt.Sprintf("--%s=true", flags.FlagSkipConfirmation),
+		fmt.Sprintf("--%s=%s", flags.FlagBroadcastMode, flags.BroadcastBlock),
+		fmt.Sprintf("--%s=%s", flags.FlagFees, sdk.NewCoins(sdk.NewCoin(s.cfg.BondDenom, sdk.NewInt(10))).String()),
+	)
+	s.Require().NoError(err)
+
+	charlieInfo, _, err := val.ClientCtx.Keyring.NewMnemonic("charlie", keyring.English, sdk.FullFundraiserPath, keyring.DefaultBIP39Passphrase, hd.Bls12381)
+	s.Require().NoError(err)
+	charlieAddr := sdk.AccAddress(charlieInfo.GetPubKey().Address())
+	_, err = banktestutil.MsgSendExec(
+		val.ClientCtx,
+		bobAddr,
+		charlieAddr,
+		sdk.NewCoins(sdk.NewCoin(s.cfg.BondDenom, sdk.NewInt(800))), fmt.Sprintf("--%s=true", flags.FlagSkipConfirmation),
+		fmt.Sprintf("--%s=%s", flags.FlagBroadcastMode, flags.BroadcastBlock),
+		fmt.Sprintf("--%s=%s", flags.FlagFees, sdk.NewCoins(sdk.NewCoin(s.cfg.BondDenom, sdk.NewInt(10))).String()),
+	)
+	s.Require().NoError(err)
+
+	_, err = banktestutil.MsgSendExec(
+		val.ClientCtx,
+		charlieAddr,
+		bobAddr,
+		sdk.NewCoins(sdk.NewCoin(s.cfg.BondDenom, sdk.NewInt(300))), fmt.Sprintf("--%s=true", flags.FlagSkipConfirmation),
+		fmt.Sprintf("--%s=%s", flags.FlagBroadcastMode, flags.BroadcastBlock),
+		fmt.Sprintf("--%s=%s", flags.FlagFees, sdk.NewCoins(sdk.NewCoin(s.cfg.BondDenom, sdk.NewInt(10))).String()),
+	)
+	s.Require().NoError(err)
+
 	var commonFlags = []string{
 		fmt.Sprintf("--%s=true", flags.FlagSkipConfirmation),
 		fmt.Sprintf("--%s=%s", flags.FlagBroadcastMode, flags.BroadcastBlock),
@@ -75,11 +137,7 @@ func (s *IntegrationTestSuite) SetupSuite() {
 	}
 
 	// create a group
-	validMembers := fmt.Sprintf(`{"members": [{
-	  "address": "%s",
-		"weight": "3",
-		"metadata": "%s"
-	}]}`, val.Address.String(), validMetadata)
+	validMembers := fmt.Sprintf(`{"members":[{"address":"%s","weight":"3","metadata":"%s"}]}`, val.Address.String(), validMetadata)
 	validMembersFile := testutil.WriteToNewTempFile(s.T(), validMembers)
 	out, err := cli.ExecTestCLICmd(val.ClientCtx, client.MsgCreateGroupCmd(),
 		append(
@@ -176,6 +234,161 @@ func (s *IntegrationTestSuite) SetupSuite() {
 	var voteRes group.QueryVoteByProposalVoterResponse
 	s.Require().NoError(val.ClientCtx.Codec.UnmarshalJSON(out.Bytes(), &voteRes))
 	s.vote = voteRes.Vote
+
+	// Create a bls-only group
+	validBlsMembers := fmt.Sprintf(`{"members": [
+	{
+		"address": "%s",
+		"weight": "1",
+		"metadata": "%s"
+	},
+	{
+		"address": "%s",
+		"weight": "2",
+		"metadata": "%s"
+	},
+	{
+		"address": "%s",
+		"weight": "3",
+		"metadata": "%s"
+	}]}`, aliceAddr.String(), validMetadata, bobAddr.String(), validMetadata, charlieAddr.String(), validMetadata)
+	validBlsMembersFile := testutil.WriteToNewTempFile(s.T(), validBlsMembers)
+
+	out, err = cli.ExecTestCLICmd(val.ClientCtx, client.MsgCreateGroupCmd(),
+		append(
+			[]string{
+				aliceAddr.String(),
+				validMetadata,
+				validBlsMembersFile.Name(),
+				fmt.Sprintf("--%s", client.FlagBlsOnly),
+			},
+			commonFlags...,
+		),
+	)
+	s.Require().NoError(err, out.String())
+	s.Require().NoError(val.ClientCtx.Codec.UnmarshalJSON(out.Bytes(), &txResp), out.String())
+	s.Require().Equal(uint32(0), txResp.Code, out.String())
+
+	s.groupBls = &group.GroupInfo{GroupId: 2, Admin: aliceAddr.String(), Metadata: []byte{1}, TotalWeight: "6", Version: 1}
+
+	// create 5 group accounts
+	for i := 0; i < 5; i++ {
+		threshold := i + 1
+		if threshold > 4 {
+			threshold = 4
+		}
+		out, err = cli.ExecTestCLICmd(val.ClientCtx, client.MsgCreateGroupAccountCmd(),
+			append(
+				[]string{
+					aliceAddr.String(),
+					"2",
+					validMetadata,
+					fmt.Sprintf("{\"@type\":\"/regen.group.v1alpha1.ThresholdDecisionPolicy\", \"threshold\":\"%d\", \"timeout\":\"30000s\"}", threshold),
+				},
+				commonFlags...,
+			),
+		)
+		s.Require().NoError(err, out.String())
+		s.Require().NoError(val.ClientCtx.Codec.UnmarshalJSON(out.Bytes(), &txResp), out.String())
+		s.Require().Equal(uint32(0), txResp.Code, out.String())
+
+		out, err = cli.ExecTestCLICmd(val.ClientCtx, client.QueryGroupAccountsByGroupCmd(), []string{"2", fmt.Sprintf("--%s=json", tmcli.OutputFlag)})
+		s.Require().NoError(err, out.String())
+	}
+
+	var resBls group.QueryGroupAccountsByGroupResponse
+	s.Require().NoError(val.ClientCtx.Codec.UnmarshalJSON(out.Bytes(), &resBls))
+	s.Require().Equal(len(resBls.GroupAccounts), 5)
+	s.groupAccountsBls = resBls.GroupAccounts
+
+	// give group account 0 some balance
+	blsAddr0, err := sdk.AccAddressFromBech32(s.groupAccountsBls[0].Address)
+	s.Require().NoError(err)
+	_, err = banktestutil.MsgSendExec(
+		val.ClientCtx,
+		val.Address,
+		blsAddr0,
+		sdk.NewCoins(sdk.NewCoin(s.cfg.BondDenom, sdk.NewInt(2000))), fmt.Sprintf("--%s=true", flags.FlagSkipConfirmation),
+		fmt.Sprintf("--%s=%s", flags.FlagBroadcastMode, flags.BroadcastBlock),
+		fmt.Sprintf("--%s=%s", flags.FlagFees, sdk.NewCoins(sdk.NewCoin(s.cfg.BondDenom, sdk.NewInt(10))).String()),
+	)
+	s.Require().NoError(err)
+
+	// create a proposal for bls group
+	validTxFileNameBls := getTxSendFileName(s, s.groupAccountsBls[0].Address, aliceAddr.String())
+	out, err = cli.ExecTestCLICmd(val.ClientCtx, client.MsgCreateProposalCmd(),
+		append(
+			[]string{
+				s.groupAccountsBls[0].Address,
+				aliceAddr.String(),
+				validTxFileNameBls,
+				"",
+				fmt.Sprintf("--%s=%s", flags.FlagFrom, aliceAddr.String()),
+			},
+			commonFlags...,
+		),
+	)
+	s.Require().NoError(err, out.String())
+	s.Require().NoError(val.ClientCtx.Codec.UnmarshalJSON(out.Bytes(), &txResp), out.String())
+	s.Require().Equal(uint32(0), txResp.Code, out.String())
+
+	out, err = cli.ExecTestCLICmd(val.ClientCtx, client.QueryProposalCmd(), []string{"2", fmt.Sprintf("--%s=json", tmcli.OutputFlag)})
+	s.Require().NoError(err, out.String())
+	s.Require().NoError(val.ClientCtx.Codec.UnmarshalJSON(out.Bytes(), &proposalRes))
+	s.proposalBls = proposalRes.Proposal
+
+	// create a poll for bls group
+	now := time.Now()
+	expiryTime := now.Add(time.Second * 3000)
+	expiry, err := gogotypes.TimestampProto(expiryTime)
+	s.Require().NoError(err)
+	expiryStr := expiry.String()
+
+	out, err = cli.ExecTestCLICmd(val.ClientCtx, client.MsgCreatePollCmd(),
+		append(
+			[]string{
+				aliceAddr.String(),
+				"2",
+				"2022 Election",
+				"alice,bob,charlie,linda,tom",
+				"2",
+				expiryStr,
+				"",
+			},
+			commonFlags...,
+		),
+	)
+	s.Require().NoError(err, out.String())
+	s.Require().NoError(val.ClientCtx.Codec.UnmarshalJSON(out.Bytes(), &txResp), out.String())
+	s.Require().Equal(uint32(0), txResp.Code, out.String())
+
+	// vote-poll
+	out, err = cli.ExecTestCLICmd(val.ClientCtx, client.MsgVotePollCmd(),
+		append(
+			[]string{
+				"1",
+				aliceAddr.String(),
+				"alice,linda",
+				"",
+			},
+			commonFlags...,
+		),
+	)
+	s.Require().NoError(err, out.String())
+	s.Require().NoError(val.ClientCtx.Codec.UnmarshalJSON(out.Bytes(), &txResp), out.String())
+	s.Require().Equal(uint32(0), txResp.Code, out.String())
+
+	var pollRes group.QueryPollResponse
+	out, err = cli.ExecTestCLICmd(val.ClientCtx, client.QueryPollCmd(), []string{"1", fmt.Sprintf("--%s=json", tmcli.OutputFlag)})
+	s.Require().NoError(err, out.String())
+	s.Require().NoError(val.ClientCtx.Codec.UnmarshalJSON(out.Bytes(), &pollRes))
+	s.pollBls = pollRes.Poll
+
+	out, err = cli.ExecTestCLICmd(val.ClientCtx, client.QueryVoteForPollByPollVoterCmd(), []string{"1", aliceAddr.String(), fmt.Sprintf("--%s=json", tmcli.OutputFlag)})
+	s.Require().NoError(err, out.String())
+	var votePollRes group.QueryVoteForPollByPollVoterResponse
+	s.Require().NoError(val.ClientCtx.Codec.UnmarshalJSON(out.Bytes(), &votePollRes))
+	s.votePoll = votePollRes.Vote
 }
 
 func (s *IntegrationTestSuite) TearDownSuite() {
@@ -382,7 +595,7 @@ func (s *IntegrationTestSuite) TestTxUpdateGroupAdmin() {
 			append(
 				[]string{
 					val.Address.String(),
-					"3",
+					"4",
 					s.network.Validators[1].Address.String(),
 				},
 				commonFlags...,
@@ -397,7 +610,7 @@ func (s *IntegrationTestSuite) TestTxUpdateGroupAdmin() {
 			append(
 				[]string{
 					val.Address.String(),
-					"4",
+					"5",
 					s.network.Validators[1].Address.String(),
 					fmt.Sprintf("--%s=%s", flags.FlagSignMode, flags.SignModeLegacyAminoJSON),
 				},
@@ -483,7 +696,7 @@ func (s *IntegrationTestSuite) TestTxUpdateGroupMetadata() {
 			append(
 				[]string{
 					val.Address.String(),
-					"2",
+					"3",
 					validMetadata,
 				},
 				commonFlags...,
@@ -498,7 +711,7 @@ func (s *IntegrationTestSuite) TestTxUpdateGroupMetadata() {
 			append(
 				[]string{
 					val.Address.String(),
-					"2",
+					"3",
 					validMetadata,
 					fmt.Sprintf("--%s=%s", flags.FlagSignMode, flags.SignModeLegacyAminoJSON),
 				},
@@ -520,7 +733,7 @@ func (s *IntegrationTestSuite) TestTxUpdateGroupMetadata() {
 				commonFlags...,
 			),
 			true,
-			"group metadata: limit exceeded",
+			"metadata: limit exceeded",
 			nil,
 			0,
 		},
@@ -586,7 +799,7 @@ func (s *IntegrationTestSuite) TestTxUpdateGroupMembers() {
 			append(
 				[]string{
 					val.Address.String(),
-					"2",
+					"3",
 					validUpdatedMembersFileName,
 				},
 				commonFlags...,
@@ -601,7 +814,7 @@ func (s *IntegrationTestSuite) TestTxUpdateGroupMembers() {
 			append(
 				[]string{
 					val.Address.String(),
-					"2",
+					"3",
 					testutil.WriteToNewTempFile(s.T(), fmt.Sprintf(`{"members": [{
 		"address": "%s",
 		"weight": "2",
@@ -627,7 +840,7 @@ func (s *IntegrationTestSuite) TestTxUpdateGroupMembers() {
 				commonFlags...,
 			),
 			true,
-			"group member metadata: limit exceeded",
+			"member metadata: limit exceeded",
 			nil,
 			0,
 		},
@@ -750,7 +963,7 @@ func (s *IntegrationTestSuite) TestTxCreateGroupAccount() {
 				commonFlags...,
 			),
 			true,
-			"group account metadata: limit exceeded",
+			"metadata: limit exceeded",
 			&sdk.TxResponse{},
 			0,
 		},
@@ -1355,7 +1568,7 @@ func (s *IntegrationTestSuite) TestTxVote() {
 			"correct data",
 			append(
 				[]string{
-					"2",
+					"3",
 					val.Address.String(),
 					"CHOICE_YES",
 					"",
@@ -1371,7 +1584,7 @@ func (s *IntegrationTestSuite) TestTxVote() {
 			"with try exec",
 			append(
 				[]string{
-					"7",
+					"8",
 					val.Address.String(),
 					"CHOICE_YES",
 					"",
@@ -1388,7 +1601,7 @@ func (s *IntegrationTestSuite) TestTxVote() {
 			"with try exec, not enough yes votes for proposal to pass",
 			append(
 				[]string{
-					"8",
+					"9",
 					val.Address.String(),
 					"CHOICE_NO",
 					"",
@@ -1405,7 +1618,7 @@ func (s *IntegrationTestSuite) TestTxVote() {
 			"with amino-json",
 			append(
 				[]string{
-					"5",
+					"6",
 					val.Address.String(),
 					"CHOICE_YES",
 					"",
@@ -1454,7 +1667,7 @@ func (s *IntegrationTestSuite) TestTxVote() {
 			"metadata too long",
 			append(
 				[]string{
-					"2",
+					"3",
 					val.Address.String(),
 					"CHOICE_YES",
 					"AQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQ==",
@@ -1470,7 +1683,7 @@ func (s *IntegrationTestSuite) TestTxVote() {
 			"invalid choice",
 			append(
 				[]string{
-					"2",
+					"3",
 					val.Address.String(),
 					"INVALID_CHOICE",
 					"",
@@ -1504,6 +1717,150 @@ func (s *IntegrationTestSuite) TestTxVote() {
 	}
 }
 
+func (s *IntegrationTestSuite) TestTxVoteAgg() {
+	val := s.network.Validators[0]
+	clientCtx := val.ClientCtx
+
+	var commonFlags = []string{
+		fmt.Sprintf("--%s=true", flags.FlagSkipConfirmation),
+		fmt.Sprintf("--%s=%s", flags.FlagBroadcastMode, flags.BroadcastBlock),
+		fmt.Sprintf("--%s=%s", flags.FlagFees, sdk.NewCoins(sdk.NewCoin(s.cfg.BondDenom, sdk.NewInt(10))).String()),
+	}
+
+	aliceInfo, err := clientCtx.Keyring.Key("alice")
+	s.Require().NoError(err)
+	aliceAddr := sdk.AccAddress(aliceInfo.GetPubKey().Address())
+
+	bobInfo, err := clientCtx.Keyring.Key("bob")
+	s.Require().NoError(err)
+	bobAddr := sdk.AccAddress(bobInfo.GetPubKey().Address())
+
+	charlieInfo, err := clientCtx.Keyring.Key("charlie")
+	s.Require().NoError(err)
+	charlieAddr := sdk.AccAddress(charlieInfo.GetPubKey().Address())
+
+	// query group members
+	cmd := client.QueryGroupMembersCmd()
+	out, err := cli.ExecTestCLICmd(clientCtx, cmd, []string{strconv.FormatUint(s.groupBls.GroupId, 10), fmt.Sprintf("--%s=json", tmcli.OutputFlag)})
+	var res group.QueryGroupMembersResponse
+	s.Require().NoError(clientCtx.Codec.UnmarshalJSON(out.Bytes(), &res))
+	fileGroupMembers := testutil.WriteToNewTempFile(s.T(), out.String()).Name()
+
+	// create a proposal for bls group
+	var txResp = sdk.TxResponse{}
+	validTxFileNameBls := getTxSendFileName(s, s.groupAccountsBls[3].Address, aliceAddr.String())
+	out, err = cli.ExecTestCLICmd(val.ClientCtx, client.MsgCreateProposalCmd(),
+		append(
+			[]string{
+				s.groupAccountsBls[3].Address,
+				aliceAddr.String(),
+				validTxFileNameBls,
+				"",
+				fmt.Sprintf("--%s=%s", flags.FlagFrom, aliceAddr.String()),
+			},
+			commonFlags...,
+		),
+	)
+	s.Require().NoError(err, out.String())
+	s.Require().NoError(val.ClientCtx.Codec.UnmarshalJSON(out.Bytes(), &txResp), out.String())
+	s.Require().Equal(uint32(0), txResp.Code, out.String())
+
+	voteFlags := []string{
+		fmt.Sprintf("--%s=json", tmcli.OutputFlag),
+	}
+
+	now := time.Now()
+	expiryTime := now.Add(time.Second * 30)
+	expiry, err := gogotypes.TimestampProto(expiryTime)
+	s.Require().NoError(err)
+	expiryStr := expiry.String()
+
+	// basic vote from alice
+	cmd = client.GetVoteBasicCmd()
+	out, err = cli.ExecTestCLICmd(clientCtx, cmd,
+		append(
+			[]string{
+				aliceAddr.String(),
+				"2",
+				expiryStr,
+				"CHOICE_YES",
+			},
+			voteFlags...,
+		),
+	)
+	aliceVoteYes := testutil.WriteToNewTempFile(s.T(), out.String()).Name()
+
+	cmd = client.GetVerifyVoteBasicCmd()
+	out, err = cli.ExecTestCLICmd(clientCtx, cmd, []string{aliceVoteYes})
+	s.Require().NoError(err)
+
+	// basic vote from bob
+	cmd = client.GetVoteBasicCmd()
+	out, err = cli.ExecTestCLICmd(clientCtx, cmd,
+		append(
+			[]string{
+				bobAddr.String(),
+				"2",
+				expiryStr,
+				"CHOICE_NO",
+			},
+			voteFlags...,
+		),
+	)
+	bobVoteNo := testutil.WriteToNewTempFile(s.T(), out.String()).Name()
+
+	cmd = client.GetVerifyVoteBasicCmd()
+	out, err = cli.ExecTestCLICmd(clientCtx, cmd, []string{bobVoteNo})
+	s.Require().NoError(err)
+
+	// basic vote from charlie
+	cmd = client.GetVoteBasicCmd()
+	out, err = cli.ExecTestCLICmd(clientCtx, cmd,
+		append(
+			[]string{
+				charlieAddr.String(),
+				"2",
+				expiryStr,
+				"CHOICE_YES",
+			},
+			voteFlags...,
+		),
+	)
+	charlieVoteYes := testutil.WriteToNewTempFile(s.T(), out.String()).Name()
+	cmd = client.GetVerifyVoteBasicCmd()
+	out, err = cli.ExecTestCLICmd(clientCtx, cmd, []string{charlieVoteYes})
+	s.Require().NoError(err)
+
+	// aggregate everyone's vote
+	cmd = client.MsgVoteAggCmd()
+	voteAggFlags := append(commonFlags, fmt.Sprintf("--%s=try", client.FlagExec))
+	out, err = cli.ExecTestCLICmd(clientCtx, cmd,
+		append(
+			[]string{
+				aliceAddr.String(),
+				"2",
+				expiryStr,
+				fileGroupMembers,
+				aliceVoteYes,
+				bobVoteNo,
+				charlieVoteYes,
+			},
+			voteAggFlags...,
+		),
+	)
+	s.Require().NoError(err, out.String())
+	s.Require().NoError(val.ClientCtx.Codec.UnmarshalJSON(out.Bytes(), &txResp), out.String())
+	s.Require().Equal(uint32(0), txResp.Code, out.String())
+
+	var proposalRes group.QueryProposalResponse
+	out, err = cli.ExecTestCLICmd(val.ClientCtx, client.QueryProposalCmd(), []string{"2", fmt.Sprintf("--%s=json", tmcli.OutputFlag)})
+	s.Require().NoError(err, out.String())
+	s.Require().NoError(val.ClientCtx.Codec.UnmarshalJSON(out.Bytes(), &proposalRes))
+	s.Require().Equal(proposalRes.Proposal.Status, group.ProposalStatusClosed)
+	s.Require().Equal(proposalRes.Proposal.Result, group.ProposalResultAccepted)
+	s.Require().Equal(proposalRes.Proposal.ExecutorResult, group.ProposalExecutorResultSuccess)
+}
+
 func (s *IntegrationTestSuite) TestTxExec() {
 	val := s.network.Validators[0]
 	clientCtx := val.ClientCtx
@@ -1515,7 +1872,7 @@ func (s *IntegrationTestSuite) TestTxExec() {
 	}
 
 	// create proposals and vote
-	for i := 3; i <= 4; i++ {
+	for i := 4; i <= 5; i++ {
 		validTxFileName := getTxSendFileName(s, s.groupAccounts[0].Address, val.Address.String())
 		out, err := cli.ExecTestCLICmd(val.ClientCtx, client.MsgCreateProposalCmd(),
 			append(
@@ -1557,7 +1914,7 @@ func (s *IntegrationTestSuite) TestTxExec() {
 			"correct data",
 			append(
 				[]string{
-					"3",
+					"4",
 					fmt.Sprintf("--%s=%s", flags.FlagFrom, val.Address.String()),
 				},
 				commonFlags...,
@@ -1571,7 +1928,7 @@ func (s *IntegrationTestSuite) TestTxExec() {
 			"with amino-json",
 			append(
 				[]string{
-					"4",
+					"5",
 					fmt.Sprintf("--%s=%s", flags.FlagFrom, val.Address.String()),
 					fmt.Sprintf("--%s=%s", flags.FlagSignMode, flags.SignModeLegacyAminoJSON),
 				},
@@ -1630,6 +1987,489 @@ func (s *IntegrationTestSuite) TestTxExec() {
 			}
 		})
 	}
+}
+
+func (s *IntegrationTestSuite) TestTxCreatePoll() {
+	val := s.network.Validators[0]
+	clientCtx := val.ClientCtx
+
+	var commonFlags = []string{
+		fmt.Sprintf("--%s=true", flags.FlagSkipConfirmation),
+		fmt.Sprintf("--%s=%s", flags.FlagBroadcastMode, flags.BroadcastBlock),
+		fmt.Sprintf("--%s=%s", flags.FlagFees, sdk.NewCoins(sdk.NewCoin(s.cfg.BondDenom, sdk.NewInt(10))).String()),
+	}
+
+	aliceInfo, err := clientCtx.Keyring.Key("alice")
+	s.Require().NoError(err)
+	aliceAddr := sdk.AccAddress(aliceInfo.GetPubKey().Address())
+
+	now := time.Now()
+	deadline := now.Add(time.Second * 3000)
+	timeout, err := gogotypes.TimestampProto(deadline)
+	s.Require().NoError(err)
+	timeoutStr := timeout.String()
+
+	testCases := []struct {
+		name         string
+		args         []string
+		expectErr    bool
+		expectErrMsg string
+		respType     proto.Message
+		expectedCode uint32
+	}{
+		{
+			"correct data",
+			append(
+				[]string{
+					aliceAddr.String(),
+					"2",
+					"2023 Election",
+					"alice,bob,charlie,eva",
+					"2",
+					timeoutStr,
+					validMetadata,
+				},
+				commonFlags...,
+			),
+			false,
+			"",
+			&sdk.TxResponse{},
+			0,
+		},
+		{
+			"poll expired",
+			append(
+				[]string{
+					aliceAddr.String(),
+					"2",
+					"2022 Election",
+					"alice,bob,charlie",
+					"2",
+					"2021-08-15T12:00:00Z",
+					validMetadata,
+				},
+				commonFlags...,
+			),
+			true,
+			"deadline of the poll has passed",
+			nil,
+			0,
+		},
+		{
+			"title too long",
+			append(
+				[]string{
+					aliceAddr.String(),
+					"2",
+					"AQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQ==",
+					"alice,bob,charlie",
+					"2",
+					timeoutStr,
+					validMetadata,
+				},
+				commonFlags...,
+			),
+			true,
+			"poll title: limit exceeded",
+			nil,
+			0,
+		},
+		{
+			"metadata too long",
+			append(
+				[]string{
+					aliceAddr.String(),
+					"2",
+					"2022 Election",
+					"alice,bob,charlie",
+					"2",
+					timeoutStr,
+					"AQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQ==",
+				},
+				commonFlags...,
+			),
+			true,
+			"metadata: limit exceeded",
+			nil,
+			0,
+		},
+		{
+			"invalid creator",
+			append(
+				[]string{
+					"invalid",
+					"2",
+					"2022 Election",
+					"alice,bob,charlie",
+					"2",
+					timeoutStr,
+					"",
+				},
+				commonFlags...,
+			),
+			true,
+			"invalid.info: key not found",
+			nil,
+			0,
+		},
+		{
+			"invalid group id",
+			append(
+				[]string{
+					aliceAddr.String(),
+					"invalid",
+					"2022 Election",
+					"alice,bob,charlie,linda,tom",
+					"2",
+					timeoutStr,
+					validMetadata,
+				},
+				commonFlags...,
+			),
+			true,
+			"strconv.ParseUint: parsing",
+			nil,
+			0,
+		},
+		{
+			"invalid limit",
+			append(
+				[]string{
+					aliceAddr.String(),
+					"2",
+					"2022 Election",
+					"alice,bob,charlie",
+					"5",
+					timeoutStr,
+					validMetadata,
+				},
+				commonFlags...,
+			),
+			true,
+			"vote limit exceeds the number of options: invalid value",
+			nil,
+			0,
+		},
+		{
+			"repeated options",
+			append(
+				[]string{
+					aliceAddr.String(),
+					"2",
+					"2022 Election",
+					"alice,bob,bob",
+					"2",
+					timeoutStr,
+					validMetadata,
+				},
+				commonFlags...,
+			),
+			true,
+			"duplicate value",
+			nil,
+			0,
+		},
+	}
+
+	for _, tc := range testCases {
+		tc := tc
+
+		s.Run(tc.name, func() {
+			cmd := client.MsgCreatePollCmd()
+
+			out, err := cli.ExecTestCLICmd(clientCtx, cmd, tc.args)
+			if tc.expectErr {
+				s.Require().Contains(out.String(), tc.expectErrMsg)
+			} else {
+				s.Require().NoError(err, out.String())
+				s.Require().NoError(clientCtx.Codec.UnmarshalJSON(out.Bytes(), tc.respType), out.String())
+
+				txResp := tc.respType.(*sdk.TxResponse)
+				s.Require().Equal(tc.expectedCode, txResp.Code, out.String())
+			}
+		})
+	}
+}
+
+func (s *IntegrationTestSuite) TestTxVotePoll() {
+	val := s.network.Validators[0]
+	clientCtx := val.ClientCtx
+
+	var commonFlags = []string{
+		fmt.Sprintf("--%s=true", flags.FlagSkipConfirmation),
+		fmt.Sprintf("--%s=%s", flags.FlagBroadcastMode, flags.BroadcastBlock),
+		fmt.Sprintf("--%s=%s", flags.FlagFees, sdk.NewCoins(sdk.NewCoin(s.cfg.BondDenom, sdk.NewInt(10))).String()),
+	}
+
+	aliceInfo, err := clientCtx.Keyring.Key("alice")
+	s.Require().NoError(err)
+	aliceAddr := sdk.AccAddress(aliceInfo.GetPubKey().Address())
+
+	testCases := []struct {
+		name         string
+		args         []string
+		expectErr    bool
+		expectErrMsg string
+		respType     proto.Message
+		expectedCode uint32
+	}{
+		{
+			"correct data",
+			append(
+				[]string{
+					"2",
+					aliceAddr.String(),
+					"alice,bob",
+					"",
+				},
+				commonFlags...,
+			),
+			false,
+			"",
+			&sdk.TxResponse{},
+			0,
+		},
+		{
+			"invalid poll id",
+			append(
+				[]string{
+					"abcd",
+					aliceAddr.String(),
+					"alice,bob",
+					"",
+				},
+				commonFlags...,
+			),
+			true,
+			"invalid syntax",
+			nil,
+			0,
+		},
+		{
+			"poll not found",
+			append(
+				[]string{
+					"1234",
+					aliceAddr.String(),
+					"alice,bob",
+					"",
+				},
+				commonFlags...,
+			),
+			true,
+			"load poll: not found",
+			nil,
+			0,
+		},
+		{
+			"metadata too long",
+			append(
+				[]string{
+					"1",
+					aliceAddr.String(),
+					"alice,bob",
+					"AQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQ==",
+				},
+				commonFlags...,
+			),
+			true,
+			"metadata: limit exceeded",
+			nil,
+			0,
+		},
+	}
+
+	for _, tc := range testCases {
+		tc := tc
+
+		s.Run(tc.name, func() {
+			cmd := client.MsgVotePollCmd()
+
+			out, err := cli.ExecTestCLICmd(clientCtx, cmd, tc.args)
+			if tc.expectErr {
+				s.Require().Contains(out.String(), tc.expectErrMsg)
+			} else {
+				s.Require().NoError(err, out.String())
+				s.Require().NoError(clientCtx.Codec.UnmarshalJSON(out.Bytes(), tc.respType), out.String())
+
+				txResp := tc.respType.(*sdk.TxResponse)
+				s.Require().Equal(tc.expectedCode, txResp.Code, out.String())
+			}
+		})
+	}
+}
+
+func (s *IntegrationTestSuite) TestTxVotePollAgg() {
+	val := s.network.Validators[0]
+	clientCtx := val.ClientCtx
+
+	var commonFlags = []string{
+		fmt.Sprintf("--%s=true", flags.FlagSkipConfirmation),
+		fmt.Sprintf("--%s=%s", flags.FlagBroadcastMode, flags.BroadcastBlock),
+		fmt.Sprintf("--%s=%s", flags.FlagFees, sdk.NewCoins(sdk.NewCoin(s.cfg.BondDenom, sdk.NewInt(10))).String()),
+	}
+
+	aliceInfo, err := clientCtx.Keyring.Key("alice")
+	s.Require().NoError(err)
+	aliceAddr := sdk.AccAddress(aliceInfo.GetPubKey().Address())
+
+	bobInfo, err := clientCtx.Keyring.Key("bob")
+	s.Require().NoError(err)
+	bobAddr := sdk.AccAddress(bobInfo.GetPubKey().Address())
+
+	charlieInfo, err := clientCtx.Keyring.Key("charlie")
+	s.Require().NoError(err)
+	charlieAddr := sdk.AccAddress(charlieInfo.GetPubKey().Address())
+
+	// query group members
+	cmd := client.QueryGroupMembersCmd()
+	out, err := cli.ExecTestCLICmd(clientCtx, cmd, []string{strconv.FormatUint(s.groupBls.GroupId, 10), fmt.Sprintf("--%s=json", tmcli.OutputFlag)})
+	var res group.QueryGroupMembersResponse
+	s.Require().NoError(clientCtx.Codec.UnmarshalJSON(out.Bytes(), &res))
+	fileGroupMembers := testutil.WriteToNewTempFile(s.T(), out.String()).Name()
+
+	now := time.Now()
+	timeout, err := gogotypes.TimestampProto(now.Add(time.Second * 3000))
+	s.Require().NoError(err)
+
+	expiry, err := gogotypes.TimestampProto(now.Add(time.Second * 1000))
+	s.Require().NoError(err)
+	expiryStr := expiry.String()
+
+	// create a poll for bls group
+	var txResp = sdk.TxResponse{}
+	out, err = cli.ExecTestCLICmd(val.ClientCtx, client.MsgCreatePollCmd(),
+		append(
+			[]string{
+				aliceAddr.String(),
+				"2",
+				"2024 Election",
+				"alice,bob,clare,david,eva,fred,george",
+				"3",
+				timeout.String(),
+				"",
+			},
+			commonFlags...,
+		),
+	)
+	s.Require().NoError(err, out.String())
+	s.Require().NoError(val.ClientCtx.Codec.UnmarshalJSON(out.Bytes(), &txResp), out.String())
+	s.Require().Equal(uint32(0), txResp.Code, out.String())
+
+	voteFlags := []string{
+		fmt.Sprintf("--%s=json", tmcli.OutputFlag),
+	}
+
+	pollID := "3"
+
+	// basic vote from alice
+	cmd = client.GetVotePollBasicCmd()
+	out, err = cli.ExecTestCLICmd(clientCtx, cmd,
+		append(
+			[]string{
+				aliceAddr.String(),
+				pollID,
+				expiryStr,
+				"alice",
+				"david",
+				"eva",
+			},
+			voteFlags...,
+		),
+	)
+	s.Require().NoError(err)
+	aliceVote := testutil.WriteToNewTempFile(s.T(), out.String()).Name()
+
+	cmd = client.GetVerifyVotePollBasicCmd()
+	out, err = cli.ExecTestCLICmd(clientCtx, cmd, []string{aliceVote})
+	s.Require().NoError(err)
+
+	// basic vote from bob
+	cmd = client.GetVotePollBasicCmd()
+	out, err = cli.ExecTestCLICmd(clientCtx, cmd,
+		append(
+			[]string{
+				bobAddr.String(),
+				pollID,
+				expiryStr,
+				"bob",
+				"david",
+			},
+			voteFlags...,
+		),
+	)
+	s.Require().NoError(err)
+	bobVote := testutil.WriteToNewTempFile(s.T(), out.String()).Name()
+
+	cmd = client.GetVerifyVotePollBasicCmd()
+	out, err = cli.ExecTestCLICmd(clientCtx, cmd, []string{bobVote})
+	s.Require().NoError(err)
+
+	// basic vote from charlie
+	cmd = client.GetVotePollBasicCmd()
+	out, err = cli.ExecTestCLICmd(clientCtx, cmd,
+		append(
+			[]string{
+				charlieAddr.String(),
+				pollID,
+				expiryStr,
+				"david",
+				"eva",
+			},
+			voteFlags...,
+		),
+	)
+	s.Require().NoError(err)
+	charlieVote := testutil.WriteToNewTempFile(s.T(), out.String()).Name()
+	cmd = client.GetVerifyVotePollBasicCmd()
+	out, err = cli.ExecTestCLICmd(clientCtx, cmd, []string{charlieVote})
+	s.Require().NoError(err)
+
+	// aggregate everyone's vote
+	cmd = client.MsgVotePollAggCmd()
+	out, err = cli.ExecTestCLICmd(clientCtx, cmd,
+		append(
+			[]string{
+				aliceAddr.String(),
+				pollID,
+				expiryStr,
+				fileGroupMembers,
+				aliceVote,
+				bobVote,
+				charlieVote,
+			},
+			commonFlags...,
+		),
+	)
+	s.Require().NoError(err, out.String())
+	s.Require().NoError(val.ClientCtx.Codec.UnmarshalJSON(out.Bytes(), &txResp), out.String())
+	s.Require().Equal(uint32(0), txResp.Code, out.String())
+
+	var pollRes group.QueryPollResponse
+	out, err = cli.ExecTestCLICmd(val.ClientCtx, client.QueryPollCmd(), []string{pollID, fmt.Sprintf("--%s=json", tmcli.OutputFlag)})
+	s.Require().NoError(err, out.String())
+	s.Require().NoError(val.ClientCtx.Codec.UnmarshalJSON(out.Bytes(), &pollRes))
+	s.Require().Equal(pollRes.Poll.Status, group.PollStatusSubmitted)
+	s.Require().Equal(pollRes.Poll.VoteState.Counts, map[string]string{
+		"alice": "1", "bob": "2", "david": "6", "eva": "4",
+	})
+
+	// test invalid
+	// duplicate options in basic votes
+	cmd = client.GetVotePollBasicCmd()
+	out, err = cli.ExecTestCLICmd(clientCtx, cmd,
+		append(
+			[]string{
+				aliceAddr.String(),
+				pollID,
+				expiryStr,
+				"alice",
+				"alice",
+			},
+			voteFlags...,
+		),
+	)
+	s.Require().Contains(err.Error(), "duplicate value")
 }
 
 func getTxSendFileName(s *IntegrationTestSuite, from string, to string) string {
