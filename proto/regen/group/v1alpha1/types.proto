@@ -282,12 +282,16 @@ message TallyPoll {
     map<string, string> counts = 1;
 }
 
+// Options represents the choices voters can vote for a poll.
 message Options {
     option (gogoproto.goproto_getters) = false;
 
     repeated string titles = 1;
 }
 
+// Poll defines a group poll. Any member of a group can submit a poll
+// for a group to decide upon.
+// The options in a poll can be customised by the creator.
 message Poll {
     option (gogoproto.goproto_getters) = false;
 
@@ -297,25 +301,29 @@ message Poll {
     // group_id is the unique ID of the group.
     uint64 group_id = 2;
 
+    // title is the title of the poll.
     string title = 3;
 
-    Options options = 4 [(gogoproto.nullable) = false];;
+    // options are the choices of the poll.
+    Options options = 4 [(gogoproto.nullable) = false];
 
+    // creator is the account address of the poll creator.
     string creator = 5;
 
+    // vote_limit is the maximum number of options each voter can choose.
     int32 vote_limit = 6;
 
     // vote_state contains the sums of all weighted votes for this poll.
     TallyPoll vote_state = 7 [(gogoproto.nullable) = false];
 
-    // metadata is any arbitrary metadata to attached to the proposal.
+    // metadata is any arbitrary metadata to attached to the poll.
     bytes metadata = 8;
 
-    // submitted_at is a timestamp specifying when a proposal was submitted.
+    // submitted_at is a timestamp specifying when a poll was submitted.
     google.protobuf.Timestamp submitted_at = 9 [(gogoproto.nullable) = false];
 
-    // group_version tracks the version of the group that this proposal corresponds to.
-    // When group membership is changed, existing proposals from previous group versions will become invalid.
+    // group_version tracks the version of the group that this poll corresponds to.
+    // When group membership is changed, existing polls from previous group versions will become invalid.
     uint64 group_version = 10;
 
     // Status defines poll statuses.
@@ -335,7 +343,7 @@ message Poll {
         STATUS_ABORTED = 3 [(gogoproto.enumvalue_customname) = "PollStatusAborted"];
     }
 
-    // Status represents the high level position in the life cycle of the proposal. Initial value is Submitted.
+    // Status represents the high level position in the life cycle of the poll. Initial value is Submitted.
     Status status = 11;
 
     // timeout is the timestamp of the block where the poll times out. Header times of the votes

@@ -816,6 +816,7 @@ func (m *TallyPoll) XXX_DiscardUnknown() {
 
 var xxx_messageInfo_TallyPoll proto.InternalMessageInfo
 
+// Options represents the choices voters can vote for a poll.
 type Options struct {
 	Titles []string `protobuf:"bytes,1,rep,name=titles,proto3" json:"titles,omitempty"`
 }
@@ -853,25 +854,32 @@ func (m *Options) XXX_DiscardUnknown() {
 
 var xxx_messageInfo_Options proto.InternalMessageInfo
 
+// Poll defines a group poll. Any member of a group can submit a poll
+// for a group to decide upon.
+// The options in a poll can be customised by the creator.
 type Poll struct {
 	// poll_id is the unique id of the poll.
 	PollId uint64 `protobuf:"varint,1,opt,name=poll_id,json=pollId,proto3" json:"poll_id,omitempty"`
 	// group_id is the unique ID of the group.
-	GroupId   uint64  `protobuf:"varint,2,opt,name=group_id,json=groupId,proto3" json:"group_id,omitempty"`
-	Title     string  `protobuf:"bytes,3,opt,name=title,proto3" json:"title,omitempty"`
-	Options   Options `protobuf:"bytes,4,opt,name=options,proto3" json:"options"`
-	Creator   string  `protobuf:"bytes,5,opt,name=creator,proto3" json:"creator,omitempty"`
-	VoteLimit int32   `protobuf:"varint,6,opt,name=vote_limit,json=voteLimit,proto3" json:"vote_limit,omitempty"`
+	GroupId uint64 `protobuf:"varint,2,opt,name=group_id,json=groupId,proto3" json:"group_id,omitempty"`
+	// title is the title of the poll.
+	Title string `protobuf:"bytes,3,opt,name=title,proto3" json:"title,omitempty"`
+	// options are the choices of the poll.
+	Options Options `protobuf:"bytes,4,opt,name=options,proto3" json:"options"`
+	// creator is the account address of the poll creator.
+	Creator string `protobuf:"bytes,5,opt,name=creator,proto3" json:"creator,omitempty"`
+	// vote_limit is the maximum number of options each voter can choose.
+	VoteLimit int32 `protobuf:"varint,6,opt,name=vote_limit,json=voteLimit,proto3" json:"vote_limit,omitempty"`
 	// vote_state contains the sums of all weighted votes for this poll.
 	VoteState TallyPoll `protobuf:"bytes,7,opt,name=vote_state,json=voteState,proto3" json:"vote_state"`
-	// metadata is any arbitrary metadata to attached to the proposal.
+	// metadata is any arbitrary metadata to attached to the poll.
 	Metadata []byte `protobuf:"bytes,8,opt,name=metadata,proto3" json:"metadata,omitempty"`
-	// submitted_at is a timestamp specifying when a proposal was submitted.
+	// submitted_at is a timestamp specifying when a poll was submitted.
 	SubmittedAt types.Timestamp `protobuf:"bytes,9,opt,name=submitted_at,json=submittedAt,proto3" json:"submitted_at"`
-	// group_version tracks the version of the group that this proposal corresponds to.
-	// When group membership is changed, existing proposals from previous group versions will become invalid.
+	// group_version tracks the version of the group that this poll corresponds to.
+	// When group membership is changed, existing polls from previous group versions will become invalid.
 	GroupVersion uint64 `protobuf:"varint,10,opt,name=group_version,json=groupVersion,proto3" json:"group_version,omitempty"`
-	// Status represents the high level position in the life cycle of the proposal. Initial value is Submitted.
+	// Status represents the high level position in the life cycle of the poll. Initial value is Submitted.
 	Status Poll_Status `protobuf:"varint,11,opt,name=status,proto3,enum=regen.group.v1alpha1.Poll_Status" json:"status,omitempty"`
 	// timeout is the timestamp of the block where the poll times out. Header times of the votes
 	// must be before this end time to be included in the election.
