@@ -5,8 +5,8 @@ package regen.group.v1alpha1;
 option go_package = "github.com/cosmos/cosmos-sdk/x/group";
 
 import "gogoproto/gogo.proto";
-//import "cosmos_proto/cosmos.proto";
-import "cosmos.proto";
+import "cosmos_proto/cosmos.proto";
+//import "cosmos.proto";
 import "google/protobuf/any.proto";
 import "google/protobuf/timestamp.proto";
 import "regen/group/v1alpha1/types.proto";
