@@ -1,8 +1,6 @@
 package cachekv
 
 import (
-	"errors"
-
 	dbm "github.com/tendermint/tm-db"
 
 	"github.com/cosmos/cosmos-sdk/store/types"
@@ -12,29 +10,7 @@ import (
 // if key is nil, means it was deleted.
 // Implements Iterator.
 type memIterator struct {
-	start, end []byte
-	items      []*kv.Pair
-	ascending  bool
-}
-
-func newMemIterator(start, end []byte, items *kv.List, ascending bool) *memIterator {
-	itemsInDomain := make([]*kv.Pair, 0, items.Len())
-
-	var entered bool
-
-	for e := items.Front(); e != nil; e = e.Next() {
-		item := e.Value
-		if !dbm.IsKeyInDomain(item.Key, start, end) {
-			if entered {
-				break
-			}
-
-			continue
-		}
-
-		itemsInDomain = append(itemsInDomain, item)
-		entered = true
-	}
+	types.Iterator
 
 	deleted map[string]struct{}
 }

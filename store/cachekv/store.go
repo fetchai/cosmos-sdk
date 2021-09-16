@@ -30,7 +30,7 @@ type Store struct {
 	cache         map[string]*cValue
 	deleted       map[string]struct{}
 	unsortedCache map[string]struct{}
-	sortedCache   *kv.List // always ascending sorted
+	sortedCache   *dbm.MemDB // always ascending sorted
 	parent        types.KVStore
 }
 
@@ -42,7 +42,7 @@ func NewStore(parent types.KVStore) *Store {
 		cache:         make(map[string]*cValue),
 		deleted:       make(map[string]struct{}),
 		unsortedCache: make(map[string]struct{}),
-		sortedCache:   kv.NewList(),
+		sortedCache:   dbm.NewMemDB(),
 		parent:        parent,
 	}
 }
@@ -134,7 +134,7 @@ func (store *Store) Write() {
 	store.cache = make(map[string]*cValue)
 	store.deleted = make(map[string]struct{})
 	store.unsortedCache = make(map[string]struct{})
-	store.sortedCache = kv.NewList()
+	store.sortedCache = dbm.NewMemDB()
 }
 
 // CacheWrap implements CacheWrapper.
@@ -187,15 +187,31 @@ func (store *Store) iterator(start, end []byte, ascending bool) types.Iterator {
 func (store *Store) dirtyItems(start, end []byte) {
 	n := len(store.unsortedCache)
 	unsorted := make([]*kv.Pair, 0)
-
-	n := len(store.unsortedCache)
-	for key := range store.unsortedCache {
-		if dbm.IsKeyInDomain(conv.UnsafeStrToBytes(key), start, end) {
+	// If the unsortedCache is too big, its costs too much to determine
+	// whats in the subset we are concerned about.
+	// If you are interleaving iterator calls with writes, this can easily become an
+	// O(N^2) overhead.
+	// Even without that, too many range checks eventually becomes more expensive
+	// than just not having the cache.
+	if n >= 1024 {
+		for key := range store.unsortedCache {
 			cacheValue := store.cache[key]
 			unsorted = append(unsorted, &kv.Pair{Key: []byte(key), Value: cacheValue.value})
 		}
+	} else {
+		// else do a linear scan to determine if the unsorted pairs are in the pool.
+		for key := range store.unsortedCache {
+			if dbm.IsKeyInDomain(conv.UnsafeStrToBytes(key), start, end) {
+				cacheValue := store.cache[key]
+				unsorted = append(unsorted, &kv.Pair{Key: []byte(key), Value: cacheValue.value})
+			}
+		}
 	}
+	store.clearUnsortedCacheSubset(unsorted)
+}
 
+func (store *Store) clearUnsortedCacheSubset(unsorted []*kv.Pair) {
+	n := len(store.unsortedCache)
 	if len(unsorted) == n { // This pattern allows the Go compiler to emit the map clearing idiom for the entire map.
 		for key := range store.unsortedCache {
 			delete(store.unsortedCache, key)
@@ -209,22 +225,16 @@ func (store *Store) dirtyItems(start, end []byte) {
 		return bytes.Compare(unsorted[i].Key, unsorted[j].Key) < 0
 	})
 
-	for e := store.sortedCache.Front(); e != nil && len(unsorted) != 0; {
-		uitem := unsorted[0]
-		sitem := e.Value
-		comp := bytes.Compare(uitem.Key, sitem.Key)
-
-		switch comp {
-		case -1:
-			unsorted = unsorted[1:]
-
-			store.sortedCache.InsertBefore(uitem, e)
-		case 1:
-			e = e.Next()
-		case 0:
-			unsorted = unsorted[1:]
-			e.Value = uitem
-			e = e.Next()
+	for _, item := range unsorted {
+		if item.Value == nil {
+			// deleted element, tracked by store.deleted
+			// setting arbitrary value
+			store.sortedCache.Set(item.Key, []byte{})
+			continue
+		}
+		err := store.sortedCache.Set(item.Key, item.Value)
+		if err != nil {
+			panic(err)
 		}
 	}
 }
@@ -234,10 +244,15 @@ func (store *Store) dirtyItems(start, end []byte) {
 
 // Only entrypoint to mutate store.cache.
 func (store *Store) setCacheValue(key, value []byte, deleted bool, dirty bool) {
-	store.cache[conv.UnsafeBytesToStr(key)] = &cValue{
-		value:   value,
-		deleted: deleted,
-		dirty:   dirty,
+	keyStr := conv.UnsafeBytesToStr(key)
+	store.cache[keyStr] = &cValue{
+		value: value,
+		dirty: dirty,
+	}
+	if deleted {
+		store.deleted[keyStr] = struct{}{}
+	} else {
+		delete(store.deleted, keyStr)
 	}
 	if dirty {
 		store.unsortedCache[conv.UnsafeBytesToStr(key)] = struct{}{}
