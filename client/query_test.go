@@ -1,3 +1,4 @@
+//go:build norace
 // +build norace
 
 package client_test
@@ -49,7 +50,7 @@ func (s *IntegrationTestSuite) TestQueryABCIHeight() {
 			req := abci.RequestQuery{
 				Path:   fmt.Sprintf("store/%s/key", banktypes.StoreKey),
 				Height: tc.reqHeight,
-				Data:   append(banktypes.BalancesPrefix, val.Address.Bytes()...),
+				Data:   banktypes.CreateAccountBalancesPrefix(val.Address),
 				Prove:  true,
 			}
 
