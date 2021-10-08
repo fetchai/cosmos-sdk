@@ -29,10 +29,12 @@ func parseMembers(clientCtx client.Context, membersFile string) ([]group.Member,
 }
 
 func execFromString(execStr string) group.Exec {
-	exec := group.Exec_EXEC_UNSPECIFIED
+	var exec group.Exec
 	switch execStr {
 	case ExecTry:
 		exec = group.Exec_EXEC_TRY
+	default:
+	    	exec = group.Exec_EXEC_UNSPECIFIED
 	}
 	return exec
 }
