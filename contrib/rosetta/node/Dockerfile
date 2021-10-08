@@ -1,6 +1,6 @@
 FROM golang:1.15-alpine as build
 
-RUN apk add --no-cache tar
+RUN apk add --no-cache tar tar gcc libc-dev
 
 # prepare node data
 WORKDIR /node
