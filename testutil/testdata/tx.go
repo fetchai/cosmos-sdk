@@ -3,6 +3,8 @@ package testdata
 import (
 	"encoding/json"
 
+	"github.com/cosmos/cosmos-sdk/crypto/keys/bls12381"
+
 	"github.com/stretchr/testify/require"
 
 	"github.com/cosmos/cosmos-sdk/crypto/keys/secp256k1"
@@ -19,10 +21,18 @@ func KeyTestPubAddr() (cryptotypes.PrivKey, cryptotypes.PubKey, sdk.AccAddress) 
 	return key, pub, addr
 }
 
-// KeyTestPubAddr generates a new secp256r1 keypair.
+// KeyTestPubAddrSecp256R1 generates a new secp256r1 keypair.
 func KeyTestPubAddrSecp256R1(require *require.Assertions) (cryptotypes.PrivKey, cryptotypes.PubKey, sdk.AccAddress) {
 	key, err := secp256r1.GenPrivKey()
 	require.NoError(err)
+	pub := key.PubKey()
+	addr := sdk.AccAddress(pub.Address())
+	return key, pub, addr
+}
+
+// KeyTestPubAddrBls12381 generates a new secp256k1 keypair.
+func KeyTestPubAddrBls12381() (cryptotypes.PrivKey, cryptotypes.PubKey, sdk.AccAddress) {
+	key := bls12381.GenPrivKey()
 	pub := key.PubKey()
 	addr := sdk.AccAddress(pub.Address())
 	return key, pub, addr
@@ -35,7 +45,7 @@ func NewTestFeeAmount() sdk.Coins {
 
 // NewTestGasLimit is a test fee gas limit.
 func NewTestGasLimit() uint64 {
-	return 120000
+	return 150000
 }
 
 // NewTestMsg creates a message for testing with the given signers.

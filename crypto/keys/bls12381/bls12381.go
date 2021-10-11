@@ -122,7 +122,7 @@ func genPrivKey(rand io.Reader) []byte {
 
 	sk := blst.KeyGen(ikm[:])
 	if sk == nil {
-		panic("Failed to generate secret key!")
+		panic("failed to generate secret key!")
 	}
 
 	skBytes := sk.Serialize()
@@ -136,7 +136,12 @@ func genPrivKey(rand io.Reader) []byte {
 // if it's derived from user input.
 func GenPrivKeyFromSecret(secret []byte) *PrivKey {
 	ikm := crypto.Sha256(secret) // Not Ripemd160 because we want 32 bytes.
-	skBytes := blst.KeyGen(ikm).Serialize()
+
+	sk := blst.KeyGen(ikm)
+	if sk == nil {
+		panic("failed to generate secret key from ikm")
+	}
+	skBytes := sk.Serialize()
 
 	return &PrivKey{Key: skBytes}
 }

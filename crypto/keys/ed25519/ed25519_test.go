@@ -3,9 +3,8 @@ package ed25519_test
 import (
 	stded25519 "crypto/ed25519"
 	"encoding/base64"
-	"testing"
-
 	bench "github.com/cosmos/cosmos-sdk/crypto/keys/internal/benchmarking"
+	"testing"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"

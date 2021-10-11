@@ -347,8 +347,11 @@ func (spvd SetPopValidDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, simulate
 
 		switch pk.(type) {
 		case *bls12381.PubKey, *secp256k1.PubKey, *ed25519.PubKey:
-			if err := acc.SetPopValid(true); err != nil {
-				return ctx, sdkerrors.Wrap(sdkerrors.ErrInvalidPop, err.Error())
+		    if !acc.GetPopValid() {
+				if err := acc.SetPopValid(true); err != nil {
+					return ctx, sdkerrors.Wrap(sdkerrors.ErrInvalidPop, err.Error())
+				}
+				spvd.ak.SetAccount(ctx, acc)
 			}
 		}
 	}
