@@ -4,34 +4,26 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/cosmos/cosmos-sdk/crypto/keys/bls12381"
-
-	//"github.com/cosmos/cosmos-sdk/x/group/server"
-
-	//"github.com/cosmos/cosmos-sdk/crypto/keys/bls12381"
 	"sort"
 	"strings"
 	"time"
 
+	"github.com/cosmos/cosmos-sdk/crypto/keys/bls12381"
 	cryptotypes "github.com/cosmos/cosmos-sdk/crypto/types"
-	authtypes "github.com/cosmos/cosmos-sdk/x/auth/types"
-
-	"github.com/cosmos/cosmos-sdk/x/group/testdata"
-
-	sdk "github.com/cosmos/cosmos-sdk/types"
-	authkeeper "github.com/cosmos/cosmos-sdk/x/auth/keeper"
-	bankkeeper "github.com/cosmos/cosmos-sdk/x/bank/keeper"
-	banktypes "github.com/cosmos/cosmos-sdk/x/bank/types"
-	mintkeeper "github.com/cosmos/cosmos-sdk/x/mint/keeper"
-	minttypes "github.com/cosmos/cosmos-sdk/x/mint/types"
-
-	gogotypes "github.com/gogo/protobuf/types"
-	"github.com/stretchr/testify/suite"
-
 	"github.com/cosmos/cosmos-sdk/regen/types"
 	servermodule "github.com/cosmos/cosmos-sdk/regen/types/module/server"
 	"github.com/cosmos/cosmos-sdk/regen/types/testutil"
+	sdk "github.com/cosmos/cosmos-sdk/types"
+	authkeeper "github.com/cosmos/cosmos-sdk/x/auth/keeper"
+	authtypes "github.com/cosmos/cosmos-sdk/x/auth/types"
+	bankkeeper "github.com/cosmos/cosmos-sdk/x/bank/keeper"
+	banktypes "github.com/cosmos/cosmos-sdk/x/bank/types"
 	"github.com/cosmos/cosmos-sdk/x/group"
+	"github.com/cosmos/cosmos-sdk/x/group/testdata"
+	mintkeeper "github.com/cosmos/cosmos-sdk/x/mint/keeper"
+	minttypes "github.com/cosmos/cosmos-sdk/x/mint/types"
+	gogotypes "github.com/gogo/protobuf/types"
+	"github.com/stretchr/testify/suite"
 )
 
 type IntegrationTestSuite struct {
@@ -80,7 +72,7 @@ func NewIntegrationTestSuite(
 	accountKeeper authkeeper.AccountKeeper,
 	bankKeeper bankkeeper.BaseKeeper,
 	mintKeeper mintkeeper.Keeper,
-	//paramSpace paramstypes.Subspace
+	// paramSpace paramstypes.Subspace
 ) *IntegrationTestSuite {
 
 	return &IntegrationTestSuite{
@@ -2607,6 +2599,7 @@ func (s *IntegrationTestSuite) TestCreatePoll() {
 	s.Require().NoError(err)
 	past := time.Date(2009, time.November, 10, 23, 0, 0, 0, time.UTC)
 	oldTime, err := gogotypes.TimestampProto(past)
+	s.Require().NoError(err)
 
 	defaultPoll := group.Poll{
 		Status: group.PollStatusSubmitted,
@@ -2711,6 +2704,7 @@ func (s *IntegrationTestSuite) TestVotePoll() {
 
 	now := s.blockTime
 	endTime, err := gogotypes.TimestampProto(now.Add(time.Second * 100))
+	s.Require().NoError(err)
 	req := &group.MsgCreatePoll{
 		GroupId:   myGroupID,
 		Title:     "2021 Election",
@@ -2901,7 +2895,6 @@ func (s *IntegrationTestSuite) TestVotePoll() {
 			})
 			s.Require().NoError(err)
 			votesByPoll := votesForPollByPollRes.Votes
-			//s.Require().Equal(1, len(votesByPoll))
 			foundVoter := false
 			for _, vote := range votesByPoll {
 				if vote.Voter == spec.req.Voter {
@@ -2964,6 +2957,7 @@ func (s *IntegrationTestSuite) TestVotePollAgg() {
 
 	now := s.blockTime
 	endTime, err := gogotypes.TimestampProto(now.Add(time.Second * 20))
+	s.Require().NoError(err)
 	req := &group.MsgCreatePoll{
 		GroupId:   myGroupID,
 		Title:     "2021 Election",

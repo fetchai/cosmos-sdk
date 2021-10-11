@@ -549,6 +549,7 @@ func (s *IntegrationTestSuite) TestTxCreateGroup() {
 				txResp := tc.respType.(*sdk.TxResponse)
 				s.Require().Equal(tc.expectedCode, txResp.Code, out.String())
 			}
+			s.Require().NoError(s.network.WaitForNextBlock())
 		})
 	}
 }
@@ -669,6 +670,7 @@ func (s *IntegrationTestSuite) TestTxUpdateGroupAdmin() {
 				txResp := tc.respType.(*sdk.TxResponse)
 				s.Require().Equal(tc.expectedCode, txResp.Code, out.String())
 			}
+			s.Require().NoError(s.network.WaitForNextBlock())
 		})
 	}
 }
@@ -755,6 +757,7 @@ func (s *IntegrationTestSuite) TestTxUpdateGroupMetadata() {
 				txResp := tc.respType.(*sdk.TxResponse)
 				s.Require().Equal(tc.expectedCode, txResp.Code, out.String())
 			}
+			s.Require().NoError(s.network.WaitForNextBlock())
 		})
 	}
 }
@@ -877,6 +880,7 @@ func (s *IntegrationTestSuite) TestTxUpdateGroupMembers() {
 				txResp := tc.respType.(*sdk.TxResponse)
 				s.Require().Equal(tc.expectedCode, txResp.Code, out.String())
 			}
+			s.Require().NoError(s.network.WaitForNextBlock())
 		})
 	}
 }
@@ -1001,6 +1005,7 @@ func (s *IntegrationTestSuite) TestTxCreateGroupAccount() {
 				txResp := tc.respType.(*sdk.TxResponse)
 				s.Require().Equal(tc.expectedCode, txResp.Code, out.String())
 			}
+			s.Require().NoError(s.network.WaitForNextBlock())
 		})
 	}
 }
@@ -1104,6 +1109,7 @@ func (s *IntegrationTestSuite) TestTxUpdateGroupAccountAdmin() {
 				txResp := tc.respType.(*sdk.TxResponse)
 				s.Require().Equal(tc.expectedCode, txResp.Code, out.String())
 			}
+			s.Require().NoError(s.network.WaitForNextBlock())
 		})
 	}
 }
@@ -1207,6 +1213,7 @@ func (s *IntegrationTestSuite) TestTxUpdateGroupAccountDecisionPolicy() {
 				txResp := tc.respType.(*sdk.TxResponse)
 				s.Require().Equal(tc.expectedCode, txResp.Code, out.String())
 			}
+			s.Require().NoError(s.network.WaitForNextBlock())
 		})
 	}
 }
@@ -1325,6 +1332,7 @@ func (s *IntegrationTestSuite) TestTxUpdateGroupAccountMetadata() {
 				txResp := tc.respType.(*sdk.TxResponse)
 				s.Require().Equal(tc.expectedCode, txResp.Code, out.String())
 			}
+			s.Require().NoError(s.network.WaitForNextBlock())
 		})
 	}
 }
@@ -1525,6 +1533,7 @@ func (s *IntegrationTestSuite) TestTxCreateProposal() {
 				txResp := tc.respType.(*sdk.TxResponse)
 				s.Require().Equal(tc.expectedCode, txResp.Code, out.String())
 			}
+			s.Require().NoError(s.network.WaitForNextBlock())
 		})
 	}
 }
@@ -1713,6 +1722,7 @@ func (s *IntegrationTestSuite) TestTxVote() {
 				txResp := tc.respType.(*sdk.TxResponse)
 				s.Require().Equal(tc.expectedCode, txResp.Code, out.String())
 			}
+			s.Require().NoError(s.network.WaitForNextBlock())
 		})
 	}
 }
@@ -1742,6 +1752,7 @@ func (s *IntegrationTestSuite) TestTxVoteAgg() {
 	// query group members
 	cmd := client.QueryGroupMembersCmd()
 	out, err := cli.ExecTestCLICmd(clientCtx, cmd, []string{strconv.FormatUint(s.groupBls.GroupId, 10), fmt.Sprintf("--%s=json", tmcli.OutputFlag)})
+	s.Require().NoError(err)
 	var res group.QueryGroupMembersResponse
 	s.Require().NoError(clientCtx.Codec.UnmarshalJSON(out.Bytes(), &res))
 	fileGroupMembers := testutil.WriteToNewTempFile(s.T(), out.String()).Name()
@@ -1788,10 +1799,12 @@ func (s *IntegrationTestSuite) TestTxVoteAgg() {
 			voteFlags...,
 		),
 	)
+	s.Require().NoError(err)
+
 	aliceVoteYes := testutil.WriteToNewTempFile(s.T(), out.String()).Name()
 
 	cmd = client.GetVerifyVoteBasicCmd()
-	out, err = cli.ExecTestCLICmd(clientCtx, cmd, []string{aliceVoteYes})
+	_, err = cli.ExecTestCLICmd(clientCtx, cmd, []string{aliceVoteYes})
 	s.Require().NoError(err)
 
 	// basic vote from bob
@@ -1807,10 +1820,12 @@ func (s *IntegrationTestSuite) TestTxVoteAgg() {
 			voteFlags...,
 		),
 	)
+	s.Require().NoError(err)
+
 	bobVoteNo := testutil.WriteToNewTempFile(s.T(), out.String()).Name()
 
 	cmd = client.GetVerifyVoteBasicCmd()
-	out, err = cli.ExecTestCLICmd(clientCtx, cmd, []string{bobVoteNo})
+	_, err = cli.ExecTestCLICmd(clientCtx, cmd, []string{bobVoteNo})
 	s.Require().NoError(err)
 
 	// basic vote from charlie
@@ -1826,14 +1841,15 @@ func (s *IntegrationTestSuite) TestTxVoteAgg() {
 			voteFlags...,
 		),
 	)
+	s.Require().NoError(err)
+
 	charlieVoteYes := testutil.WriteToNewTempFile(s.T(), out.String()).Name()
 	cmd = client.GetVerifyVoteBasicCmd()
-	out, err = cli.ExecTestCLICmd(clientCtx, cmd, []string{charlieVoteYes})
+	_, err = cli.ExecTestCLICmd(clientCtx, cmd, []string{charlieVoteYes})
 	s.Require().NoError(err)
 
 	// aggregate everyone's vote
 	cmd = client.MsgVoteAggCmd()
-	voteAggFlags := append(commonFlags, fmt.Sprintf("--%s=try", client.FlagExec))
 	out, err = cli.ExecTestCLICmd(clientCtx, cmd,
 		append(
 			[]string{
@@ -1845,7 +1861,7 @@ func (s *IntegrationTestSuite) TestTxVoteAgg() {
 				bobVoteNo,
 				charlieVoteYes,
 			},
-			voteAggFlags...,
+			append(commonFlags, fmt.Sprintf("--%s=try", client.FlagExec))...,
 		),
 	)
 	s.Require().NoError(err, out.String())
@@ -1985,6 +2001,7 @@ func (s *IntegrationTestSuite) TestTxExec() {
 				txResp := tc.respType.(*sdk.TxResponse)
 				s.Require().Equal(tc.expectedCode, txResp.Code, out.String())
 			}
+			s.Require().NoError(s.network.WaitForNextBlock())
 		})
 	}
 }
@@ -2187,6 +2204,7 @@ func (s *IntegrationTestSuite) TestTxCreatePoll() {
 				txResp := tc.respType.(*sdk.TxResponse)
 				s.Require().Equal(tc.expectedCode, txResp.Code, out.String())
 			}
+			s.Require().NoError(s.network.WaitForNextBlock())
 		})
 	}
 }
@@ -2295,6 +2313,7 @@ func (s *IntegrationTestSuite) TestTxVotePoll() {
 				txResp := tc.respType.(*sdk.TxResponse)
 				s.Require().Equal(tc.expectedCode, txResp.Code, out.String())
 			}
+			s.Require().NoError(s.network.WaitForNextBlock())
 		})
 	}
 }
@@ -2324,6 +2343,7 @@ func (s *IntegrationTestSuite) TestTxVotePollAgg() {
 	// query group members
 	cmd := client.QueryGroupMembersCmd()
 	out, err := cli.ExecTestCLICmd(clientCtx, cmd, []string{strconv.FormatUint(s.groupBls.GroupId, 10), fmt.Sprintf("--%s=json", tmcli.OutputFlag)})
+	s.Require().NoError(err)
 	var res group.QueryGroupMembersResponse
 	s.Require().NoError(clientCtx.Codec.UnmarshalJSON(out.Bytes(), &res))
 	fileGroupMembers := testutil.WriteToNewTempFile(s.T(), out.String()).Name()
@@ -2377,12 +2397,12 @@ func (s *IntegrationTestSuite) TestTxVotePollAgg() {
 			voteFlags...,
 		),
 	)
-	s.Require().NoError(err)
+	s.Require().NoError(err, out.String())
 	aliceVote := testutil.WriteToNewTempFile(s.T(), out.String()).Name()
 
 	cmd = client.GetVerifyVotePollBasicCmd()
 	out, err = cli.ExecTestCLICmd(clientCtx, cmd, []string{aliceVote})
-	s.Require().NoError(err)
+	s.Require().NoError(err, out.String())
 
 	// basic vote from bob
 	cmd = client.GetVotePollBasicCmd()
@@ -2403,7 +2423,7 @@ func (s *IntegrationTestSuite) TestTxVotePollAgg() {
 
 	cmd = client.GetVerifyVotePollBasicCmd()
 	out, err = cli.ExecTestCLICmd(clientCtx, cmd, []string{bobVote})
-	s.Require().NoError(err)
+	s.Require().NoError(err, out.String())
 
 	// basic vote from charlie
 	cmd = client.GetVotePollBasicCmd()
@@ -2423,7 +2443,7 @@ func (s *IntegrationTestSuite) TestTxVotePollAgg() {
 	charlieVote := testutil.WriteToNewTempFile(s.T(), out.String()).Name()
 	cmd = client.GetVerifyVotePollBasicCmd()
 	out, err = cli.ExecTestCLICmd(clientCtx, cmd, []string{charlieVote})
-	s.Require().NoError(err)
+	s.Require().NoError(err, out.String())
 
 	// aggregate everyone's vote
 	cmd = client.MsgVotePollAggCmd()
@@ -2457,7 +2477,7 @@ func (s *IntegrationTestSuite) TestTxVotePollAgg() {
 	// test invalid
 	// duplicate options in basic votes
 	cmd = client.GetVotePollBasicCmd()
-	out, err = cli.ExecTestCLICmd(clientCtx, cmd,
+	_, err = cli.ExecTestCLICmd(clientCtx, cmd,
 		append(
 			[]string{
 				aliceAddr.String(),

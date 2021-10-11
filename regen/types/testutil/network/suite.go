@@ -32,7 +32,7 @@ func (s *IntegrationTestSuite) TearDownSuite() {
 	s.network.Cleanup()
 }
 
-func (s *IntegrationTestSuite) TestNetwork_Liveness() {
+func (s *IntegrationTestSuite) TestNetworkLiveness() {
 	h, err := s.network.WaitForHeightWithTimeout(10, time.Minute)
 	s.Require().NoError(err, "expected to reach 10 blocks; got %d", h)
 }
