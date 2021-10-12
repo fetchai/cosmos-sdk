@@ -1129,6 +1129,9 @@ Parameters:
 
 			bytesToSign := msg.GetSignBytes()
 			sigBytes, pubKey, err := clientCtx.Keyring.Sign(clientCtx.GetFromName(), bytesToSign)
+			if err != nil {
+				return err
+			}
 
 			pubKeyAny, err := codectypes.NewAnyWithValue(pubKey)
 			if err != nil {

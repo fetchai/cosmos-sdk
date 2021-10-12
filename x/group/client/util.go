@@ -34,7 +34,7 @@ func execFromString(execStr string) group.Exec {
 	case ExecTry:
 		exec = group.Exec_EXEC_TRY
 	default:
-	    	exec = group.Exec_EXEC_UNSPECIFIED
+		exec = group.Exec_EXEC_UNSPECIFIED
 	}
 	return exec
 }

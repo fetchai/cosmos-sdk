@@ -304,7 +304,7 @@ func assertTitleLength(title string, description string) error {
 }
 
 // assertOptionsLength returns an error if the length of options
-// is greater than a fixed maxOptionLength or the lenght of any option is greater than a fixed MaxTitleLength.
+// is greater than a fixed maxOptionLength or the length of any option is greater than a fixed MaxTitleLength.
 func assertOptionsLength(options Options, description string) error {
 	if len(options.Titles) > MaxOptionLength {
 		return sdkerrors.Wrapf(ErrMaxLimit, "%s: %s", description, "number of option titles")

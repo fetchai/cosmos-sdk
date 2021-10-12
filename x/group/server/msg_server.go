@@ -909,14 +909,14 @@ func (s serverImpl) Exec(goCtx context.Context, req *group.MsgExec) (*group.MsgE
 func (s serverImpl) CreatePoll(goCtx context.Context, req *group.MsgCreatePoll) (*group.MsgCreatePollResponse, error) {
 	ctx := types.UnwrapSDKContext(goCtx)
 	creator := req.Creator
-	groupId := req.GroupId
+	groupID := req.GroupId
 	endTime := req.Timeout
 	metadata := req.Metadata
 	title := req.Title
 	options := req.Options
 	limit := req.VoteLimit
 
-	g, err := s.getGroupInfo(ctx, groupId)
+	g, err := s.getGroupInfo(ctx, groupID)
 	if err != nil {
 		return nil, sdkerrors.Wrap(err, "get group by account")
 	}
@@ -937,7 +937,7 @@ func (s serverImpl) CreatePoll(goCtx context.Context, req *group.MsgCreatePoll) 
 
 	m := &group.Poll{
 		PollId:       s.pollTable.Sequence().PeekNextVal(ctx),
-		GroupId:      groupId,
+		GroupId:      groupID,
 		Title:        title,
 		Options:      options,
 		Creator:      creator,
