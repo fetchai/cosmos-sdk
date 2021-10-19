@@ -2,9 +2,10 @@ package server
 
 import (
 	"fmt"
+	"math"
+
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	authtypes "github.com/cosmos/cosmos-sdk/x/auth/types"
-	"math"
 )
 
 func addUint64Overflow(a, b uint64) (uint64, bool) {
@@ -19,7 +20,7 @@ func mulUint64Overflow(a, b uint64) (uint64, bool) {
 	if math.MaxUint64/a < b {
 		return 0, true
 	}
-	return a*b, false
+	return a * b, false
 }
 
 func subUint64Overflow(a, b uint64) (uint64, bool) {
@@ -34,8 +35,8 @@ func subUint64Overflow(a, b uint64) (uint64, bool) {
 // gas := base + pairingCost * (numMsg - 1) + additionCost * (numPk - numMsg)
 func DefaultAggSigVerifyGasConsumer(meter sdk.GasMeter, numPk uint64, numMsg uint64, params authtypes.Params) error {
 	base := params.SigVerifyCostBls12381
-	pairingCost := base*10/33
-	additionCost := base/1215
+	pairingCost := base * 10 / 33
+	additionCost := base / 1215
 
 	sub, overflow := subUint64Overflow(numMsg, 1)
 	if overflow {
