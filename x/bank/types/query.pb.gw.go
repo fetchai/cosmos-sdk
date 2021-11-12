@@ -91,15 +91,11 @@ func local_request_Query_Balance_0(ctx context.Context, marshaler runtime.Marsha
 		return nil, metadata, status.Errorf(codes.InvalidArgument, "type mismatch, parameter: %s, error: %v", "address", err)
 	}
 
-	val, ok = pathParams["denom"]
-	if !ok {
-		return nil, metadata, status.Errorf(codes.InvalidArgument, "missing parameter %s", "denom")
+	if err := req.ParseForm(); err != nil {
+		return nil, metadata, status.Errorf(codes.InvalidArgument, "%v", err)
 	}
-
-	protoReq.Denom, err = runtime.String(val)
-
-	if err != nil {
-		return nil, metadata, status.Errorf(codes.InvalidArgument, "type mismatch, parameter: %s, error: %v", "denom", err)
+	if err := runtime.PopulateQueryParameters(&protoReq, req.Form, filter_Query_Balance_0); err != nil {
+		return nil, metadata, status.Errorf(codes.InvalidArgument, "%v", err)
 	}
 
 	msg, err := server.Balance(ctx, &protoReq)
@@ -708,7 +704,7 @@ func RegisterQueryHandlerClient(ctx context.Context, mux *runtime.ServeMux, clie
 }
 
 var (
-	pattern_Query_Balance_0 = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1, 2, 2, 2, 3, 1, 0, 4, 1, 5, 4, 1, 0, 4, 1, 5, 5}, []string{"cosmos", "bank", "v1beta1", "balances", "address", "denom"}, "", runtime.AssumeColonVerbOpt(false)))
+	pattern_Query_Balance_0 = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1, 2, 2, 2, 3, 1, 0, 4, 1, 5, 4, 2, 5}, []string{"cosmos", "bank", "v1beta1", "balances", "address", "by_denom"}, "", runtime.AssumeColonVerbOpt(false)))
 
 	pattern_Query_AllBalances_0 = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1, 2, 2, 2, 3, 1, 0, 4, 1, 5, 4}, []string{"cosmos", "bank", "v1beta1", "balances", "address"}, "", runtime.AssumeColonVerbOpt(false)))
 
