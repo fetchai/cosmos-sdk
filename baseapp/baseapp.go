@@ -705,7 +705,7 @@ func (app *BaseApp) runMsgs(ctx sdk.Context, msgs []sdk.Msg, mode runTxMode) (*s
 			err       error
 		)
 
-		if svcMsg, ok := msg.(sdk.ServiceMsg); ok {
+		if svcMsg, ok := msg.(sdk.ServiceMsg); ok { //nolint:gocritic
 			msgFqName = svcMsg.MethodName
 			handler := app.msgServiceRouter.Handler(msgFqName)
 			if handler == nil {
