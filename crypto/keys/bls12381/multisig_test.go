@@ -55,8 +55,7 @@ func TestBlsAggSig(t *testing.T) {
 	aggSig, err := bls.AggregateSignature(sigs)
 	require.Nil(t, err)
 
-	assert.Nil(t, bls.VerifyAggregateSignature(msgs, aggSig, pks))
-
+	assert.Nil(t, bls.VerifyAggregateSignature(msgs, true, aggSig, pks))
 }
 
 func benchmarkBlsVerifyMulti(total int, b *testing.B) {
@@ -113,7 +112,7 @@ func benchmarkBlsVerifyAgg(total int, b *testing.B) {
 	b.ResetTimer()
 
 	for i := 0; i < b.N; i++ {
-		bls.VerifyAggregateSignature(msgs, aggSig, pks)
+		bls.VerifyAggregateSignature(msgs, false, aggSig, pks)
 	}
 }
 
