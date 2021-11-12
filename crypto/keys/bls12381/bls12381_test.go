@@ -150,11 +150,11 @@ func TestMarshalAmino(t *testing.T) {
 	for _, tc := range testCases {
 		t.Run(tc.desc, func(t *testing.T) {
 			// Do a round trip of encoding/decoding binary.
-			bz, err := aminoCdc.Marshal(tc.msg)
+			bz, err := aminoCdc.MarshalBinaryBare(tc.msg)
 			require.NoError(t, err)
 			require.Equal(t, tc.expBinary, bz)
 
-			err = aminoCdc.Unmarshal(bz, tc.typ)
+			err = aminoCdc.UnmarshalBinaryBare(bz, tc.typ)
 			require.NoError(t, err)
 
 			require.Equal(t, tc.msg, tc.typ)
