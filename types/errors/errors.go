@@ -134,6 +134,9 @@ var (
 	// supported.
 	ErrNotSupported = Register(RootCodespace, 37, "feature not supported")
 
+	// ErrInvalidPop to doc
+	ErrInvalidPop = Register(RootCodespace, 111000, "invalid pop for public key")
+
 	// ErrPanic is only set when we recover from a panic, so we know to
 	// redact potentially sensitive system info
 	ErrPanic = Register(UndefinedCodespace, 111222, "panic")

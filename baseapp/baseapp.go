@@ -705,13 +705,21 @@ func (app *BaseApp) runMsgs(ctx sdk.Context, msgs []sdk.Msg, mode runTxMode) (*s
 			err       error
 		)
 
-		if svcMsg, ok := msg.(sdk.ServiceMsg); ok {
+		if svcMsg, ok := msg.(sdk.ServiceMsg); ok { //nolint:gocritic
 			msgFqName = svcMsg.MethodName
 			handler := app.msgServiceRouter.Handler(msgFqName)
 			if handler == nil {
 				return nil, sdkerrors.Wrapf(sdkerrors.ErrUnknownRequest, "unrecognized message service method: %s; message index: %d", msgFqName, i)
 			}
 			msgResult, err = handler(ctx, svcMsg.Request)
+		} else if strings.Contains(msg.Type(), "fetchai.group.v1alpha1.Msg") {
+			// TODO: remove once cosmos-sdk is upgraded to v0.44
+			msgRoute := strings.Replace(msg.Type(), "fetchai.group.v1alpha1.Msg", "fetchai.group.v1alpha1.Msg/", 1)
+			handler := app.msgServiceRouter.Handler(msgRoute)
+			if handler == nil {
+				return nil, sdkerrors.Wrapf(sdkerrors.ErrUnknownRequest, "unrecognized message route: %s; message index: %d", msgRoute, i)
+			}
+			msgResult, err = handler(ctx, msg)
 		} else {
 			// legacy sdk.Msg routing
 			msgRoute := msg.Route()
