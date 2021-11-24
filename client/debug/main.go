@@ -11,6 +11,7 @@ import (
 
 	"github.com/cosmos/cosmos-sdk/client"
 	"github.com/cosmos/cosmos-sdk/crypto/keys/ed25519"
+	"github.com/cosmos/cosmos-sdk/crypto/keys/secp256k1"
 	cryptotypes "github.com/cosmos/cosmos-sdk/crypto/types"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/types/errors"
@@ -37,15 +38,25 @@ func Cmd() *cobra.Command {
 func getPubKeyFromString(pkstr string) (cryptotypes.PubKey, error) {
 	bz, err := hex.DecodeString(pkstr)
 	if err == nil {
-		if len(bz) == ed25519.PubKeySize {
+		switch len(bz) {
+		case ed25519.PubKeySize:
 			return &ed25519.PubKey{Key: bz}, nil
+		case secp256k1.PubKeySize:
+			return &secp256k1.PubKey{Key: bz}, nil
+		default:
+			return nil, fmt.Errorf("unsupported pubkey size")
 		}
 	}
 
 	bz, err = base64.StdEncoding.DecodeString(pkstr)
 	if err == nil {
-		if len(bz) == ed25519.PubKeySize {
+		switch len(bz) {
+		case ed25519.PubKeySize:
 			return &ed25519.PubKey{Key: bz}, nil
+		case secp256k1.PubKeySize:
+			return &secp256k1.PubKey{Key: bz}, nil
+		default:
+			return nil, fmt.Errorf("unsupported pubkey size")
 		}
 	}
 
@@ -86,30 +97,51 @@ $ %s debug pubkey cosmos1e0jnq2sun3dzjh8p2xq95kk0expwmd7shwjpfg
 				return err
 			}
 
-			edPK, ok := pk.(*ed25519.PubKey)
-			if !ok {
-				return errors.Wrapf(errors.ErrInvalidType, "invalid pubkey type; expected ED25519")
+			var pubKeyJSONBytes, key []byte
+			var accPub, valPub, consenusPub string
+
+			if edPK, ok := pk.(*ed25519.PubKey); ok {
+				pubKeyJSONBytes, err = clientCtx.LegacyAmino.MarshalJSON(edPK)
+				if err != nil {
+					return err
+				}
+				accPub, err = sdk.Bech32ifyPubKey(sdk.Bech32PubKeyTypeAccPub, edPK)
+				if err != nil {
+					return err
+				}
+				valPub, err = sdk.Bech32ifyPubKey(sdk.Bech32PubKeyTypeValPub, edPK)
+				if err != nil {
+					return err
+				}
+				consenusPub, err = sdk.Bech32ifyPubKey(sdk.Bech32PubKeyTypeConsPub, edPK)
+				if err != nil {
+					return err
+				}
+				key = edPK.Key
+			} else if secpPK, ok := pk.(*secp256k1.PubKey); ok {
+				pubKeyJSONBytes, err = clientCtx.LegacyAmino.MarshalJSON(secpPK)
+				if err != nil {
+					return err
+				}
+				accPub, err = sdk.Bech32ifyPubKey(sdk.Bech32PubKeyTypeAccPub, secpPK)
+				if err != nil {
+					return err
+				}
+				valPub, err = sdk.Bech32ifyPubKey(sdk.Bech32PubKeyTypeValPub, secpPK)
+				if err != nil {
+					return err
+				}
+				consenusPub, err = sdk.Bech32ifyPubKey(sdk.Bech32PubKeyTypeConsPub, secpPK)
+				if err != nil {
+					return err
+				}
+				key = secpPK.Key
+			} else {
+				return errors.Wrapf(errors.ErrInvalidType, "invalid pubkey type; expected ED25519 or Secp256k1")
 			}
 
-			pubKeyJSONBytes, err := clientCtx.LegacyAmino.MarshalJSON(edPK)
-			if err != nil {
-				return err
-			}
-			accPub, err := sdk.Bech32ifyPubKey(sdk.Bech32PubKeyTypeAccPub, edPK)
-			if err != nil {
-				return err
-			}
-			valPub, err := sdk.Bech32ifyPubKey(sdk.Bech32PubKeyTypeValPub, edPK)
-			if err != nil {
-				return err
-			}
-			consenusPub, err := sdk.Bech32ifyPubKey(sdk.Bech32PubKeyTypeConsPub, edPK)
-			if err != nil {
-				return err
-			}
-
-			cmd.Println("Address:", edPK.Address())
-			cmd.Printf("Hex: %X\n", edPK.Key)
+			cmd.Println("Address:", pk.Address())
+			cmd.Printf("Hex: %X\n", key)
 			cmd.Println("JSON (base64):", string(pubKeyJSONBytes))
 			cmd.Println("Bech32 Acc:", accPub)
 			cmd.Println("Bech32 Validator Operator:", valPub)
