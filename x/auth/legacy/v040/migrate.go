@@ -8,6 +8,9 @@ import (
 	v040vesting "github.com/cosmos/cosmos-sdk/x/auth/vesting/types"
 )
 
+// blsCostMultiplier is used to calculate bls signature verification cost = blsCostMultiplier * SigVerifyCostED25519
+const blsCostMultiplier = 10
+
 // convertBaseAccount converts a 0.39 BaseAccount to a 0.40 BaseAccount.
 func convertBaseAccount(old *v039auth.BaseAccount) *v040auth.BaseAccount {
 	var any *codectypes.Any
@@ -118,6 +121,7 @@ func Migrate(authGenState v039auth.GenesisState) *v040auth.GenesisState {
 			MaxMemoCharacters:      authGenState.Params.MaxMemoCharacters,
 			TxSigLimit:             authGenState.Params.TxSigLimit,
 			TxSizeCostPerByte:      authGenState.Params.TxSizeCostPerByte,
+			SigVerifyCostBls12381:  blsCostMultiplier * authGenState.Params.SigVerifyCostED25519,
 			SigVerifyCostED25519:   authGenState.Params.SigVerifyCostED25519,
 			SigVerifyCostSecp256k1: authGenState.Params.SigVerifyCostSecp256k1,
 		},
