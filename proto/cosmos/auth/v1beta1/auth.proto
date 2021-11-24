@@ -2,6 +2,7 @@ syntax = "proto3";
 package cosmos.auth.v1beta1;
 
 import "cosmos_proto/cosmos.proto";
+//import "cosmos.proto";
 import "gogoproto/gogo.proto";
 import "google/protobuf/any.proto";
 
@@ -22,6 +23,7 @@ message BaseAccount {
       [(gogoproto.jsontag) = "public_key,omitempty", (gogoproto.moretags) = "yaml:\"public_key\""];
   uint64 account_number = 3 [(gogoproto.moretags) = "yaml:\"account_number\""];
   uint64 sequence       = 4;
+  bool pop_is_valid     = 5;
 }
 
 // ModuleAccount defines an account for modules that holds coins on a pool.
@@ -47,4 +49,6 @@ message Params {
       [(gogoproto.customname) = "SigVerifyCostED25519", (gogoproto.moretags) = "yaml:\"sig_verify_cost_ed25519\""];
   uint64 sig_verify_cost_secp256k1 = 5
       [(gogoproto.customname) = "SigVerifyCostSecp256k1", (gogoproto.moretags) = "yaml:\"sig_verify_cost_secp256k1\""];
+  uint64 sig_verify_cost_bls12381 = 6
+  [(gogoproto.customname) = "SigVerifyCostBls12381", (gogoproto.moretags) = "yaml:\"sig_verify_cost_bls12381\""];
 }
