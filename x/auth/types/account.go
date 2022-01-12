@@ -32,7 +32,6 @@ func NewBaseAccount(address sdk.AccAddress, pubKey cryptotypes.PubKey, accountNu
 		Address:       address.String(),
 		AccountNumber: accountNumber,
 		Sequence:      sequence,
-		PopIsValid:    false,
 	}
 
 	err := acc.SetPubKey(pubKey)
@@ -116,20 +115,6 @@ func (acc BaseAccount) GetSequence() uint64 {
 func (acc *BaseAccount) SetSequence(seq uint64) error {
 	acc.Sequence = seq
 	return nil
-}
-
-// SetPopValid - Implements sdk.AccountI.
-func (acc *BaseAccount) SetPopValid(isValid bool) error {
-	if acc.PubKey == nil {
-		return errors.New("public key is not set yet")
-	}
-	acc.PopIsValid = isValid
-	return nil
-}
-
-// GetPopValid - Implements sdk.AccountI.
-func (acc *BaseAccount) GetPopValid() bool {
-	return acc.PopIsValid
 }
 
 // Validate checks for errors on the account fields
@@ -237,11 +222,6 @@ func (ma ModuleAccount) SetSequence(seq uint64) error {
 	return fmt.Errorf("not supported for module accounts")
 }
 
-// SetPopValid - Implements AccountI
-func (ma ModuleAccount) SetPopValid(isValid bool) error {
-	return fmt.Errorf("not supported for module accounts")
-}
-
 // Validate checks for errors on the account fields
 func (ma ModuleAccount) Validate() error {
 	if strings.TrimSpace(ma.Name) == "" {
@@ -343,9 +323,6 @@ type AccountI interface {
 
 	GetSequence() uint64
 	SetSequence(uint64) error
-
-	GetPopValid() bool
-	SetPopValid(bool) error
 
 	// Ensure that account implements stringer
 	String() string
