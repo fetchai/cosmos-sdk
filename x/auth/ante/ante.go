@@ -28,7 +28,6 @@ func NewAnteHandler(
 		NewDeductFeeDecorator(ak, bankKeeper),
 		NewSigGasConsumeDecorator(ak, sigGasConsumer),
 		NewSigVerificationDecorator(ak, signModeHandler),
-		NewSetPopValidDecorator(ak),
 		NewIncrementSequenceDecorator(ak),
 	)
 }

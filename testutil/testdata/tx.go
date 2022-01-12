@@ -3,8 +3,6 @@ package testdata
 import (
 	"encoding/json"
 
-	"github.com/cosmos/cosmos-sdk/crypto/keys/bls12381"
-
 	"github.com/cosmos/cosmos-sdk/crypto/keys/secp256k1"
 	cryptotypes "github.com/cosmos/cosmos-sdk/crypto/types"
 	sdk "github.com/cosmos/cosmos-sdk/types"
@@ -18,14 +16,6 @@ func KeyTestPubAddr() (cryptotypes.PrivKey, cryptotypes.PubKey, sdk.AccAddress) 
 	return key, pub, addr
 }
 
-// KeyTestPubAddrBls12381 generates a new secp256k1 keypair.
-func KeyTestPubAddrBls12381() (cryptotypes.PrivKey, cryptotypes.PubKey, sdk.AccAddress) {
-	key := bls12381.GenPrivKey()
-	pub := key.PubKey()
-	addr := sdk.AccAddress(pub.Address())
-	return key, pub, addr
-}
-
 // NewTestFeeAmount is a test fee amount.
 func NewTestFeeAmount() sdk.Coins {
 	return sdk.NewCoins(sdk.NewInt64Coin("atom", 150))
@@ -33,7 +23,7 @@ func NewTestFeeAmount() sdk.Coins {
 
 // NewTestGasLimit is a test fee gas limit.
 func NewTestGasLimit() uint64 {
-	return 150000
+	return 100000
 }
 
 // NewTestMsg creates a message for testing with the given signers.
