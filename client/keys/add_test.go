@@ -1,7 +1,6 @@
 package keys
 
 import (
-	"bufio"
 	"context"
 	"fmt"
 	"testing"
@@ -124,7 +123,7 @@ func TestAddRecoverFileBackend(t *testing.T) {
 	mockIn := testutil.ApplyMockIODiscardOutErr(cmd)
 	kbHome := t.TempDir()
 
-	clientCtx := client.Context{}.WithKeyringDir(kbHome).WithInput(bufio.NewReader(mockIn))
+	clientCtx := client.Context{}.WithKeyringDir(kbHome).WithInput(mockIn)
 	ctx := context.WithValue(context.Background(), client.ClientContextKey, &clientCtx)
 
 	cmd.SetArgs([]string{
