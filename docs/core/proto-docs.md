@@ -541,6 +541,8 @@
 - [cosmos/tx/v1beta1/service.proto](#cosmos/tx/v1beta1/service.proto)
     - [BroadcastTxRequest](#cosmos.tx.v1beta1.BroadcastTxRequest)
     - [BroadcastTxResponse](#cosmos.tx.v1beta1.BroadcastTxResponse)
+    - [GetBlockWithTxsRequest](#cosmos.tx.v1beta1.GetBlockWithTxsRequest)
+    - [GetBlockWithTxsResponse](#cosmos.tx.v1beta1.GetBlockWithTxsResponse)
     - [GetTxRequest](#cosmos.tx.v1beta1.GetTxRequest)
     - [GetTxResponse](#cosmos.tx.v1beta1.GetTxResponse)
     - [GetTxsEventRequest](#cosmos.tx.v1beta1.GetTxsEventRequest)
@@ -7706,6 +7708,45 @@ Service.BroadcastTx method.
 
 
 
+<a name="cosmos.tx.v1beta1.GetBlockWithTxsRequest"></a>
+
+### GetBlockWithTxsRequest
+GetBlockWithTxsRequest is the request type for the Service.GetBlockWithTxs
+RPC method.
+
+Since: cosmos-sdk 0.45.2
+
+
+| Field | Type | Label | Description |
+| ----- | ---- | ----- | ----------- |
+| `height` | [int64](#int64) |  | height is the height of the block to query. |
+| `pagination` | [cosmos.base.query.v1beta1.PageRequest](#cosmos.base.query.v1beta1.PageRequest) |  | pagination defines a pagination for the request. |
+
+
+
+
+
+
+<a name="cosmos.tx.v1beta1.GetBlockWithTxsResponse"></a>
+
+### GetBlockWithTxsResponse
+GetBlockWithTxsResponse is the response type for the Service.GetBlockWithTxs method.
+
+Since: cosmos-sdk 0.45.2
+
+
+| Field | Type | Label | Description |
+| ----- | ---- | ----- | ----------- |
+| `txs` | [Tx](#cosmos.tx.v1beta1.Tx) | repeated | txs are the transactions in the block. |
+| `block_id` | [tendermint.types.BlockID](#tendermint.types.BlockID) |  |  |
+| `block` | [tendermint.types.Block](#tendermint.types.Block) |  |  |
+| `pagination` | [cosmos.base.query.v1beta1.PageResponse](#cosmos.base.query.v1beta1.PageResponse) |  | pagination defines a pagination for the response. |
+
+
+
+
+
+
 <a name="cosmos.tx.v1beta1.GetTxRequest"></a>
 
 ### GetTxRequest
@@ -7748,7 +7789,7 @@ RPC method.
 | Field | Type | Label | Description |
 | ----- | ---- | ----- | ----------- |
 | `events` | [string](#string) | repeated | events is the list of transaction event type. |
-| `pagination` | [cosmos.base.query.v1beta1.PageRequest](#cosmos.base.query.v1beta1.PageRequest) |  | pagination defines an pagination for the request. |
+| `pagination` | [cosmos.base.query.v1beta1.PageRequest](#cosmos.base.query.v1beta1.PageRequest) |  | pagination defines a pagination for the request. |
 | `order_by` | [OrderBy](#cosmos.tx.v1beta1.OrderBy) |  |  |
 
 
@@ -7767,7 +7808,7 @@ RPC method.
 | ----- | ---- | ----- | ----------- |
 | `txs` | [Tx](#cosmos.tx.v1beta1.Tx) | repeated | txs is the list of queried transactions. |
 | `tx_responses` | [cosmos.base.abci.v1beta1.TxResponse](#cosmos.base.abci.v1beta1.TxResponse) | repeated | tx_responses is the list of queried TxResponses. |
-| `pagination` | [cosmos.base.query.v1beta1.PageResponse](#cosmos.base.query.v1beta1.PageResponse) |  | pagination defines an pagination for the response. |
+| `pagination` | [cosmos.base.query.v1beta1.PageResponse](#cosmos.base.query.v1beta1.PageResponse) |  | pagination defines a pagination for the response. |
 
 
 
@@ -7854,6 +7895,9 @@ Service defines a gRPC service for interacting with transactions.
 | `GetTx` | [GetTxRequest](#cosmos.tx.v1beta1.GetTxRequest) | [GetTxResponse](#cosmos.tx.v1beta1.GetTxResponse) | GetTx fetches a tx by hash. | GET|/cosmos/tx/v1beta1/txs/{hash}|
 | `BroadcastTx` | [BroadcastTxRequest](#cosmos.tx.v1beta1.BroadcastTxRequest) | [BroadcastTxResponse](#cosmos.tx.v1beta1.BroadcastTxResponse) | BroadcastTx broadcast transaction. | POST|/cosmos/tx/v1beta1/txs|
 | `GetTxsEvent` | [GetTxsEventRequest](#cosmos.tx.v1beta1.GetTxsEventRequest) | [GetTxsEventResponse](#cosmos.tx.v1beta1.GetTxsEventResponse) | GetTxsEvent fetches txs by event. | GET|/cosmos/tx/v1beta1/txs|
+| `GetBlockWithTxs` | [GetBlockWithTxsRequest](#cosmos.tx.v1beta1.GetBlockWithTxsRequest) | [GetBlockWithTxsResponse](#cosmos.tx.v1beta1.GetBlockWithTxsResponse) | GetBlockWithTxs fetches a block with decoded txs.
+
+Since: cosmos-sdk 0.45.2 | GET|/cosmos/tx/v1beta1/txs/block/{height}|
 
  <!-- end services -->
 
