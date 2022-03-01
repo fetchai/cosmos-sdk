@@ -29,7 +29,7 @@
 - [cosmos/authz/v1beta1/authz.proto](#cosmos/authz/v1beta1/authz.proto)
     - [GenericAuthorization](#cosmos.authz.v1beta1.GenericAuthorization)
     - [Grant](#cosmos.authz.v1beta1.Grant)
-
+  
 - [cosmos/authz/v1beta1/event.proto](#cosmos/authz/v1beta1/event.proto)
     - [EventGrant](#cosmos.authz.v1beta1.EventGrant)
     - [EventRevoke](#cosmos.authz.v1beta1.EventRevoke)
@@ -153,9 +153,9 @@
     - [QueryServicesDescriptor](#cosmos.base.reflection.v2alpha1.QueryServicesDescriptor)
     - [SigningModeDescriptor](#cosmos.base.reflection.v2alpha1.SigningModeDescriptor)
     - [TxDescriptor](#cosmos.base.reflection.v2alpha1.TxDescriptor)
-
+  
     - [ReflectionService](#cosmos.base.reflection.v2alpha1.ReflectionService)
-
+  
 - [cosmos/base/snapshots/v1beta1/snapshot.proto](#cosmos/base/snapshots/v1beta1/snapshot.proto)
     - [Metadata](#cosmos.base.snapshots.v1beta1.Metadata)
     - [Snapshot](#cosmos.base.snapshots.v1beta1.Snapshot)
@@ -167,7 +167,7 @@
   
 - [cosmos/base/store/v1beta1/listening.proto](#cosmos/base/store/v1beta1/listening.proto)
     - [StoreKVPair](#cosmos.base.store.v1beta1.StoreKVPair)
-
+  
 - [cosmos/base/store/v1beta1/snapshot.proto](#cosmos/base/store/v1beta1/snapshot.proto)
     - [SnapshotIAVLItem](#cosmos.base.store.v1beta1.SnapshotIAVLItem)
     - [SnapshotItem](#cosmos.base.store.v1beta1.SnapshotItem)
@@ -228,7 +228,7 @@
 - [cosmos/crypto/secp256r1/keys.proto](#cosmos/crypto/secp256r1/keys.proto)
     - [PrivKey](#cosmos.crypto.secp256r1.PrivKey)
     - [PubKey](#cosmos.crypto.secp256r1.PubKey)
-
+  
 - [cosmos/distribution/v1beta1/distribution.proto](#cosmos/distribution/v1beta1/distribution.proto)
     - [CommunityPoolSpendProposal](#cosmos.distribution.v1beta1.CommunityPoolSpendProposal)
     - [CommunityPoolSpendProposalWithDeposit](#cosmos.distribution.v1beta1.CommunityPoolSpendProposalWithDeposit)
@@ -242,7 +242,7 @@
     - [ValidatorOutstandingRewards](#cosmos.distribution.v1beta1.ValidatorOutstandingRewards)
     - [ValidatorSlashEvent](#cosmos.distribution.v1beta1.ValidatorSlashEvent)
     - [ValidatorSlashEvents](#cosmos.distribution.v1beta1.ValidatorSlashEvents)
-
+  
 - [cosmos/distribution/v1beta1/genesis.proto](#cosmos/distribution/v1beta1/genesis.proto)
     - [DelegatorStartingInfoRecord](#cosmos.distribution.v1beta1.DelegatorStartingInfoRecord)
     - [DelegatorWithdrawInfo](#cosmos.distribution.v1beta1.DelegatorWithdrawInfo)
@@ -252,7 +252,7 @@
     - [ValidatorHistoricalRewardsRecord](#cosmos.distribution.v1beta1.ValidatorHistoricalRewardsRecord)
     - [ValidatorOutstandingRewardsRecord](#cosmos.distribution.v1beta1.ValidatorOutstandingRewardsRecord)
     - [ValidatorSlashEventRecord](#cosmos.distribution.v1beta1.ValidatorSlashEventRecord)
-
+  
 - [cosmos/distribution/v1beta1/query.proto](#cosmos/distribution/v1beta1/query.proto)
     - [QueryCommunityPoolRequest](#cosmos.distribution.v1beta1.QueryCommunityPoolRequest)
     - [QueryCommunityPoolResponse](#cosmos.distribution.v1beta1.QueryCommunityPoolResponse)
@@ -272,9 +272,9 @@
     - [QueryValidatorOutstandingRewardsResponse](#cosmos.distribution.v1beta1.QueryValidatorOutstandingRewardsResponse)
     - [QueryValidatorSlashesRequest](#cosmos.distribution.v1beta1.QueryValidatorSlashesRequest)
     - [QueryValidatorSlashesResponse](#cosmos.distribution.v1beta1.QueryValidatorSlashesResponse)
-
+  
     - [Query](#cosmos.distribution.v1beta1.Query)
-
+  
 - [cosmos/distribution/v1beta1/tx.proto](#cosmos/distribution/v1beta1/tx.proto)
     - [MsgFundCommunityPool](#cosmos.distribution.v1beta1.MsgFundCommunityPool)
     - [MsgFundCommunityPoolResponse](#cosmos.distribution.v1beta1.MsgFundCommunityPoolResponse)
@@ -284,57 +284,57 @@
     - [MsgWithdrawDelegatorRewardResponse](#cosmos.distribution.v1beta1.MsgWithdrawDelegatorRewardResponse)
     - [MsgWithdrawValidatorCommission](#cosmos.distribution.v1beta1.MsgWithdrawValidatorCommission)
     - [MsgWithdrawValidatorCommissionResponse](#cosmos.distribution.v1beta1.MsgWithdrawValidatorCommissionResponse)
-
+  
     - [Msg](#cosmos.distribution.v1beta1.Msg)
-
+  
 - [cosmos/evidence/v1beta1/evidence.proto](#cosmos/evidence/v1beta1/evidence.proto)
     - [Equivocation](#cosmos.evidence.v1beta1.Equivocation)
-
+  
 - [cosmos/evidence/v1beta1/genesis.proto](#cosmos/evidence/v1beta1/genesis.proto)
     - [GenesisState](#cosmos.evidence.v1beta1.GenesisState)
-
+  
 - [cosmos/evidence/v1beta1/query.proto](#cosmos/evidence/v1beta1/query.proto)
     - [QueryAllEvidenceRequest](#cosmos.evidence.v1beta1.QueryAllEvidenceRequest)
     - [QueryAllEvidenceResponse](#cosmos.evidence.v1beta1.QueryAllEvidenceResponse)
     - [QueryEvidenceRequest](#cosmos.evidence.v1beta1.QueryEvidenceRequest)
     - [QueryEvidenceResponse](#cosmos.evidence.v1beta1.QueryEvidenceResponse)
-
+  
     - [Query](#cosmos.evidence.v1beta1.Query)
-
+  
 - [cosmos/evidence/v1beta1/tx.proto](#cosmos/evidence/v1beta1/tx.proto)
     - [MsgSubmitEvidence](#cosmos.evidence.v1beta1.MsgSubmitEvidence)
     - [MsgSubmitEvidenceResponse](#cosmos.evidence.v1beta1.MsgSubmitEvidenceResponse)
-
+  
     - [Msg](#cosmos.evidence.v1beta1.Msg)
-
+  
 - [cosmos/feegrant/v1beta1/feegrant.proto](#cosmos/feegrant/v1beta1/feegrant.proto)
     - [AllowedMsgAllowance](#cosmos.feegrant.v1beta1.AllowedMsgAllowance)
     - [BasicAllowance](#cosmos.feegrant.v1beta1.BasicAllowance)
     - [Grant](#cosmos.feegrant.v1beta1.Grant)
     - [PeriodicAllowance](#cosmos.feegrant.v1beta1.PeriodicAllowance)
-
+  
 - [cosmos/feegrant/v1beta1/genesis.proto](#cosmos/feegrant/v1beta1/genesis.proto)
     - [GenesisState](#cosmos.feegrant.v1beta1.GenesisState)
-
+  
 - [cosmos/feegrant/v1beta1/query.proto](#cosmos/feegrant/v1beta1/query.proto)
     - [QueryAllowanceRequest](#cosmos.feegrant.v1beta1.QueryAllowanceRequest)
     - [QueryAllowanceResponse](#cosmos.feegrant.v1beta1.QueryAllowanceResponse)
     - [QueryAllowancesRequest](#cosmos.feegrant.v1beta1.QueryAllowancesRequest)
     - [QueryAllowancesResponse](#cosmos.feegrant.v1beta1.QueryAllowancesResponse)
-
+  
     - [Query](#cosmos.feegrant.v1beta1.Query)
-
+  
 - [cosmos/feegrant/v1beta1/tx.proto](#cosmos/feegrant/v1beta1/tx.proto)
     - [MsgGrantAllowance](#cosmos.feegrant.v1beta1.MsgGrantAllowance)
     - [MsgGrantAllowanceResponse](#cosmos.feegrant.v1beta1.MsgGrantAllowanceResponse)
     - [MsgRevokeAllowance](#cosmos.feegrant.v1beta1.MsgRevokeAllowance)
     - [MsgRevokeAllowanceResponse](#cosmos.feegrant.v1beta1.MsgRevokeAllowanceResponse)
-
+  
     - [Msg](#cosmos.feegrant.v1beta1.Msg)
-
+  
 - [cosmos/genutil/v1beta1/genesis.proto](#cosmos/genutil/v1beta1/genesis.proto)
     - [GenesisState](#cosmos.genutil.v1beta1.GenesisState)
-
+  
 - [cosmos/gov/v1beta1/gov.proto](#cosmos/gov/v1beta1/gov.proto)
     - [Deposit](#cosmos.gov.v1beta1.Deposit)
     - [DepositParams](#cosmos.gov.v1beta1.DepositParams)
@@ -345,13 +345,13 @@
     - [Vote](#cosmos.gov.v1beta1.Vote)
     - [VotingParams](#cosmos.gov.v1beta1.VotingParams)
     - [WeightedVoteOption](#cosmos.gov.v1beta1.WeightedVoteOption)
-
+  
     - [ProposalStatus](#cosmos.gov.v1beta1.ProposalStatus)
     - [VoteOption](#cosmos.gov.v1beta1.VoteOption)
-
+  
 - [cosmos/gov/v1beta1/genesis.proto](#cosmos/gov/v1beta1/genesis.proto)
     - [GenesisState](#cosmos.gov.v1beta1.GenesisState)
-
+  
 - [cosmos/gov/v1beta1/query.proto](#cosmos/gov/v1beta1/query.proto)
     - [QueryDepositRequest](#cosmos.gov.v1beta1.QueryDepositRequest)
     - [QueryDepositResponse](#cosmos.gov.v1beta1.QueryDepositResponse)
@@ -369,7 +369,7 @@
     - [QueryVoteResponse](#cosmos.gov.v1beta1.QueryVoteResponse)
     - [QueryVotesRequest](#cosmos.gov.v1beta1.QueryVotesRequest)
     - [QueryVotesResponse](#cosmos.gov.v1beta1.QueryVotesResponse)
-
+  
     - [Query](#cosmos.gov.v1beta1.Query)
   
 - [cosmos/gov/v1beta1/tx.proto](#cosmos/gov/v1beta1/tx.proto)
@@ -1268,6 +1268,9 @@ tags are stringified and the log is JSON decoded.
 | `gas_used` | [int64](#int64) |  | Amount of gas consumed by transaction. |
 | `tx` | [google.protobuf.Any](#google.protobuf.Any) |  | The request transaction bytes. |
 | `timestamp` | [string](#string) |  | Time of the previous block. For heights > 1, it's the weighted median of the timestamps of the valid votes in the block.LastCommit. For height == 1, it's genesis time. |
+| `events` | [tendermint.abci.Event](#tendermint.abci.Event) | repeated | Events defines all the events emitted by processing a transaction. Note, these events include those emitted by processing all the messages and those emitted from the ante handler. Whereas Logs contains the events, with additional metadata, emitted only by processing the messages.
+
+Since: cosmos-sdk 0.42.11, 0.44.5, 0.45 |
 
 
 
@@ -5592,10 +5595,7 @@ Params holds parameters for the mint module.
 | Field | Type | Label | Description |
 | ----- | ---- | ----- | ----------- |
 | `mint_denom` | [string](#string) |  | type of coin to mint |
-| `inflation_rate_change` | [string](#string) |  | maximum annual change in inflation rate |
-| `inflation_max` | [string](#string) |  | maximum inflation rate |
-| `inflation_min` | [string](#string) |  | minimum inflation rate |
-| `goal_bonded` | [string](#string) |  | goal of percent bonded atoms |
+| `inflation_rate` | [string](#string) |  | maximum annual change in inflation rate |
 | `blocks_per_year` | [uint64](#uint64) |  | expected blocks per year |
 
 
@@ -8303,3 +8303,4 @@ Since: cosmos-sdk 0.43
 | <a name="bool" /> bool |  | bool | boolean | boolean | bool | bool | boolean | TrueClass/FalseClass |
 | <a name="string" /> string | A string must always contain UTF-8 encoded or 7-bit ASCII text. | string | String | str/unicode | string | string | string | String (UTF-8) |
 | <a name="bytes" /> bytes | May contain any arbitrary sequence of bytes. | string | ByteString | str | []byte | ByteString | string | String (ASCII-8BIT) |
+
