@@ -42,31 +42,31 @@ func TestPrepareConfigForTxCreateValidator(t *testing.T) {
 			fsModify: func(fs *pflag.FlagSet) {
 				return
 			},
-			expectedCfg: mkTxValCfg(defaultAmount, "0.1", "0.2", "0.01", "1"),
+			expectedCfg: mkTxValCfg(defaultAmount, "0.1", "0.2", "0.01", "1000000000000000000"),
 		}, {
 			name: "Custom amount",
 			fsModify: func(fs *pflag.FlagSet) {
 				fs.Set(FlagAmount, "2000stake")
 			},
-			expectedCfg: mkTxValCfg("2000stake", "0.1", "0.2", "0.01", "1"),
+			expectedCfg: mkTxValCfg("2000stake", "0.1", "0.2", "0.01", "1000000000000000000"),
 		}, {
 			name: "Custom commission rate",
 			fsModify: func(fs *pflag.FlagSet) {
 				fs.Set(FlagCommissionRate, "0.54")
 			},
-			expectedCfg: mkTxValCfg(defaultAmount, "0.54", "0.2", "0.01", "1"),
+			expectedCfg: mkTxValCfg(defaultAmount, "0.54", "0.2", "0.01", "1000000000000000000"),
 		}, {
 			name: "Custom commission max rate",
 			fsModify: func(fs *pflag.FlagSet) {
 				fs.Set(FlagCommissionMaxRate, "0.89")
 			},
-			expectedCfg: mkTxValCfg(defaultAmount, "0.1", "0.89", "0.01", "1"),
+			expectedCfg: mkTxValCfg(defaultAmount, "0.1", "0.89", "0.01", "1000000000000000000"),
 		}, {
 			name: "Custom commission max change rate",
 			fsModify: func(fs *pflag.FlagSet) {
 				fs.Set(FlagCommissionMaxChangeRate, "0.55")
 			},
-			expectedCfg: mkTxValCfg(defaultAmount, "0.1", "0.2", "0.55", "1"),
+			expectedCfg: mkTxValCfg(defaultAmount, "0.1", "0.2", "0.55", "1000000000000000000"),
 		},
 		{
 			name: "Custom min self delegations",
