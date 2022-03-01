@@ -64,7 +64,7 @@ func (s *IntegrationTestSuite) SetupSuite() {
 	s.Require().NoError(err)
 
 	// unbonding
-	out, err = stakingtestutil.MsgUnbondExec(val.ClientCtx, val.Address, val.ValAddress, unbond)
+	out, err := stakingtestutil.MsgUnbondExec(val.ClientCtx, val.Address, val.ValAddress, unbond)
 	s.T().Log(out)
 	s.Require().NoError(err)
 	_, err = s.network.WaitForHeight(1)

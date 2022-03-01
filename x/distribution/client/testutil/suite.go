@@ -126,7 +126,7 @@ func (s *IntegrationTestSuite) TestGetCmdQueryValidatorOutstandingRewards() {
 				fmt.Sprintf("--%s=json", tmcli.OutputFlag),
 			},
 			false,
-			`{"rewards":[{"denom":"stake","amount":"5.880000000000000000"}]}`,
+			`{"rewards":[{"denom":"stake","amount":"32.340000000000000000"}]}`,
 		},
 		{
 			"text output",
@@ -137,7 +137,7 @@ func (s *IntegrationTestSuite) TestGetCmdQueryValidatorOutstandingRewards() {
 			},
 			false,
 			`rewards:
-- amount: "5.880000000000000000"
+- amount: "32.340000000000000000"
   denom: stake`,
 		},
 	}
@@ -189,7 +189,7 @@ func (s *IntegrationTestSuite) TestGetCmdQueryValidatorCommission() {
 				fmt.Sprintf("--%s=json", tmcli.OutputFlag),
 			},
 			false,
-			`{"commission":[{"denom":"stake","amount":"2.940000000000000000"}]}`,
+			`{"commission":[{"denom":"stake","amount":"13.230000000000000000"}]}`,
 		},
 		{
 			"text output",
@@ -200,7 +200,7 @@ func (s *IntegrationTestSuite) TestGetCmdQueryValidatorCommission() {
 			},
 			false,
 			`commission:
-- amount: "2.940000000000000000"
+- amount: "13.230000000000000000"
   denom: stake`,
 		},
 	}

@@ -173,7 +173,7 @@ func (s *IntegrationTestSuite) TestGetProposalsGRPC() {
 func (s *IntegrationTestSuite) TestGetProposalVoteGRPC() {
 	val := s.network.Validators[0]
 
-	voterAddressBase64 := val.Address.String()
+	voterAddressBech32 := val.Address.String()
 
 	testCases := []struct {
 		name           string
