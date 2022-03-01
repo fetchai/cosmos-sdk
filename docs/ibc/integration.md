@@ -25,7 +25,7 @@ Integrating the IBC module to your SDK-based application is straighforward. The 
 ### Module `BasicManager` and `ModuleAccount` permissions
 
 The first step is to add the following modules to the `BasicManager`: `x/capability`, `x/ibc`,
-`x/evidence` and `x/ibc/applications/transfer`. After that, we need to grant `Minter` and `Burner` permissions to
+`x/evidence` and `x/ibc-transfer`. After that, we need to grant `Minter` and `Burner` permissions to
 the `ibc-transfer` `ModuleAccount` to mint and burn relayed tokens.
 
 ```go
@@ -75,7 +75,7 @@ type App struct {
 ### Configure the `Keepers`
 
 During initialization, besides initializing the IBC `Keepers` (for the  `x/ibc`, and
-`x/ibc/applications/transfer` modules), we need to grant specific capabilities through the capability module
+`x/ibc-transfer` modules), we need to grant specific capabilities through the capability module
 `ScopedKeepers` so that we can authenticate the object-capability permissions for each of the IBC
 channels.
 

@@ -40,7 +40,7 @@ func Test_showKeysCmd(t *testing.T) {
 	require.Equal(t, "false", cmd.Flag(FlagPublicKey).DefValue)
 }
 
-func TestShowCmdWithMultisigAccount(t *testing.T) {
+func Test_runShowCmd(t *testing.T) {
 	cmd := ShowKeysCmd()
 	cmd.Flags().AddFlagSet(Commands("home").PersistentFlags())
 	mockIn := testutil.ApplyMockIODiscardOutErr(cmd)

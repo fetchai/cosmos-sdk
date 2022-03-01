@@ -83,7 +83,7 @@ func (wl *StoreKVPairWriteListener) OnWrite(storeKey types.StoreKey, key []byte,
                 return err
 	}
         if _, err := wl.writer.Write(by); err != nil {
-		return err
+        	return err
         }
         return nil
 }
@@ -350,7 +350,7 @@ func (fss *FileStreamingService) Stream(wg *sync.WaitGroup, quitChan <-chan stru
 			case <-quitChan:
 				return
                         case by := <-fss.srcChan:
-				fss.stateCache = append(fss.stateCache, by)
+                        	fss.stateCache = append(fss.stateCache, by)
 			}
 		}
 	}()
