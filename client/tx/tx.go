@@ -45,9 +45,17 @@ func GenerateOrBroadcastTxWithFactory(clientCtx client.Context, txf Factory, msg
 // simulated and also printed to the same writer before the transaction is
 // printed.
 func GenerateTx(clientCtx client.Context, txf Factory, msgs ...sdk.Msg) error {
+	var updatedTxf Factory
 	if txf.SimulateAndExecute() {
 		if clientCtx.Offline {
 			return errors.New("cannot estimate gas in offline mode")
+		}
+
+		// If we are simulating the transaction, we are not in offline mode. Then we need to lookup correct sequence
+		// number and account number information. Otherwise it will fail
+		txf, err := PrepareFactory(clientCtx, txf)
+		if err != nil {
+			return err
 		}
 
 		_, adjusted, err := CalculateGas(clientCtx.QueryWithData, txf, msgs...)
@@ -55,11 +63,12 @@ func GenerateTx(clientCtx client.Context, txf Factory, msgs ...sdk.Msg) error {
 			return err
 		}
 
-		txf = txf.WithGas(adjusted)
-		_, _ = fmt.Fprintf(os.Stderr, "%s\n", GasEstimateResponse{GasEstimate: txf.Gas()})
+		updatedTxf = txf.WithGas(adjusted)
+	} else {
+		updatedTxf = txf
 	}
 
-	tx, err := BuildUnsignedTx(txf, msgs...)
+	tx, err := BuildUnsignedTx(updatedTxf, msgs...)
 	if err != nil {
 		return err
 	}
