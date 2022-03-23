@@ -109,6 +109,8 @@ func (app *BaseApp) Info(req abci.RequestInfo) abci.ResponseInfo {
 
 	return abci.ResponseInfo{
 		Data:             app.name,
+		Version:          app.version,
+		AppVersion:       app.appVersion,
 		LastBlockHeight:  lastCommitID.Version,
 		LastBlockAppHash: lastCommitID.Hash,
 	}
@@ -177,7 +179,8 @@ func (app *BaseApp) BeginBlock(req abci.RequestBeginBlock) (res abci.ResponseBeg
 
 	app.deliverState.ctx = app.deliverState.ctx.
 		WithBlockGasMeter(gasMeter).
-		WithHeaderHash(req.Hash)
+		WithHeaderHash(req.Hash).
+		WithConsensusParams(app.GetConsensusParams(app.deliverState.ctx))
 
 	// we also set block gas meter to checkState in case the application needs to
 	// verify gas consumption during (Re)CheckTx
@@ -238,9 +241,9 @@ func (app *BaseApp) CheckTx(req abci.RequestCheckTx) abci.ResponseCheckTx {
 		panic(fmt.Sprintf("unknown RequestCheckTx type: %s", req.Type))
 	}
 
-	gInfo, result, err := app.runTx(mode, req.Tx)
+	gInfo, result, anteEvents, err := app.runTx(mode, req.Tx)
 	if err != nil {
-		return sdkerrors.ResponseCheckTx(err, gInfo.GasWanted, gInfo.GasUsed, app.trace)
+		return sdkerrors.ResponseCheckTxWithEvents(err, gInfo.GasWanted, gInfo.GasUsed, anteEvents, app.trace)
 	}
 
 	return abci.ResponseCheckTx{
@@ -270,10 +273,10 @@ func (app *BaseApp) DeliverTx(req abci.RequestDeliverTx) abci.ResponseDeliverTx 
 		telemetry.SetGauge(float32(gInfo.GasWanted), "tx", "gas", "wanted")
 	}()
 
-	gInfo, result, err := app.runTx(runTxModeDeliver, req.Tx)
+	gInfo, result, anteEvents, err := app.runTx(runTxModeDeliver, req.Tx)
 	if err != nil {
 		resultStr = "failed"
-		return sdkerrors.ResponseDeliverTx(err, gInfo.GasWanted, gInfo.GasUsed, app.trace)
+		return sdkerrors.ResponseDeliverTxWithEvents(err, gInfo.GasWanted, gInfo.GasUsed, anteEvents, app.trace)
 	}
 
 	return abci.ResponseDeliverTx{
@@ -644,7 +647,7 @@ func (app *BaseApp) createQueryContext(height int64, prove bool) (sdk.Context, e
 	// branch the commit-multistore for safety
 	ctx := sdk.NewContext(
 		cacheMS, app.checkState.ctx.BlockHeader(), true, app.logger,
-	).WithMinGasPrices(app.minGasPrices)
+	).WithMinGasPrices(app.minGasPrices).WithBlockHeight(height)
 
 	return ctx, nil
 }
@@ -767,7 +770,7 @@ func handleQueryApp(app *BaseApp, path []string, req abci.RequestQuery) abci.Res
 			return abci.ResponseQuery{
 				Codespace: sdkerrors.RootCodespace,
 				Height:    req.Height,
-				Value:     []byte(app.appVersion),
+				Value:     []byte(app.version),
 			}
 
 		default:
@@ -809,28 +812,32 @@ func handleQueryStore(app *BaseApp, path []string, req abci.RequestQuery) abci.R
 
 func handleQueryP2P(app *BaseApp, path []string) abci.ResponseQuery {
 	// "/p2p" prefix for p2p queries
-	if len(path) >= 4 {
-		cmd, typ, arg := path[1], path[2], path[3]
-		switch cmd {
-		case "filter":
-			switch typ {
-			case "addr":
-				return app.FilterPeerByAddrPort(arg)
-
-			case "id":
-				return app.FilterPeerByID(arg)
-			}
-
-		default:
-			return sdkerrors.QueryResult(sdkerrors.Wrap(sdkerrors.ErrUnknownRequest, "expected second parameter to be 'filter'"))
-		}
+	if len(path) < 4 {
+		return sdkerrors.QueryResult(
+			sdkerrors.Wrap(
+				sdkerrors.ErrUnknownRequest, "path should be p2p filter <addr|id> <parameter>",
+			),
+		)
 	}
 
-	return sdkerrors.QueryResult(
-		sdkerrors.Wrap(
-			sdkerrors.ErrUnknownRequest, "expected path is p2p filter <addr|id> <parameter>",
-		),
-	)
+	var resp abci.ResponseQuery
+
+	cmd, typ, arg := path[1], path[2], path[3]
+	switch cmd {
+	case "filter":
+		switch typ {
+		case "addr":
+			resp = app.FilterPeerByAddrPort(arg)
+
+		case "id":
+			resp = app.FilterPeerByID(arg)
+		}
+
+	default:
+		resp = sdkerrors.QueryResult(sdkerrors.Wrap(sdkerrors.ErrUnknownRequest, "expected second parameter to be 'filter'"))
+	}
+
+	return resp
 }
 
 func handleQueryCustom(app *BaseApp, path []string, req abci.RequestQuery) abci.ResponseQuery {

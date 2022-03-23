@@ -97,6 +97,7 @@ func ReadPersistentCommandFlags(clientCtx Context, flagSet *pflag.FlagSet) (Cont
 		homeDir, _ := flagSet.GetString(flags.FlagHome)
 		clientCtx = clientCtx.WithHomeDir(homeDir)
 	}
+
 	if !clientCtx.Simulate || flagSet.Changed(flags.FlagDryRun) {
 		dryRun, _ := flagSet.GetBool(flags.FlagDryRun)
 		clientCtx = clientCtx.WithSimulation(dryRun)
@@ -194,11 +195,6 @@ func readTxCommandFlags(clientCtx Context, flagSet *pflag.FlagSet) (Context, err
 		clientCtx = clientCtx.WithGenerateOnly(genOnly)
 	}
 
-	if !clientCtx.Simulate || flagSet.Changed(flags.FlagDryRun) {
-		dryRun, _ := flagSet.GetBool(flags.FlagDryRun)
-		clientCtx = clientCtx.WithSimulation(dryRun)
-	}
-
 	if !clientCtx.Offline || flagSet.Changed(flags.FlagOffline) {
 		offline, _ := flagSet.GetBool(flags.FlagOffline)
 		clientCtx = clientCtx.WithOffline(offline)
@@ -222,6 +218,19 @@ func readTxCommandFlags(clientCtx Context, flagSet *pflag.FlagSet) (Context, err
 	if clientCtx.SignModeStr == "" || flagSet.Changed(flags.FlagSignMode) {
 		signModeStr, _ := flagSet.GetString(flags.FlagSignMode)
 		clientCtx = clientCtx.WithSignModeStr(signModeStr)
+	}
+
+	if clientCtx.FeeGranter == nil || flagSet.Changed(flags.FlagFeeAccount) {
+		granter, _ := flagSet.GetString(flags.FlagFeeAccount)
+
+		if granter != "" {
+			granterAcc, err := sdk.AccAddressFromBech32(granter)
+			if err != nil {
+				return clientCtx, err
+			}
+
+			clientCtx = clientCtx.WithFeeGranterAddress(granterAcc)
+		}
 	}
 
 	if clientCtx.From == "" || flagSet.Changed(flags.FlagFrom) {

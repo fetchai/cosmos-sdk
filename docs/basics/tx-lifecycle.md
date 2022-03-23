@@ -83,7 +83,18 @@ When `Tx` is received by the application from the underlying consensus engine (e
 
 ### ValidateBasic
 
-[`Msg`s](../core/transactions.md#messages) are extracted from `Tx` and `ValidateBasic`, a method of the `Msg` interface implemented by the module developer, is run for each one. It should include basic **stateless** sanity checks. For example, if the message is to send coins from one address to another, `ValidateBasic` likely checks for nonempty addresses and a nonnegative coin amount, but does not require knowledge of state such as account balance of an address.
+Messages ([`sdk.Msg`](../core/transactions.md#messages)) are extracted from transactions (`Tx`). The `ValidateBasic` method of the `sdk.Msg` interface implemented by the module developer is run for each transaction. 
+To discard obviously invalid messages, the BaseApp` type calls the `ValidateBasic` method very early in the processing of the message in the [`CheckTx`](../core/baseapp.md#checktx) and [`DeliverTx`](../core/baseapp.md#delivertx)) transactions.
+`ValidateBasic` can include only **stateless** checks (the checks that do not require access to the state). 
+
+#### Guideline
+
+Gas is not charged when `ValidateBasic` is executed so we recommend only performing all necessary stateless checks to enable middleware operations (for example, parsing the required signer accounts to validate a signature by a middleware) and stateless sanity checks not impacting performance of the CheckTx phase.
+Other validation operations must be performed when [handling a message](../building-modules/msg-services#Validation) in a module Msg Server.
+
+Example, if the message is to send coins from one address to another, `ValidateBasic` likely checks for non-empty addresses and a non-negative coin amount, but does not require knowledge of state such as the account balance of an address.
+
+See also [Msg Service Validation](../building-modules/msg-services.md#Validation).
 
 ### AnteHandler
 
@@ -95,7 +106,7 @@ For example, the [`auth`](https://github.com/cosmos/cosmos-sdk/tree/master/x/aut
 
 ### Gas
 
-The [`Context`](../core/context.md), which keeps a `GasMeter` that will track how much gas has been used during the execution of `Tx`, is initialized. The user-provided amount of gas for `Tx` is known as `GasWanted`. If `GasConsumed`, the amount of gas consumed so during execution, ever exceeds `GasWanted`, the execution will stop and the changes made to the cached copy of the state won't be committed. Otherwise, `CheckTx` sets `GasUsed` equal to `GasConsumed` and returns it in the result. After calculating the gas and fee values, validator-nodes check that the user-specified `gas-prices` is less than their locally defined `min-gas-prices`.
+The [`Context`](../core/context.md), which keeps a `GasMeter` that will track how much gas has been used during the execution of `Tx`, is initialized. The user-provided amount of gas for `Tx` is known as `GasWanted`. If `GasConsumed`, the amount of gas consumed so during execution, ever exceeds `GasWanted`, the execution will stop and the changes made to the cached copy of the state won't be committed. Otherwise, `CheckTx` sets `GasUsed` equal to `GasConsumed` and returns it in the result. After calculating the gas and fee values, validator-nodes check that the user-specified `gas-prices` is greater than their locally defined `min-gas-prices`.
 
 ### Discard or Addition to Mempool
 
@@ -199,12 +210,11 @@ Instead of using their `checkState`, full-nodes use `deliverState`:
 - **`MsgServiceRouter`:** While `CheckTx` would have exited, `DeliverTx` continues to run
   [`runMsgs`](../core/baseapp.md#runtx-and-runmsgs) to fully execute each `Msg` within the transaction.
   Since the transaction may have messages from different modules, `BaseApp` needs to know which module
-  to find the appropriate handler. This is achieved using `BaseApp`'s `MsgServiceRouter` so that it can be processed by the module's [`Msg` service](../building-modules/msg-services.md).
-  For legacy `Msg` routing, the `Route` function is called via the [module manager](../building-modules/module-manager.md) to retrieve the route name and find the legacy [`Handler`](../building-modules/msg-services.md#handler-type) within the module.
+  to find the appropriate handler. This is achieved using `BaseApp`'s `MsgServiceRouter` so that it can be processed by the module's Protobuf [`Msg` service](../building-modules/msg-services.md).
+  For `LegacyMsg` routing, the `Route` function is called via the [module manager](../building-modules/module-manager.md) to retrieve the route name and find the legacy [`Handler`](../building-modules/msg-services.md#handler-type) within the module.
 
-- **`Msg` service:** The `Msg` service, a step up from `AnteHandler`, is responsible for executing each
-  message in the `Tx` and causes state transitions to persist in `deliverTxState`. It is defined
-  within a module `Msg` protobuf service and writes to the appropriate stores within the module.
+- **`Msg` service:** a Protobuf `Msg` service, a step up from `AnteHandler`, is responsible for executing each
+  message in the `Tx` and causes state transitions to persist in `deliverTxState`.
 
 - **Gas:** While a `Tx` is being delivered, a `GasMeter` is used to keep track of how much
   gas is being used; if execution completes, `GasUsed` is set and returned in the

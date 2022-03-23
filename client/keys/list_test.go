@@ -13,6 +13,7 @@ import (
 	"github.com/cosmos/cosmos-sdk/crypto/hd"
 	"github.com/cosmos/cosmos-sdk/crypto/keyring"
 	"github.com/cosmos/cosmos-sdk/testutil"
+	"github.com/cosmos/cosmos-sdk/testutil/testdata"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 )
 
@@ -30,8 +31,8 @@ func Test_runListCmd(t *testing.T) {
 	clientCtx := client.Context{}.WithKeyring(kb)
 	ctx := context.WithValue(context.Background(), client.ClientContextKey, &clientCtx)
 
-	path := "" //sdk.GetConfig().GetFullFundraiserPath()
-	_, err = kb.NewAccount("something", testutil.TestMnemonic, "", path, hd.Secp256k1)
+	path := "" //sdk.GetConfig().GetFullBIP44Path()
+	_, err = kb.NewAccount("something", testdata.TestMnemonic, "", path, hd.Secp256k1)
 	require.NoError(t, err)
 
 	t.Cleanup(func() {

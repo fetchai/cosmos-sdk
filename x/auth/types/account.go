@@ -48,6 +48,7 @@ func ProtoBaseAccount() AccountI {
 }
 
 // NewBaseAccountWithAddress - returns a new base account with a given address
+// leaving AccountNumber and Sequence to zero.
 func NewBaseAccountWithAddress(addr sdk.AccAddress) *BaseAccount {
 	return &BaseAccount{
 		Address: addr.String(),
@@ -217,11 +218,6 @@ func (ma ModuleAccount) SetPubKey(pubKey cryptotypes.PubKey) error {
 	return fmt.Errorf("not supported for module accounts")
 }
 
-// SetSequence - Implements AccountI
-func (ma ModuleAccount) SetSequence(seq uint64) error {
-	return fmt.Errorf("not supported for module accounts")
-}
-
 // Validate checks for errors on the account fields
 func (ma ModuleAccount) Validate() error {
 	if strings.TrimSpace(ma.Name) == "" {
@@ -264,7 +260,6 @@ func (ma ModuleAccount) MarshalYAML() (interface{}, error) {
 		Name:          ma.Name,
 		Permissions:   ma.Permissions,
 	})
-
 	if err != nil {
 		return nil, err
 	}

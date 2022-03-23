@@ -22,6 +22,7 @@ import (
 	"github.com/cosmos/cosmos-sdk/store/cachemulti"
 	"github.com/cosmos/cosmos-sdk/store/dbadapter"
 	"github.com/cosmos/cosmos-sdk/store/iavl"
+	"github.com/cosmos/cosmos-sdk/store/listenkv"
 	"github.com/cosmos/cosmos-sdk/store/mem"
 	"github.com/cosmos/cosmos-sdk/store/tracekv"
 	"github.com/cosmos/cosmos-sdk/store/transient"
@@ -47,6 +48,7 @@ type Store struct {
 	db             dbm.DB
 	lastCommitInfo *types.CommitInfo
 	pruningOpts    types.PruningOptions
+	iavlCacheSize  int
 	storesParams   map[types.StoreKey]storeParams
 	stores         map[types.StoreKey]types.CommitKVStore
 	keysByName     map[string]types.StoreKey
@@ -58,6 +60,8 @@ type Store struct {
 	traceContext types.TraceContext
 
 	interBlockCache types.MultiStorePersistentCache
+
+	listeners map[types.StoreKey][]types.WriteListener
 }
 
 var (
@@ -71,12 +75,14 @@ var (
 // LoadVersion must be called.
 func NewStore(db dbm.DB) *Store {
 	return &Store{
-		db:           db,
-		pruningOpts:  types.PruneNothing,
-		storesParams: make(map[types.StoreKey]storeParams),
-		stores:       make(map[types.StoreKey]types.CommitKVStore),
-		keysByName:   make(map[string]types.StoreKey),
-		pruneHeights: make([]int64, 0),
+		db:            db,
+		pruningOpts:   types.PruneNothing,
+		iavlCacheSize: iavl.DefaultIAVLCacheSize,
+		storesParams:  make(map[types.StoreKey]storeParams),
+		stores:        make(map[types.StoreKey]types.CommitKVStore),
+		keysByName:    make(map[string]types.StoreKey),
+		pruneHeights:  make([]int64, 0),
+		listeners:     make(map[types.StoreKey][]types.WriteListener),
 	}
 }
 
@@ -90,6 +96,10 @@ func (rs *Store) GetPruning() types.PruningOptions {
 // LoadLatestVersion performs a no-op as the stores aren't mounted yet.
 func (rs *Store) SetPruning(pruningOpts types.PruningOptions) {
 	rs.pruningOpts = pruningOpts
+}
+
+func (rs *Store) SetIAVLCacheSize(cacheSize int) {
+	rs.iavlCacheSize = cacheSize
 }
 
 // SetLazyLoading sets if the iavl store should be loaded lazily or not
@@ -186,7 +196,22 @@ func (rs *Store) loadVersion(ver int64, upgrades *types.StoreUpgrades) error {
 	// load each Store (note this doesn't panic on unmounted keys now)
 	var newStores = make(map[types.StoreKey]types.CommitKVStore)
 
-	for key, storeParams := range rs.storesParams {
+	storesKeys := make([]types.StoreKey, 0, len(rs.storesParams))
+
+	for key := range rs.storesParams {
+		storesKeys = append(storesKeys, key)
+	}
+	if upgrades != nil {
+		// deterministic iteration order for upgrades
+		// (as the underlying store may change and
+		// upgrades make store changes where the execution order may matter)
+		sort.Slice(storesKeys, func(i, j int) bool {
+			return storesKeys[i].Name() < storesKeys[j].Name()
+		})
+	}
+
+	for _, key := range storesKeys {
+		storeParams := rs.storesParams[key]
 		commitID := rs.getCommitID(infos, key.Name())
 
 		// If it has been added, set the initial version
@@ -312,6 +337,23 @@ func (rs *Store) TracingEnabled() bool {
 	return rs.traceWriter != nil
 }
 
+// AddListeners adds listeners for a specific KVStore
+func (rs *Store) AddListeners(key types.StoreKey, listeners []types.WriteListener) {
+	if ls, ok := rs.listeners[key]; ok {
+		rs.listeners[key] = append(ls, listeners...)
+	} else {
+		rs.listeners[key] = listeners
+	}
+}
+
+// ListeningEnabled returns if listening is enabled for a specific KVStore
+func (rs *Store) ListeningEnabled(key types.StoreKey) bool {
+	if ls, ok := rs.listeners[key]; ok {
+		return len(ls) != 0
+	}
+	return false
+}
+
 // LastCommitID implements Committer/CommitStore.
 func (rs *Store) LastCommitID() types.CommitID {
 	if rs.lastCommitInfo == nil {
@@ -404,6 +446,11 @@ func (rs *Store) CacheWrapWithTrace(_ io.Writer, _ types.TraceContext) types.Cac
 	return rs.CacheWrap()
 }
 
+// CacheWrapWithListeners implements the CacheWrapper interface.
+func (rs *Store) CacheWrapWithListeners(_ types.StoreKey, _ []types.WriteListener) types.CacheWrap {
+	return rs.CacheWrap()
+}
+
 // CacheMultiStore creates ephemeral branch of the multi-store and returns a CacheMultiStore.
 // It implements the MultiStore interface.
 func (rs *Store) CacheMultiStore() types.CacheMultiStore {
@@ -411,8 +458,7 @@ func (rs *Store) CacheMultiStore() types.CacheMultiStore {
 	for k, v := range rs.stores {
 		stores[k] = v
 	}
-
-	return cachemulti.NewStore(rs.db, stores, rs.keysByName, rs.traceWriter, rs.traceContext)
+	return cachemulti.NewStore(rs.db, stores, rs.keysByName, rs.traceWriter, rs.traceContext, rs.listeners)
 }
 
 // CacheMultiStoreWithVersion is analogous to CacheMultiStore except that it
@@ -442,7 +488,7 @@ func (rs *Store) CacheMultiStoreWithVersion(version int64) (types.CacheMultiStor
 		}
 	}
 
-	return cachemulti.NewStore(rs.db, cachedStores, rs.keysByName, rs.traceWriter, rs.traceContext), nil
+	return cachemulti.NewStore(rs.db, cachedStores, rs.keysByName, rs.traceWriter, rs.traceContext, rs.listeners), nil
 }
 
 // GetStore returns a mounted Store for a given StoreKey. If the StoreKey does
@@ -475,6 +521,9 @@ func (rs *Store) GetKVStore(key types.StoreKey) types.KVStore {
 
 	if rs.TracingEnabled() {
 		store = tracekv.NewStore(store, rs.traceWriter, rs.traceContext)
+	}
+	if rs.ListeningEnabled(key) {
+		store = listenkv.NewStore(store, key, rs.listeners[key])
 	}
 
 	return store
@@ -833,9 +882,9 @@ func (rs *Store) loadCommitStoreFromParams(key types.StoreKey, id types.CommitID
 		var err error
 
 		if params.initialVersion == 0 {
-			store, err = iavl.LoadStore(db, id, rs.lazyLoading)
+			store, err = iavl.LoadStore(db, id, rs.lazyLoading, rs.iavlCacheSize)
 		} else {
-			store, err = iavl.LoadStoreWithInitialVersion(db, id, rs.lazyLoading, params.initialVersion)
+			store, err = iavl.LoadStoreWithInitialVersion(db, id, rs.lazyLoading, params.initialVersion, rs.iavlCacheSize)
 		}
 
 		if err != nil {
