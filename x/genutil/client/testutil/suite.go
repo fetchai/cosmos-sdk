@@ -59,6 +59,7 @@ func (s *IntegrationTestSuite) TestGenTxCmd() {
 			args: []string{
 				fmt.Sprintf("--%s=%s", flags.FlagChainID, s.network.Config.ChainID),
 				fmt.Sprintf("--%s=1", stakingcli.FlagCommissionRate),
+				fmt.Sprintf("--%s=1", stakingcli.FlagMinSelfDelegation),
 				val.Moniker,
 				amount.String(),
 			},
@@ -68,6 +69,7 @@ func (s *IntegrationTestSuite) TestGenTxCmd() {
 			name: "valid gentx",
 			args: []string{
 				fmt.Sprintf("--%s=%s", flags.FlagChainID, s.network.Config.ChainID),
+				fmt.Sprintf("--%s=1", stakingcli.FlagMinSelfDelegation),
 				val.Moniker,
 				amount.String(),
 			},
@@ -78,6 +80,7 @@ func (s *IntegrationTestSuite) TestGenTxCmd() {
 			args: []string{
 				fmt.Sprintf("--%s=%s", flags.FlagChainID, s.network.Config.ChainID),
 				fmt.Sprintf("--%s={\"key\":\"BOIkjkFruMpfOFC9oNPhiJGfmY2pHF/gwHdLDLnrnS0=\"}", stakingcli.FlagPubKey),
+				fmt.Sprintf("--%s=1", stakingcli.FlagMinSelfDelegation),
 				val.Moniker,
 				amount.String(),
 			},
@@ -88,6 +91,7 @@ func (s *IntegrationTestSuite) TestGenTxCmd() {
 			args: []string{
 				fmt.Sprintf("--%s=%s", flags.FlagChainID, s.network.Config.ChainID),
 				fmt.Sprintf("--%s={\"@type\":\"/cosmos.crypto.ed25519.PubKey\",\"key\":\"BOIkjkFruMpfOFC9oNPhiJGfmY2pHF/gwHdLDLnrnS0=\"}", stakingcli.FlagPubKey),
+				fmt.Sprintf("--%s=1", stakingcli.FlagMinSelfDelegation),
 				val.Moniker,
 				amount.String(),
 			},
