@@ -58,6 +58,10 @@ Ref: https://keepachangelog.com/en/1.0.0/
 
 * [\#11886](https://github.com/cosmos/cosmos-sdk/pull/11886) Improve error messages
 
+## Improvements
+
+* [\#11886](https://github.com/cosmos/cosmos-sdk/pull/11886) Improve error messages
+
 ## [v0.45.4](https://github.com/cosmos/cosmos-sdk/releases/tag/v0.45.4) - 2022-04-25
 
 ### Bug Fixes
