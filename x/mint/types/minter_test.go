@@ -98,7 +98,6 @@ func BenchmarkNextInflation(b *testing.B) {
 	for n := 0; n < b.N; n++ {
 		minter.NextInflationRate(params)
 	}
-
 }
 
 // Next annual provisions benchmarking
@@ -113,5 +112,4 @@ func BenchmarkNextAnnualProvisions(b *testing.B) {
 	for n := 0; n < b.N; n++ {
 		minter.NextAnnualProvisions(params, totalSupply)
 	}
-
 }
