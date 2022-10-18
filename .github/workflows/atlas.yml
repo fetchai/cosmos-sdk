@@ -3,7 +3,7 @@ name: Atlas
 on:
   push:
     branches:
-      - main
+      - master
     paths:
       - "x/**/atlas/*"
   pull_request:
