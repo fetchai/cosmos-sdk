@@ -1,11 +1,11 @@
 name: Tests / Code Coverage
 #  Tests / Code Coverage workflow runs unit tests and uploads a code coverage report
-#  This workflow is run on pushes to master & every Pull Requests where a .go, .mod, .sum have been changed
+#  This workflow is run on pushes to main & every Pull Requests where a .go, .mod, .sum have been changed
 on:
   pull_request:
   push:
     branches:
-      - master
+      - main
 jobs:
   install-tparse:
     runs-on: ubuntu-latest
@@ -222,7 +222,7 @@ jobs:
 
   # Disabled since this can't build
   # the contrib/images/simd-env/Dockerfile is looking for a 
-  # db/go.mod file, which only exists on cosmos/cosmos-sdk master
+  # db/go.mod file, which only exists on cosmos/cosmos-sdk main
   # branch...
   #
   # liveness-test:

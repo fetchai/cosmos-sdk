@@ -158,10 +158,10 @@ Evidence supports both querying and submitting transactions via gRPC
 
 #### Query
 
-[gRPC query](https://docs.cosmos.network/master/core/proto-docs.html#cosmos/evidence/v1beta1/query.proto)
+[gRPC query](https://docs.cosmos.network/main/core/proto-docs.html#cosmos/evidence/v1beta1/query.proto)
 
 #### Tx
 
-[gRPC Tx](https://docs.cosmos.network/master/core/proto-docs.html#cosmos-evidence-v1beta1-tx-proto)
+[gRPC Tx](https://docs.cosmos.network/main/core/proto-docs.html#cosmos-evidence-v1beta1-tx-proto)
 
 View supported messages at [docs.cosmos.network/v0.40/modules/evidence](https://docs.cosmos.network/v0.40/modules/evidence/03_messages.html)
