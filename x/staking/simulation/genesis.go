@@ -63,7 +63,8 @@ func RandomizedGenState(simState *module.SimulationState) {
 	// NOTE: the slashing module need to be defined after the staking module on the
 	// NewSimulationManager constructor for this to work
 	simState.UnbondTime = unbondTime
-	params := types.NewParams(simState.UnbondTime, maxVals, 7, histEntries, sdk.DefaultBondDenom)
+	minCommission := sdk.NewDec(1)
+	params := types.NewParams(simState.UnbondTime, maxVals, 7, histEntries, sdk.DefaultBondDenom, &minCommission)
 
 	// validators & delegations
 	var (
@@ -72,6 +73,7 @@ func RandomizedGenState(simState *module.SimulationState) {
 	)
 
 	valAddrs := make([]sdk.ValAddress, simState.NumBonded)
+	fmt.Println("genesis.go - 76")
 
 	for i := 0; i < int(simState.NumBonded); i++ {
 		valAddr := sdk.ValAddress(simState.Accounts[i].Address)
@@ -97,13 +99,18 @@ func RandomizedGenState(simState *module.SimulationState) {
 		validators = append(validators, validator)
 		delegations = append(delegations, delegation)
 	}
+	fmt.Println("genesis.go - 102")
 
 	stakingGenesis := types.NewGenesisState(params, validators, delegations)
+	fmt.Println("genesis.go - 105")
 
 	bz, err := json.MarshalIndent(&stakingGenesis.Params, "", " ")
+	fmt.Println("genesis.go - 108")
 	if err != nil {
 		panic(err)
 	}
 	fmt.Printf("Selected randomly generated staking parameters:\n%s\n", bz)
+	fmt.Println("genesis.go - 113")
 	simState.GenState[types.ModuleName] = simState.Cdc.MustMarshalJSON(stakingGenesis)
+	fmt.Println("genesis.go - 115")
 }

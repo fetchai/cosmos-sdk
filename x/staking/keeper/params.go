@@ -1,6 +1,7 @@
 package keeper
 
 import (
+	"fmt"
 	"time"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
@@ -39,6 +40,12 @@ func (k Keeper) BondDenom(ctx sdk.Context) (res string) {
 	return
 }
 
+func (k Keeper) MinCommissionRate(ctx sdk.Context) (res *sdk.Dec) {
+	fmt.Println(res)
+	k.paramstore.Get(ctx, types.KeyMinCommissionRate, res)
+	return
+}
+
 // PowerReduction - is the amount of staking tokens required for 1 unit of consensus-engine power.
 // Currently, this returns a global variable that the app developer can tweak.
 // TODO: we might turn this into an on-chain param:
@@ -55,6 +62,7 @@ func (k Keeper) GetParams(ctx sdk.Context) types.Params {
 		k.MaxEntries(ctx),
 		k.HistoricalEntries(ctx),
 		k.BondDenom(ctx),
+		k.MinCommissionRate(ctx),
 	)
 }
 

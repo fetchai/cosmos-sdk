@@ -236,15 +236,19 @@ func (s Subspace) GetParamSetIfExists(ctx sdk.Context, ps ParamSet) {
 // corresponding parameter key in the Subspace's KVStore.
 func (s Subspace) SetParamSet(ctx sdk.Context, ps ParamSet) {
 	for _, pair := range ps.ParamSetPairs() {
+		fmt.Println(pair.Key)
 		// pair.Field is a pointer to the field, so indirecting the ptr.
 		// go-amino automatically handles it but just for sure,
 		// since SetStruct is meant to be used in InitGenesis
 		// so this method will not be called frequently
+		fmt.Println("subspace.go - 243")
 		v := reflect.Indirect(reflect.ValueOf(pair.Value)).Interface()
+		fmt.Println("subspace.go - 245")
 
 		if err := pair.ValidatorFn(v); err != nil {
 			panic(fmt.Sprintf("value from ParamSetPair is invalid: %s", err))
 		}
+		fmt.Println("subspace.go - 250")
 
 		s.Set(ctx, pair.Key, v)
 	}
