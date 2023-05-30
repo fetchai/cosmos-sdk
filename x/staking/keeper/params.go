@@ -41,6 +41,10 @@ func (k Keeper) BondDenom(ctx sdk.Context) (res string) {
 }
 
 func (k Keeper) MinCommissionRate(ctx sdk.Context) (res *sdk.Dec) {
+	if !k.paramstore.Has(ctx, types.KeyMinCommissionRate) {
+		return nil
+	}
+
 	res = new(sdk.Dec)
 	fmt.Println(res)
 	k.paramstore.Get(ctx, types.KeyMinCommissionRate, res)
