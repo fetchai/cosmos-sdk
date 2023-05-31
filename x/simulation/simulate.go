@@ -39,9 +39,7 @@ func initChain(
 		ConsensusParams: consensusParams,
 		Time:            genesisTimestamp,
 	}
-	fmt.Println("simulate.go - 42")
 	res := app.InitChain(req)
-	fmt.Println("simulate.go - 44")
 	validators := newMockValidators(r, res.Validators, params)
 
 	return validators, genesisTimestamp, accounts, chainID
@@ -69,11 +67,9 @@ func SimulateFromSeed(
 	params := RandomParams(r)
 	fmt.Fprintf(w, "Randomized simulation params: \n%s\n", mustMarshalJSONIndent(params))
 
-	fmt.Println("simulate.go - 70")
 	timeDiff := maxTimePerBlock - minTimePerBlock
 	accs := randAccFn(r, params.NumKeys())
 	eventStats := NewEventStats()
-	fmt.Println("simulate.go - 74")
 
 	// Second variable to keep pending validator set (delayed one block since
 	// TM 0.24) Initially this is the same as the initial validator set
@@ -81,7 +77,6 @@ func SimulateFromSeed(
 	if len(accs) == 0 {
 		return true, params, fmt.Errorf("must have greater than zero genesis accounts")
 	}
-	fmt.Println("simulate.go - 82")
 
 	config.ChainID = chainID
 

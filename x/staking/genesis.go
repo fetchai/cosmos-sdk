@@ -32,11 +32,8 @@ func InitGenesis(
 	// genesis.json are in block 0.
 	ctx = ctx.WithBlockHeight(1 - sdk.ValidatorUpdateDelay)
 
-	fmt.Println("staking/genesis.go - 35")
 	keeper.SetParams(ctx, data.Params)
-	fmt.Println("staking/genesis.go - 37")
 	keeper.SetLastTotalPower(ctx, data.LastTotalPower)
-	fmt.Println("staking/genesis.go - 39")
 
 	for _, validator := range data.Validators {
 		keeper.SetValidator(ctx, validator)
@@ -64,7 +61,6 @@ func InitGenesis(
 			panic("invalid validator status")
 		}
 	}
-	fmt.Println("staking/genesis.go - 67")
 
 	for _, delegation := range data.Delegations {
 		delegatorAddress := sdk.MustAccAddressFromBech32(delegation.DelegatorAddress)
@@ -80,7 +76,6 @@ func InitGenesis(
 			keeper.AfterDelegationModified(ctx, delegatorAddress, delegation.GetValidatorAddr())
 		}
 	}
-	fmt.Println("staking/genesis.go - 83")
 
 	for _, ubd := range data.UnbondingDelegations {
 		keeper.SetUnbondingDelegation(ctx, ubd)
@@ -90,7 +85,6 @@ func InitGenesis(
 			notBondedTokens = notBondedTokens.Add(entry.Balance)
 		}
 	}
-	fmt.Println("staking/genesis.go - 93")
 
 	for _, red := range data.Redelegations {
 		keeper.SetRedelegation(ctx, red)
@@ -99,12 +93,10 @@ func InitGenesis(
 			keeper.InsertRedelegationQueue(ctx, red, entry.CompletionTime)
 		}
 	}
-	fmt.Println("staking/genesis.go - 102")
 
 	bondedCoins := sdk.NewCoins(sdk.NewCoin(data.Params.BondDenom, bondedTokens))
 	notBondedCoins := sdk.NewCoins(sdk.NewCoin(data.Params.BondDenom, notBondedTokens))
 
-	fmt.Println("staking/genesis.go - 107")
 	// check if the unbonded and bonded pools accounts exists
 	bondedPool := keeper.GetBondedPool(ctx)
 	if bondedPool == nil {
@@ -115,7 +107,6 @@ func InitGenesis(
 	if bondedBalance.IsZero() {
 		accountKeeper.SetModuleAccount(ctx, bondedPool)
 	}
-	fmt.Println("staking/genesis.go - 118")
 	// if balance is different from bonded coins panic because genesis is most likely malformed
 	if !bondedBalance.IsEqual(bondedCoins) {
 		panic(fmt.Sprintf("bonded pool balance is different from bonded coins: %s <-> %s", bondedBalance, bondedCoins))
@@ -125,7 +116,6 @@ func InitGenesis(
 		panic(fmt.Sprintf("%s module account has not been set", types.NotBondedPoolName))
 	}
 
-	fmt.Println("staking/genesis.go - 128")
 	notBondedBalance := bankKeeper.GetAllBalances(ctx, notBondedPool.GetAddress())
 	if notBondedBalance.IsZero() {
 		accountKeeper.SetModuleAccount(ctx, notBondedPool)
@@ -134,11 +124,8 @@ func InitGenesis(
 	if !notBondedBalance.IsEqual(notBondedCoins) {
 		panic(fmt.Sprintf("not bonded pool balance is different from not bonded coins: %s <-> %s", notBondedBalance, notBondedCoins))
 	}
-	fmt.Println("staking/genesis.go - 137")
-	fmt.Println(data.Exported)
 	// don't need to run Tendermint updates if we exported
 	if data.Exported {
-		fmt.Println("staking/genesis.go - 140")
 		for _, lv := range data.LastValidatorPowers {
 			valAddr, err := sdk.ValAddressFromBech32(lv.Address)
 			if err != nil {
@@ -156,16 +143,12 @@ func InitGenesis(
 			res = append(res, update)
 		}
 	} else {
-		fmt.Println("staking/genesis.go - 158")
 		var err error
-		fmt.Println("staking/genesis.go - 160")
 		res, err = keeper.ApplyAndReturnValidatorSetUpdates(ctx)
-		fmt.Println("staking/genesis.go - 162")
 		if err != nil {
 			log.Fatal(err)
 		}
 	}
-	fmt.Println("staking/genesis.go - 167")
 
 	return res
 }

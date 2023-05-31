@@ -149,7 +149,6 @@ func (am AppModule) InitGenesis(ctx sdk.Context, cdc codec.JSONCodec, data json.
 	var genesisState types.GenesisState
 
 	cdc.MustUnmarshalJSON(data, &genesisState)
-	fmt.Println("staking/module.go - 152")
 	return InitGenesis(ctx, am.keeper, am.accountKeeper, am.bankKeeper, &genesisState)
 }
 
