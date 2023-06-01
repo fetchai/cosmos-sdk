@@ -39,10 +39,14 @@ func (k Keeper) BondDenom(ctx sdk.Context) (res string) {
 	return
 }
 
-func (k Keeper) MinCommissionRate(ctx sdk.Context) *sdk.Dec {
-	var res *sdk.Dec
-	k.paramstore.GetIfExists(ctx, types.KeyMinCommissionRate, res)
-	return res
+func (k Keeper) MinCommissionRate(ctx sdk.Context) (res *sdk.Dec) {
+	if !k.paramstore.Has(ctx, types.KeyMinCommissionRate) {
+		return nil
+	}
+
+	res = new(sdk.Dec)
+	k.paramstore.Get(ctx, types.KeyMinCommissionRate, res)
+	return
 }
 
 // PowerReduction - is the amount of staking tokens required for 1 unit of consensus-engine power.
