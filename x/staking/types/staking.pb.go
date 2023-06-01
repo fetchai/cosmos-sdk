@@ -843,7 +843,8 @@ type Params struct {
 	// historical_entries is the number of historical entries to persist.
 	HistoricalEntries uint32 `protobuf:"varint,4,opt,name=historical_entries,json=historicalEntries,proto3" json:"historical_entries,omitempty" yaml:"historical_entries"`
 	// bond_denom defines the bondable coin denomination.
-	BondDenom         string                                  `protobuf:"bytes,5,opt,name=bond_denom,json=bondDenom,proto3" json:"bond_denom,omitempty" yaml:"bond_denom"`
+	BondDenom string `protobuf:"bytes,5,opt,name=bond_denom,json=bondDenom,proto3" json:"bond_denom,omitempty" yaml:"bond_denom"`
+	// min_commission_rate defines the minimum value limit that the validator commission can be set to, as a fraction.
 	MinCommissionRate *github_com_cosmos_cosmos_sdk_types.Dec `protobuf:"bytes,200,opt,name=min_commission_rate,json=minCommissionRate,proto3,customtype=github.com/cosmos/cosmos-sdk/types.Dec" json:"min_commission_rate,omitempty" yaml:"min_commission_rate"`
 }
 

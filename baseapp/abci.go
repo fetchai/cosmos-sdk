@@ -60,9 +60,7 @@ func (app *BaseApp) InitChain(req abci.RequestInitChain) (res abci.ResponseInitC
 	// add block gas meter for any genesis transactions (allow infinite gas)
 	app.deliverState.ctx = app.deliverState.ctx.WithBlockGasMeter(sdk.NewInfiniteGasMeter())
 
-	fmt.Println("abci.go - 63")
 	res = app.initChainer(app.deliverState.ctx, req)
-	fmt.Println("abci.go - 65")
 
 	// sanity check
 	if len(req.Validators) > 0 {

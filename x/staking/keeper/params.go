@@ -1,7 +1,6 @@
 package keeper
 
 import (
-	"fmt"
 	"time"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
@@ -46,7 +45,6 @@ func (k Keeper) MinCommissionRate(ctx sdk.Context) (res *sdk.Dec) {
 	}
 
 	res = new(sdk.Dec)
-	fmt.Println(res)
 	k.paramstore.Get(ctx, types.KeyMinCommissionRate, res)
 	return
 }

@@ -13243,6 +13243,9 @@ paths:
                     description: bond_denom defines the bondable coin denomination.
                   min_commission_rate:
                     type: string
+                    description: >-
+                      min_commission_rate defines the minimum value limit that
+                      the validator commission can be set to, as a fraction.
             description: >-
               QueryParamsResponse is response type for the Query/Params RPC
               method.
@@ -30145,6 +30148,9 @@ definitions:
         description: bond_denom defines the bondable coin denomination.
       min_commission_rate:
         type: string
+        description: >-
+          min_commission_rate defines the minimum value limit that the validator
+          commission can be set to, as a fraction.
     description: Params defines the parameters for the staking module.
   cosmos.staking.v1beta1.Pool:
     type: object
@@ -31387,6 +31393,9 @@ definitions:
             description: bond_denom defines the bondable coin denomination.
           min_commission_rate:
             type: string
+            description: >-
+              min_commission_rate defines the minimum value limit that the
+              validator commission can be set to, as a fraction.
     description: QueryParamsResponse is response type for the Query/Params RPC method.
   cosmos.staking.v1beta1.QueryPoolResponse:
     type: object
