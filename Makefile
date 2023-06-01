@@ -400,7 +400,7 @@ proto-check-breaking:
 
 TM_URL              = https://raw.githubusercontent.com/tendermint/tendermint/v0.34.0-rc6/proto/tendermint
 GOGO_PROTO_URL      = https://raw.githubusercontent.com/regen-network/protobuf/cosmos
-COSMOS_PROTO_URL    = https://raw.githubusercontent.com/regen-network/cosmos-proto/main
+COSMOS_PROTO_URL    = https://raw.githubusercontent.com/regen-network/cosmos-proto/master
 CONFIO_URL          = https://raw.githubusercontent.com/confio/ics23/v0.6.3
 
 TM_CRYPTO_TYPES     = third_party/proto/tendermint/crypto
@@ -452,7 +452,7 @@ proto-update-deps:
 	@curl -sSL $(CONFIO_URL)/proofs.proto > $(CONFIO_TYPES)/proofs.proto
 ## insert go package option into proofs.proto file
 ## Issue link: https://github.com/confio/ics23/issues/32
-	@sed -i '4ioption go_package = "github.com/confio/ics23/go";' $(CONFIO_TYPES)/proofs.proto
+	@sed -i'.bak' -r -e 's/^[[:space:]]*(package[[:space:]]+ics23[[:space:]]*;)[[:space:]]*$$/\1 option go_package = "github.com\/confio\/ics23\/go";/' third_party/proto/confio/proofs.proto
 
 .PHONY: proto-all proto-gen proto-gen-any proto-swagger-gen proto-format proto-lint proto-check-breaking proto-update-deps
 
