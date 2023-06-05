@@ -16,6 +16,8 @@
 //	 -X "github.com/cosmos/cosmos-sdk/version.BuildTags=linux darwin amd64"
 package version
 
+// super important change
+
 import (
 	"encoding/json"
 	"fmt"
