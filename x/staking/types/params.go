@@ -33,20 +33,15 @@ const (
 )
 
 var (
-	KeyUnbondingTime     = []byte("UnbondingTime")
-	KeyMaxValidators     = []byte("MaxValidators")
-	KeyMaxEntries        = []byte("MaxEntries")
-	KeyBondDenom         = []byte("BondDenom")
-	KeyHistoricalEntries = []byte("HistoricalEntries")
-	KeyPowerReduction    = []byte("PowerReduction")
-	KeyMinCommissionRate = []byte("MinCommissionRate")
-
-	// TODO: add comments and set value properly, go through conversion to pointer
-
-	//DefaultMinCommissionRate, _ = sdk.NewDecFromStr("0.05")
-	testMin, _ = sdk.NewDecFromStr("0.05")
-
-	DefaultMinCommissionRate *sdk.Dec = &testMin
+	KeyUnbondingTime         = []byte("UnbondingTime")
+	KeyMaxValidators         = []byte("MaxValidators")
+	KeyMaxEntries            = []byte("MaxEntries")
+	KeyBondDenom             = []byte("BondDenom")
+	KeyHistoricalEntries     = []byte("HistoricalEntries")
+	KeyPowerReduction        = []byte("PowerReduction")
+	KeyMinCommissionRate     = []byte("MinCommissionRate")
+	minCommissionRate        = sdk.NewDecWithPrec(5, 2)
+	DefaultMinCommissionRate = &minCommissionRate
 )
 
 var _ paramtypes.ParamSet = (*Params)(nil)
