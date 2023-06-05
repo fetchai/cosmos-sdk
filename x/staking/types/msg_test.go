@@ -53,7 +53,7 @@ func TestMsgDecode(t *testing.T) {
 
 // test ValidateBasic for MsgCreateValidator
 func TestMsgCreateValidator(t *testing.T) {
-	commission1 := types.NewCommissionRates(sdk.ZeroDec(), sdk.ZeroDec(), sdk.ZeroDec())
+	commission1 := types.NewCommissionRates(*types.DefaultMinCommissionRate, *types.DefaultMinCommissionRate, sdk.ZeroDec())
 	commission2 := types.NewCommissionRates(sdk.NewDec(5), sdk.NewDec(5), sdk.NewDec(5))
 
 	tests := []struct {

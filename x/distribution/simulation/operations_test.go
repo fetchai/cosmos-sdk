@@ -235,7 +235,7 @@ func (suite *SimTestSuite) getTestingAccounts(r *rand.Rand, n int) []simtypes.Ac
 }
 
 func (suite *SimTestSuite) getTestingValidator0(accounts []simtypes.Account) stakingtypes.Validator {
-	commission0 := stakingtypes.NewCommission(sdk.ZeroDec(), sdk.OneDec(), sdk.OneDec())
+	commission0 := stakingtypes.NewCommission(*stakingtypes.DefaultMinCommissionRate, sdk.OneDec(), sdk.OneDec())
 	return suite.getTestingValidator(accounts, commission0, 0)
 }
 
