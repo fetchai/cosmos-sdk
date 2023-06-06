@@ -1,7 +1,7 @@
 # Cosmos SDK v0.45.9 Release Notes
 
-This is a security release for the 
-[Dragonberry security advisory](https://forum.cosmos.network/t/ibc-security-advisory-dragonberry/7702). 
+This is a security release for the
+[Dragonberry security advisory](https://forum.cosmos.network/t/ibc-security-advisory-dragonberry/7702).
 Please upgrade ASAP.
 
 Next to this, we have also included a few minor bugfixes.

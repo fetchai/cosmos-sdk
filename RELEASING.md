@@ -58,7 +58,6 @@ Edit it and:
 - Tick the `This is a pre-release` box (until mainnet release)
 - Hit `Publish release`
 
-
 ## Next steps
 
 To use this new release, `fetchd` needs to be updated.
