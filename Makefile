@@ -14,20 +14,17 @@ HTTPS_GIT := https://github.com/fetchai/cosmos-sdk.git
 DOCKER := $(shell which docker)
 DOCKER_BUF := $(DOCKER) run --rm -v $(CURDIR):/workspace --workdir /workspace bufbuild/buf
 
-
 GO_VERSION := $(shell go version | grep -Eo '[0-9]\.[0-9]+\.[0-9]+')
 GO_MAJOR_VERSION := $(shell echo $(GO_VERSION) | cut -d. -f1)
 GO_MINOR_VERSION := $(shell echo $(GO_VERSION) | cut -d. -f2)
 GO_MICRO_VERSION := $(shell echo $(GO_VERSION) | cut -d. -f3)
 SUPPORTED_GO_VERSION = 1.18.10
 
-$(info GO_VERSION = $(GO_MAJOR_VERSION).$(GO_MINOR_VERSION).$(GO_MICRO_VERSION))
-
 IS_SUPPORTED_VERSION := $(shell expr "$(GO_VERSION)" "==" "$(SUPPORTED_GO_VERSION)")
 ifeq "$(IS_SUPPORTED_VERSION)" "1"
-    $(info Go version OK)
+    $(info Go version is supported: $(GO_VERSION))
 else
-    $(info WARN: Go $(GO_VERSION) is not $(SUPPORTED_GO_VERSION), some tests might fail)
+    $(info WARN: Go version not supported, some tests might fail without version $(SUPPORTED_GO_VERSION))
 endif
 
 
