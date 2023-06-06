@@ -329,11 +329,13 @@ containerMarkdownLintFix=cosmos-sdk-markdownlint-fix
 golangci_lint_cmd=go run github.com/golangci/golangci-lint/cmd/golangci-lint
 
 lint: lint-go
-	@if docker ps -a --format '{{.Names}}' | grep -Eq "^${containerMarkdownLint}$$"; then docker start -a $(containerMarkdownLint); else docker run --name $(containerMarkdownLint) -i -v "$(CURDIR):/work" $(markdownLintImage); fi
+	@#if docker ps -a --format '{{.Names}}' | grep -Eq "^${containerMarkdownLint}$$"; then docker start -a $(containerMarkdownLint); else docker run --name $(containerMarkdownLint) -i -v "$(CURDIR):/work" $(markdownLintImage); fi
+	docker run -i --rm -v "$(CURDIR):/work" $(containerMarkdownLintImage) .
 
 lint-fix:
 	$(golangci_lint_cmd) run --fix --out-format=tab --issues-exit-code=0
-	@if docker ps -a --format '{{.Names}}' | grep -Eq "^${containerMarkdownLintFix}$$"; then docker start -a $(containerMarkdownLintFix); else docker run --name $(containerMarkdownLintFix) -i -v "$(CURDIR):/work" $(markdownLintImage) . --fix; fi
+	@#if docker ps -a --format '{{.Names}}' | grep -Eq "^${containerMarkdownLintFix}$$"; then docker start -a $(containerMarkdownLintFix); else docker run --name $(containerMarkdownLintFix) -i -v "$(CURDIR):/work" $(markdownLintImage) . --fix; fi
+	docker run -i --rm -v "$(CURDIR):/work" $(containerMarkdownLintImage) --fix .
 
 lint-go:
 	echo $(GIT_DIFF)
