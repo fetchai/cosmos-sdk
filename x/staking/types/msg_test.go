@@ -55,6 +55,7 @@ func TestMsgDecode(t *testing.T) {
 func TestMsgCreateValidator(t *testing.T) {
 	commission1 := types.NewCommissionRates(*types.DefaultMinCommissionRate, *types.DefaultMinCommissionRate, sdk.ZeroDec())
 	commission2 := types.NewCommissionRates(sdk.NewDec(5), sdk.NewDec(5), sdk.NewDec(5))
+	commission3 := types.NewCommissionRates(sdk.ZeroDec(), sdk.OneDec(), sdk.OneDec())
 
 	tests := []struct {
 		name, moniker, identity, website, securityContact, details string
@@ -75,6 +76,7 @@ func TestMsgCreateValidator(t *testing.T) {
 		{"zero min self delegation", "a", "b", "c", "d", "e", commission1, sdk.ZeroInt(), valAddr1, pk1, coinPos, false},
 		{"negative min self delegation", "a", "b", "c", "d", "e", commission1, sdk.NewInt(-1), valAddr1, pk1, coinPos, false},
 		{"delegation less than min self delegation", "a", "b", "c", "d", "e", commission1, coinPos.Amount.Add(sdk.OneInt()), valAddr1, pk1, coinPos, false},
+		{"commission invalid", "a", "b", "c", "d", "e", commission3, sdk.OneInt(), valAddr1, pk1, coinPos, false},
 	}
 
 	for _, tc := range tests {
