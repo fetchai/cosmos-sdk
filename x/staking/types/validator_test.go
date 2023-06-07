@@ -227,7 +227,7 @@ func TestValidatorSetInitialCommission(t *testing.T) {
 	}
 
 	for i, tc := range testCases {
-		val, err := tc.validator.SetInitialCommission(tc.commission)
+		val, err := tc.validator.SetCommission(tc.commission)
 
 		if tc.expectedErr {
 			require.Error(t, err,

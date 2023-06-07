@@ -1052,8 +1052,8 @@ func TestUpdateValidatorCommission(t *testing.T) {
 	val1 := teststaking.NewValidator(t, addrVals[0], PKs[0])
 	val2 := teststaking.NewValidator(t, addrVals[1], PKs[1])
 
-	val1, _ = val1.SetInitialCommission(commission1)
-	val2, _ = val2.SetInitialCommission(commission2)
+	val1, _ = val1.SetCommission(commission1)
+	val2, _ = val2.SetCommission(commission2)
 
 	app.StakingKeeper.SetValidator(ctx, val1)
 	app.StakingKeeper.SetValidator(ctx, val2)

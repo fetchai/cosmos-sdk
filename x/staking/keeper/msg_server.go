@@ -86,7 +86,7 @@ func (k msgServer) CreateValidator(goCtx context.Context, msg *types.MsgCreateVa
 		msg.Commission.MaxChangeRate, ctx.BlockHeader().Time,
 	)
 
-	validator, err = validator.SetInitialCommission(commission)
+	validator, err = validator.SetCommission(commission)
 	if err != nil {
 		return nil, err
 	}
