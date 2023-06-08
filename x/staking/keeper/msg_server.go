@@ -35,6 +35,13 @@ func (k msgServer) CreateValidator(goCtx context.Context, msg *types.MsgCreateVa
 		return nil, err
 	}
 
+	minRate := k.MinCommissionRate(ctx)
+	if minRate.GT(sdk.ZeroDec()) {
+		if msg.Commission.Rate.LT(*minRate) { // check to see if commission rate is less than minimum
+			return nil, sdkerrors.Wrapf(sdkerrors.ErrInvalidCommission, "Commission observed less than minimum, "+k.MinCommissionRate(ctx).String())
+		}
+	}
+
 	// check to see if the pubkey or sender has been registered before
 	if _, found := k.GetValidator(ctx, valAddr); found {
 		return nil, types.ErrValidatorOwnerExists
@@ -79,7 +86,7 @@ func (k msgServer) CreateValidator(goCtx context.Context, msg *types.MsgCreateVa
 		msg.Commission.MaxChangeRate, ctx.BlockHeader().Time,
 	)
 
-	validator, err = validator.SetInitialCommission(commission)
+	validator, err = validator.SetCommission(commission)
 	if err != nil {
 		return nil, err
 	}
@@ -144,6 +151,13 @@ func (k msgServer) EditValidator(goCtx context.Context, msg *types.MsgEditValida
 	validator.Description = description
 
 	if msg.CommissionRate != nil {
+
+		minRate := k.MinCommissionRate(ctx)
+		if minRate.GT(sdk.ZeroDec()) {
+			if msg.CommissionRate.LT(*minRate) { // check to see if commission rate is less than minimum
+				return nil, sdkerrors.Wrapf(sdkerrors.ErrInvalidCommission, "Commission observed less than minimum, "+k.MinCommissionRate(ctx).String())
+			}
+		}
 		commission, err := k.UpdateValidatorCommission(ctx, validator, *msg.CommissionRate)
 		if err != nil {
 			return nil, err

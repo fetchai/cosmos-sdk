@@ -50,6 +50,10 @@ func (cr CommissionRates) String() string {
 // parameters. If validation fails, an SDK error is returned.
 func (cr CommissionRates) Validate() error {
 	switch {
+	case cr.Rate.LT(minCommissionRate):
+		// rate cannot be less than min rate
+		return ErrCommissionLTMinRate
+
 	case cr.MaxRate.IsNegative():
 		// max rate cannot be negative
 		return ErrCommissionNegative
@@ -82,6 +86,10 @@ func (cr CommissionRates) Validate() error {
 // rate. If validation fails, an SDK error is returned.
 func (c Commission) ValidateNewRate(newRate sdk.Dec, blockTime time.Time) error {
 	switch {
+	case newRate.LT(minCommissionRate):
+		// new rate cannot be less than min rate
+		return ErrCommissionLTMinRate
+
 	case blockTime.Sub(c.UpdateTime).Hours() < 24:
 		// new rate cannot be changed more than once within 24 hours
 		return ErrCommissionUpdateTime

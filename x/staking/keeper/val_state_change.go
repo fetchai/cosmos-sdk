@@ -115,6 +115,7 @@ func (k Keeper) ApplyAndReturnValidatorSetUpdates(ctx sdk.Context) (updates []ab
 	// Retrieve the last validator set.
 	// The persistent set is updated later in this function.
 	// (see LastValidatorPowerKey).
+
 	last, err := k.getLastValidatorsByAddr(ctx)
 	if err != nil {
 		return nil, err
@@ -122,8 +123,8 @@ func (k Keeper) ApplyAndReturnValidatorSetUpdates(ctx sdk.Context) (updates []ab
 
 	// Iterate over validators, highest power to lowest.
 	iterator := k.ValidatorsPowerStoreIterator(ctx)
-	defer iterator.Close()
 
+	defer iterator.Close()
 	for count := 0; iterator.Valid() && count < int(maxValidators); iterator.Next() {
 		// everything that is iterated in this loop is becoming or already a
 		// part of the bonded validator set

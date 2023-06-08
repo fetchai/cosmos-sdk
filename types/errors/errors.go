@@ -147,6 +147,8 @@ var (
 	// ErrPanic is only set when we recover from a panic, so we know to
 	// redact potentially sensitive system info
 	ErrPanic = Register(UndefinedCodespace, 111222, "panic")
+
+	ErrInvalidCommission = Register(RootCodespace, 41, "invalid commission rate")
 )
 
 // Register returns an error instance that should be used as the base for

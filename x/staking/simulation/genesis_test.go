@@ -2,6 +2,7 @@ package simulation_test
 
 import (
 	"encoding/json"
+	sdk "github.com/cosmos/cosmos-sdk/types"
 	"math/rand"
 	"testing"
 
@@ -64,6 +65,68 @@ func TestRandomizedGenState(t *testing.T) {
 	require.Equal(t, "0.330000000000000000", stakingGenesis.Validators[2].Commission.CommissionRates.MaxRate.String())
 	require.Equal(t, "0.038337453731274481", stakingGenesis.Validators[2].Commission.CommissionRates.MaxChangeRate.String())
 	require.Equal(t, "1", stakingGenesis.Validators[2].MinSelfDelegation.String())
+}
+
+// TestGenesisCommissionRate tests the functionality of updating validator commission rates from initial conditions.
+// Commissions above and below the minimum rate are tested. The test aims to confirm minimum commission rate limiting.
+func TestGenesisCommissionRate(t *testing.T) {
+	interfaceRegistry := codectypes.NewInterfaceRegistry()
+	cryptocodec.RegisterInterfaces(interfaceRegistry)
+	cdc := codec.NewProtoCodec(interfaceRegistry)
+
+	s := rand.NewSource(1)
+	r := rand.New(s)
+
+	simState := module.SimulationState{
+		AppParams:    make(simtypes.AppParams),
+		Cdc:          cdc,
+		Rand:         r,
+		NumBonded:    3,
+		Accounts:     simtypes.RandomAccounts(r, 3),
+		InitialStake: 1000,
+		GenState:     make(map[string]json.RawMessage),
+	}
+
+	simulation.RandomizedGenState(&simState)
+
+	var stakingGenesis types.GenesisState
+	simState.Cdc.MustUnmarshalJSON(simState.GenState[types.ModuleName], &stakingGenesis)
+
+	testValidator := stakingGenesis.Validators[2]
+	// validator commission is manually set below minimum commission rate
+	testValidator.Commission.Rate = sdk.ZeroDec()
+	testValidator.Commission.MaxChangeRate = sdk.OneDec()
+	testValidator.Commission.MaxRate = sdk.OneDec()
+
+	testCases := []struct {
+		validator   types.Validator
+		commission  types.Commission
+		expectedErr bool
+	}{
+		// set to minimum commission rate
+		{testValidator, types.NewCommission(*types.DefaultMinCommissionRate, sdk.OneDec(), sdk.OneDec()), false},
+		// set to 1% above minimum commission rate
+		{testValidator, types.NewCommission((*types.DefaultMinCommissionRate).Add(sdk.NewDecWithPrec(1, 2)), sdk.OneDec(), sdk.OneDec()), false},
+		// set to 1% below minimum commission rate
+		{testValidator, types.NewCommission((*types.DefaultMinCommissionRate).Sub(sdk.NewDecWithPrec(1, 2)), sdk.OneDec(), sdk.OneDec()), true},
+	}
+
+	for i, tc := range testCases {
+		val, err := tc.validator.SetCommission(tc.commission)
+
+		if tc.expectedErr {
+			require.Error(t, err,
+				"expected error for test case #%d with commission: %s", i, tc.commission,
+			)
+		} else {
+			require.NoError(t, err,
+				"unexpected error for test case #%d with commission: %s", i, tc.commission,
+			)
+			require.Equal(t, tc.commission, val.Commission,
+				"invalid validator commission for test case #%d with commission: %s", i, tc.commission,
+			)
+		}
+	}
 }
 
 // TestRandomizedGenState1 tests abnormal scenarios of applying RandomizedGenState.

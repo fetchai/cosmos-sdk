@@ -215,7 +215,9 @@ func TestValidatorSetInitialCommission(t *testing.T) {
 		commission  types.Commission
 		expectedErr bool
 	}{
-		{val, types.NewCommission(sdk.ZeroDec(), sdk.ZeroDec(), sdk.ZeroDec()), false},
+		{val, types.NewCommission(*types.DefaultMinCommissionRate, *types.DefaultMinCommissionRate, sdk.ZeroDec()), false},
+		{val, types.NewCommission(sdk.ZeroDec(), *types.DefaultMinCommissionRate, sdk.ZeroDec()), true},
+		{val, types.NewCommission(sdk.ZeroDec(), sdk.ZeroDec(), sdk.ZeroDec()), true},
 		{val, types.NewCommission(sdk.ZeroDec(), sdk.NewDecWithPrec(-1, 1), sdk.ZeroDec()), true},
 		{val, types.NewCommission(sdk.ZeroDec(), sdk.NewDec(15000000000), sdk.ZeroDec()), true},
 		{val, types.NewCommission(sdk.NewDecWithPrec(-1, 1), sdk.ZeroDec(), sdk.ZeroDec()), true},
@@ -225,7 +227,7 @@ func TestValidatorSetInitialCommission(t *testing.T) {
 	}
 
 	for i, tc := range testCases {
-		val, err := tc.validator.SetInitialCommission(tc.commission)
+		val, err := tc.validator.SetCommission(tc.commission)
 
 		if tc.expectedErr {
 			require.Error(t, err,

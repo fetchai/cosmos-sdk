@@ -19,7 +19,7 @@ var (
 	valTokens           = sdk.TokensFromConsensusPower(42, sdk.DefaultPowerReduction)
 	TestProposal        = types.NewTextProposal("Test", "description")
 	TestDescription     = stakingtypes.NewDescription("T", "E", "S", "T", "Z")
-	TestCommissionRates = stakingtypes.NewCommissionRates(sdk.ZeroDec(), sdk.ZeroDec(), sdk.ZeroDec())
+	TestCommissionRates = stakingtypes.NewCommissionRates(*stakingtypes.DefaultMinCommissionRate, *stakingtypes.DefaultMinCommissionRate, sdk.ZeroDec())
 )
 
 // SortAddresses - Sorts Addresses

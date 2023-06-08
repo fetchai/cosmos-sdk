@@ -25,12 +25,10 @@ var (
 	priv2 = secp256k1.GenPrivKey()
 	addr2 = sdk.AccAddress(priv2.PubKey().Address())
 
-	valKey  = ed25519.GenPrivKey()
-	valAddr = sdk.AccAddress(valKey.PubKey().Address())
-
-	commissionRates = types.NewCommissionRates(sdk.ZeroDec(), sdk.ZeroDec(), sdk.ZeroDec())
-
-	PKs = simapp.CreateTestPubKeys(500)
+	valKey          = ed25519.GenPrivKey()
+	valAddr         = sdk.AccAddress(valKey.PubKey().Address())
+	commissionRates = types.NewCommissionRates(*types.DefaultMinCommissionRate, *types.DefaultMinCommissionRate, sdk.ZeroDec())
+	PKs             = simapp.CreateTestPubKeys(500)
 )
 
 // getBaseSimappWithCustomKeeper Returns a simapp with custom StakingKeeper

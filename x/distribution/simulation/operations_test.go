@@ -235,7 +235,7 @@ func (suite *SimTestSuite) getTestingAccounts(r *rand.Rand, n int) []simtypes.Ac
 }
 
 func (suite *SimTestSuite) getTestingValidator0(accounts []simtypes.Account) stakingtypes.Validator {
-	commission0 := stakingtypes.NewCommission(sdk.ZeroDec(), sdk.OneDec(), sdk.OneDec())
+	commission0 := stakingtypes.NewCommission(*stakingtypes.DefaultMinCommissionRate, sdk.OneDec(), sdk.OneDec())
 	return suite.getTestingValidator(accounts, commission0, 0)
 }
 
@@ -247,7 +247,7 @@ func (suite *SimTestSuite) getTestingValidator(accounts []simtypes.Account, comm
 	validator, err := stakingtypes.NewValidator(valAddr, valPubKey, stakingtypes.
 		Description{})
 	require.NoError(err)
-	validator, err = validator.SetInitialCommission(commission)
+	validator, err = validator.SetCommission(commission)
 	require.NoError(err)
 	validator.DelegatorShares = sdk.NewDec(100)
 	validator.Tokens = sdk.NewInt(1000000)

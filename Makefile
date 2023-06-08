@@ -14,6 +14,20 @@ HTTPS_GIT := https://github.com/fetchai/cosmos-sdk.git
 DOCKER := $(shell which docker)
 DOCKER_BUF := $(DOCKER) run --rm -v $(CURDIR):/workspace --workdir /workspace bufbuild/buf
 
+GO_VERSION := $(shell go version | grep -Eo '[0-9]\.[0-9]+\.[0-9]+')
+GO_MAJOR_VERSION := $(shell echo $(GO_VERSION) | cut -d. -f1)
+GO_MINOR_VERSION := $(shell echo $(GO_VERSION) | cut -d. -f2)
+GO_MICRO_VERSION := $(shell echo $(GO_VERSION) | cut -d. -f3)
+SUPPORTED_GO_VERSION = 1.18.10
+
+IS_SUPPORTED_VERSION := $(shell expr "$(GO_VERSION)" "==" "$(SUPPORTED_GO_VERSION)")
+ifeq "$(IS_SUPPORTED_VERSION)" "1"
+    $(info Go version is supported: $(GO_VERSION))
+else
+    $(info WARN: Go version not supported, some tests might fail without version $(SUPPORTED_GO_VERSION))
+endif
+
+
 export GO111MODULE = on
 
 # process build tags
@@ -315,11 +329,13 @@ containerMarkdownLintFix=cosmos-sdk-markdownlint-fix
 golangci_lint_cmd=go run github.com/golangci/golangci-lint/cmd/golangci-lint
 
 lint: lint-go
-	@if docker ps -a --format '{{.Names}}' | grep -Eq "^${containerMarkdownLint}$$"; then docker start -a $(containerMarkdownLint); else docker run --name $(containerMarkdownLint) -i -v "$(CURDIR):/work" $(markdownLintImage); fi
+	@#if docker ps -a --format '{{.Names}}' | grep -Eq "^${containerMarkdownLint}$$"; then docker start -a $(containerMarkdownLint); else docker run --name $(containerMarkdownLint) -i -v "$(CURDIR):/work" $(markdownLintImage); fi
+	docker run -i --rm -v "$(CURDIR):/work" $(containerMarkdownLintImage) .
 
 lint-fix:
 	$(golangci_lint_cmd) run --fix --out-format=tab --issues-exit-code=0
-	@if docker ps -a --format '{{.Names}}' | grep -Eq "^${containerMarkdownLintFix}$$"; then docker start -a $(containerMarkdownLintFix); else docker run --name $(containerMarkdownLintFix) -i -v "$(CURDIR):/work" $(markdownLintImage) . --fix; fi
+	@#if docker ps -a --format '{{.Names}}' | grep -Eq "^${containerMarkdownLintFix}$$"; then docker start -a $(containerMarkdownLintFix); else docker run --name $(containerMarkdownLintFix) -i -v "$(CURDIR):/work" $(markdownLintImage) . --fix; fi
+	docker run -i --rm -v "$(CURDIR):/work" $(containerMarkdownLintImage) --fix .
 
 lint-go:
 	echo $(GIT_DIFF)
@@ -400,7 +416,7 @@ proto-check-breaking:
 
 TM_URL              = https://raw.githubusercontent.com/tendermint/tendermint/v0.34.0-rc6/proto/tendermint
 GOGO_PROTO_URL      = https://raw.githubusercontent.com/regen-network/protobuf/cosmos
-COSMOS_PROTO_URL    = https://raw.githubusercontent.com/regen-network/cosmos-proto/main
+COSMOS_PROTO_URL    = https://raw.githubusercontent.com/regen-network/cosmos-proto/master
 CONFIO_URL          = https://raw.githubusercontent.com/confio/ics23/v0.6.3
 
 TM_CRYPTO_TYPES     = third_party/proto/tendermint/crypto
@@ -452,7 +468,7 @@ proto-update-deps:
 	@curl -sSL $(CONFIO_URL)/proofs.proto > $(CONFIO_TYPES)/proofs.proto
 ## insert go package option into proofs.proto file
 ## Issue link: https://github.com/confio/ics23/issues/32
-	@sed -i '4ioption go_package = "github.com/confio/ics23/go";' $(CONFIO_TYPES)/proofs.proto
+	@sed -i'.bak' -r -e 's/^[[:space:]]*(package[[:space:]]+ics23[[:space:]]*;)[[:space:]]*$$/\1 option go_package = "github.com\/confio\/ics23\/go";/' third_party/proto/confio/proofs.proto
 
 .PHONY: proto-all proto-gen proto-gen-any proto-swagger-gen proto-format proto-lint proto-check-breaking proto-update-deps
 

@@ -297,7 +297,6 @@ func TestAppStateDeterminism(t *testing.T) {
 			} else {
 				logger = log.NewNopLogger()
 			}
-
 			db := dbm.NewMemDB()
 			app := NewSimApp(logger, db, nil, true, map[int64]bool{}, DefaultNodeHome, FlagPeriodValue, MakeTestEncodingConfig(), EmptyAppOptions{}, interBlockCacheOpt())
 

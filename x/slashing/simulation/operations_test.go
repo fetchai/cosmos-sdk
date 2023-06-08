@@ -130,7 +130,7 @@ func getTestingAccounts(t *testing.T, r *rand.Rand, app *simapp.SimApp, ctx sdk.
 }
 
 func getTestingValidator0(t *testing.T, app *simapp.SimApp, ctx sdk.Context, accounts []simtypes.Account) stakingtypes.Validator {
-	commission0 := stakingtypes.NewCommission(sdk.ZeroDec(), sdk.OneDec(), sdk.OneDec())
+	commission0 := stakingtypes.NewCommission(*stakingtypes.DefaultMinCommissionRate, sdk.OneDec(), sdk.OneDec())
 	return getTestingValidator(t, app, ctx, accounts, commission0, 0)
 }
 
@@ -140,7 +140,7 @@ func getTestingValidator(t *testing.T, app *simapp.SimApp, ctx sdk.Context, acco
 	valAddr := sdk.ValAddress(account.PubKey.Address().Bytes())
 	validator, err := stakingtypes.NewValidator(valAddr, valPubKey, stakingtypes.Description{})
 	require.NoError(t, err)
-	validator, err = validator.SetInitialCommission(commission)
+	validator, err = validator.SetCommission(commission)
 	require.NoError(t, err)
 
 	validator.DelegatorShares = sdk.NewDec(100)
