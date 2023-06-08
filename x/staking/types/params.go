@@ -41,7 +41,7 @@ var (
 	KeyPowerReduction        = []byte("PowerReduction")
 	KeyMinCommissionRate     = []byte("MinCommissionRate")
 	minCommissionRate        = sdk.NewDecWithPrec(5, 2)
-	DefaultMinCommissionRate = &minCommissionRate
+	DefaultMinCommissionRate = &minCommissionRate // TODO(Joe): MOVE
 )
 
 var _ paramtypes.ParamSet = (*Params)(nil)

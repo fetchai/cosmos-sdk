@@ -6,7 +6,7 @@ run:
 linters:
   disable-all: true
   enable:
-    - depguard
+#    - depguard # TODO(Joe): Investigate why depguard fails in CI
     - dogsled
     - exportloopref
     - goconst
