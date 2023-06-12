@@ -79,20 +79,20 @@ First we create a pool for storing tokens that are being bonded, but should be a
 
 ### Staking messages
 
-- **MsgCreateValidator**: Move user's self-bond to `EpochDelegationPool` immediately. Queue a message for the epoch boundary to handle the self-bond, taking the funds from the `EpochDelegationPool`. If Epoch execution fail, return back funds from `EpochDelegationPool` to user's account.
-- **MsgEditValidator**: Validate message and if valid queue the message for execution at the end of the Epoch.
-- **MsgDelegate**: Move user's funds to `EpochDelegationPool` immediately. Queue a message for the epoch boundary to handle the delegation, taking the funds from the `EpochDelegationPool`. If Epoch execution fail, return back funds from `EpochDelegationPool` to user's account.
-- **MsgBeginRedelegate**: Validate message and if valid queue the message for execution at the end of the Epoch.
-- **MsgUndelegate**: Validate message and if valid queue the message for execution at the end of the Epoch.
+- __MsgCreateValidator__: Move user's self-bond to `EpochDelegationPool` immediately. Queue a message for the epoch boundary to handle the self-bond, taking the funds from the `EpochDelegationPool`. If Epoch execution fail, return back funds from `EpochDelegationPool` to user's account.
+- __MsgEditValidator__: Validate message and if valid queue the message for execution at the end of the Epoch.
+- __MsgDelegate__: Move user's funds to `EpochDelegationPool` immediately. Queue a message for the epoch boundary to handle the delegation, taking the funds from the `EpochDelegationPool`. If Epoch execution fail, return back funds from `EpochDelegationPool` to user's account.
+- __MsgBeginRedelegate__: Validate message and if valid queue the message for execution at the end of the Epoch.
+- __MsgUndelegate__: Validate message and if valid queue the message for execution at the end of the Epoch.
 
 ### Slashing messages
 
-- **MsgUnjail**: Validate message and if valid queue the message for execution at the end of the Epoch.
-- **Slash Event**: Whenever a slash event is created, it gets queued in the slashing module to apply at the end of the epoch. The queues should be setup such that this slash applies immediately.
+- __MsgUnjail__: Validate message and if valid queue the message for execution at the end of the Epoch.
+- __Slash Event__: Whenever a slash event is created, it gets queued in the slashing module to apply at the end of the epoch. The queues should be setup such that this slash applies immediately.
 
 ### Evidence Messages
 
-- **MsgSubmitEvidence**: This gets executed immediately, and the validator gets jailed immediately. However in slashing, the actual slash event gets queued.
+- __MsgSubmitEvidence__: This gets executed immediately, and the validator gets jailed immediately. However in slashing, the actual slash event gets queued.
 
 Then we add methods to the end blockers, to ensure that at the epoch boundary the queues are cleared and delegation updates are applied.
 
