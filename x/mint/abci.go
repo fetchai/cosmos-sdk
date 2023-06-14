@@ -9,6 +9,37 @@ import (
 	"github.com/cosmos/cosmos-sdk/x/mint/types"
 )
 
+// HandleInflations iterates through all other native tokens specified in the Minter.inflations structure, and processes
+// the minting of new coins in line with the respective inflation rate of each denomination
+func HandleInflations(ctx sdk.Context, k keeper.Keeper) {
+	minter := k.GetMinter(ctx)
+
+	// iterate through other native denominations
+	for _, inflation := range minter.Inflations {
+		denom := inflation.Denom
+		inflationRate := inflation.InflationRate
+		targetAddress := inflation.TargetAddress
+
+		// gather supply value & calculate number of new tokens created from relevant inflation
+		totalDenomSupply := k.BankKeeper.GetSupply(ctx, denom)
+		newCoinAmounts := inflationRate.MulInt(totalDenomSupply.Amount)
+
+		// mint these new tokens
+		mintedCoin := sdk.NewCoin(denom, newCoinAmounts.TruncateInt())
+		mintedCoins := sdk.NewCoins(mintedCoin)
+		err := k.MintCoins(ctx, mintedCoins)
+		if err != nil {
+			panic(err)
+		}
+
+		// send these new tokens to respective target address
+		err = k.BankKeeper.SendCoinsFromModuleToAccount(ctx, types.ModuleName, sdk.AccAddress(targetAddress), mintedCoins)
+		if err != nil {
+			panic(err)
+		}
+	}
+}
+
 // BeginBlocker mints new tokens for the previous block.
 func BeginBlocker(ctx sdk.Context, k keeper.Keeper) {
 	defer telemetry.ModuleMeasureSince(types.ModuleName, time.Now(), telemetry.MetricKeyBeginBlocker)

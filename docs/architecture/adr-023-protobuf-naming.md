@@ -138,7 +138,7 @@ or significantly alter the package in the near future
 significantly refactor/rework the functionality in the near future but not remove it
 * modules *can and should* have types in both stable (i.e. `v1` or `v2`) and unstable (`alpha` or `beta`) packages.
 
-*`alpha` and `beta` should not be used to avoid responsibility for maintaining compatibility.*
+_`alpha` and `beta` should not be used to avoid responsibility for maintaining compatibility._
 Whenever code is released into the wild, especially on a blockchain, there is a high cost to changing things. In some
 cases, for instance with immutable smart contracts, a breaking change may be impossible to fix.
 

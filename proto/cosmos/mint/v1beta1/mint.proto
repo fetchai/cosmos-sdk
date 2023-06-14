@@ -16,6 +16,19 @@ message Minter {
     (gogoproto.customtype) = "github.com/cosmos/cosmos-sdk/types.Dec",
     (gogoproto.nullable)   = false
   ];
+
+  //  map<string, Inflation> inflations = 3;
+  repeated Inflation inflations = 3;
+}
+
+message Inflation {
+  string denom          = 1;
+  string target_address = 2;
+  string inflation_rate = 3 [
+    (gogoproto.moretags)   = "yaml:\"inflation_rate\"",
+    (gogoproto.customtype) = "github.com/cosmos/cosmos-sdk/types.Dec",
+    (gogoproto.nullable)   = false
+  ];
 }
 
 // Params holds parameters for the mint module.
