@@ -78,7 +78,7 @@ Only the following major release series have a stable release status:
 ### Patch Releases
 
 Once a Cosmos-SDK release has been completed and published, updates for it are released under certain circumstances
-and must follow the [Patch Release Procedure](CONTRIBUTING.md#patch-release-procedure)[Point Release Procedure].
+and must follow the [Patch Release Procedure][CONTRIBUTING.md#patch-release-procedure](Point Release Procedure).
 
 ### Rationale
 
@@ -113,7 +113,7 @@ To smoothen the update to the latest stable release, the SDK includes a set of C
 
 * **High-impact bugs**
     * Bugs that may directly cause a security vulnerability.
-    * *Severe regressions* from a Cosmos-SDK's previous release. This includes all sort of issues
+    * _Severe regressions_ from a Cosmos-SDK's previous release. This includes all sort of issues
     that may cause the core packages or the `x/` modules unusable.
     * Bugs that may cause **loss of user's data**.
 * Other safe cases:
@@ -150,10 +150,10 @@ As rule of thumb, the following changes will **NOT** be automatically accepted i
 * **State machine changes**.
 * **Protobug-breaking changes**, as specified in [ADR-044](./docs/architecture/adr-044-protobuf-updates-       guidelines.md).
 * **Client-breaking changes**, i.e. changes that prevent gRPC, HTTP and RPC clients to continue interacting with the node without any change.
-* **API-breaking changes**, i.e. changes that prevent client applications to *build without modifications* to the client application's source code.
+* **API-breaking changes**, i.e. changes that prevent client applications to _build without modifications_ to the client application's source code.
 * **CLI-breaking changes**, i.e. changes that require usage changes for CLI users.
 
- In some circumstances, PRs that don't meet the aforementioned criteria might be raised and asked to be granted a *Stable Release Exception*.
+ In some circumstances, PRs that don't meet the aforementioned criteria might be raised and asked to be granted a _Stable Release Exception_.
 
 ### Stable Release Exception - Procedure
 
@@ -164,7 +164,7 @@ As rule of thumb, the following changes will **NOT** be automatically accepted i
 * A **[Test Case]** section containing detailed instructions on how to reproduce the bug.
 * A **[Regression Potential]** section with a clear assessment on how regressions are most likely to manifest as a result of the pull request that aims to fix the bug in the target stable release.
 
-3. **Stable Release Managers** will review and discuss the PR. Once *consensus* surrounding the rationale has been reached and the technical review has successfully concluded, the pull request will be merged in the respective point-release target branch (e.g. `release/v0.43.x`) and the PR included in the point-release's respective milestone (e.g. `v0.43.5`).
+3. **Stable Release Managers** will review and discuss the PR. Once _consensus_ surrounding the rationale has been reached and the technical review has successfully concluded, the pull request will be merged in the respective point-release target branch (e.g. `release/v0.43.x`) and the PR included in the point-release's respective milestone (e.g. `v0.43.5`).
 
 #### Stable Release Exception - Bug template
 
