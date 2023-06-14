@@ -5912,7 +5912,7 @@ method.
 
 | Field | Type | Label | Description |
 | ----- | ---- | ----- | ----------- |
-| `inflations` | [Inflation](#cosmos.mint.v1beta1.Inflation) | repeated | inflations is a list of the native inflation values. map<string, Inflation> inflations = 1; |
+| `inflations` | [Inflation](#cosmos.mint.v1beta1.Inflation) | repeated | inflation is the current minting inflation value. |
 
 
 
@@ -5959,7 +5959,7 @@ Query provides defines the gRPC querier service.
 | ----------- | ------------ | ------------- | ------------| ------- | -------- |
 | `Params` | [QueryParamsRequest](#cosmos.mint.v1beta1.QueryParamsRequest) | [QueryParamsResponse](#cosmos.mint.v1beta1.QueryParamsResponse) | Params returns the total set of minting parameters. | GET|/cosmos/mint/v1beta1/params|
 | `Inflation` | [QueryInflationRequest](#cosmos.mint.v1beta1.QueryInflationRequest) | [QueryInflationResponse](#cosmos.mint.v1beta1.QueryInflationResponse) | Inflation returns the current minting inflation value. | GET|/cosmos/mint/v1beta1/inflation|
-| `Inflations` | [QueryInflationsRequest](#cosmos.mint.v1beta1.QueryInflationsRequest) | [QueryInflationsResponse](#cosmos.mint.v1beta1.QueryInflationsResponse) | Inflations returns a list of all token minting inflation values. | GET|/cosmos/mint/v1beta1/inflations|
+| `Inflations` | [QueryInflationsRequest](#cosmos.mint.v1beta1.QueryInflationsRequest) | [QueryInflationsResponse](#cosmos.mint.v1beta1.QueryInflationsResponse) | Inflation returns the current minting inflation value. | GET|/cosmos/mint/v1beta1/inflations|
 | `AnnualProvisions` | [QueryAnnualProvisionsRequest](#cosmos.mint.v1beta1.QueryAnnualProvisionsRequest) | [QueryAnnualProvisionsResponse](#cosmos.mint.v1beta1.QueryAnnualProvisionsResponse) | AnnualProvisions current minting annual provisions value. | GET|/cosmos/mint/v1beta1/annual_provisions|
 
  <!-- end services -->

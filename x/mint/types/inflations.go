@@ -34,7 +34,7 @@ func ValidateInflation(inflation Inflation) error {
 	return nil
 }
 
-func validateInflations(i interface{}) error {
+func ValidateInflations(i interface{}) error {
 	v, ok := i.([]*Inflation)
 	if !ok {
 		return fmt.Errorf("invalid parameter type: %T", i)

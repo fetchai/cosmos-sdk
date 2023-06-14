@@ -14,6 +14,12 @@ import (
 func HandleInflations(ctx sdk.Context, k keeper.Keeper) {
 	minter := k.GetMinter(ctx)
 
+	// validate inflations
+	err := types.ValidateInflations(minter.Inflations)
+	if err != nil {
+		panic(err)
+	}
+
 	// iterate through other native denominations
 	for _, inflation := range minter.Inflations {
 		denom := inflation.Denom
@@ -25,9 +31,8 @@ func HandleInflations(ctx sdk.Context, k keeper.Keeper) {
 		newCoinAmounts := inflationRate.MulInt(totalDenomSupply.Amount)
 
 		// mint these new tokens
-		mintedCoin := sdk.NewCoin(denom, newCoinAmounts.TruncateInt())
-		mintedCoins := sdk.NewCoins(mintedCoin)
-		err := k.MintCoins(ctx, mintedCoins)
+		mintedCoins := sdk.NewCoins(sdk.NewCoin(denom, newCoinAmounts.TruncateInt()))
+		err = k.MintCoins(ctx, mintedCoins)
 		if err != nil {
 			panic(err)
 		}
