@@ -71,7 +71,6 @@ func (suite *SimTestSuite) testInflationsValidation() {
 
 	targetAccounts := suite.getTestingAccounts(r, 3)
 	minter := suite.app.MintKeeper.GetMinter(suite.ctx)
-	var testSupply int64 = 1000000
 
 	tests := []struct {
 		inflation      Inflation
