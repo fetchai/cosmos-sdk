@@ -1,13 +1,11 @@
 package mint
 
 import (
-	"math"
-	"time"
-
 	"github.com/cosmos/cosmos-sdk/telemetry"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/x/mint/keeper"
 	"github.com/cosmos/cosmos-sdk/x/mint/types"
+	"time"
 )
 
 // HandleInflations iterates through all other native tokens specified in the Minter.inflations structure, and processes
@@ -25,16 +23,17 @@ func HandleInflations(ctx sdk.Context, k keeper.Keeper) {
 	// iterate through other native denominations
 	for _, inflation := range minter.Inflations {
 		denom := inflation.Denom
-		inflationRate := inflation.InflationRate
 		targetAddress := inflation.TargetAddress
 
 		// gather supply value & calculate number of new tokens created from relevant inflation
 		totalDenomSupply := k.BankKeeper.GetSupply(ctx, denom)
-		inflationPerBlock := int(math.Pow((inflationRate.Add(sdk.OneDec())).MustFloat64(), float64(1/params.BlocksPerYear))) - 1
-		newCoinAmounts := totalDenomSupply.Amount.Mul(sdk.NewInt(int64(inflationPerBlock)))
 
 		// mint these new tokens
-		mintedCoins := sdk.NewCoins(sdk.NewCoin(denom, newCoinAmounts))
+		mintedCoins, err := types.CalculateInflation(inflation, params.BlocksPerYear, totalDenomSupply)
+		if err != nil {
+			panic(err)
+		}
+
 		err = k.MintCoins(ctx, mintedCoins)
 		if err != nil {
 			panic(err)
