@@ -29,14 +29,9 @@ func (suite *SimTestSuite) SetupTest() {
 func (suite *SimTestSuite) getTestingAccounts(r *rand.Rand, n int) []simtypes.Account {
 	accounts := simtypes.RandomAccounts(r, n)
 
-	initAmt := suite.app.StakingKeeper.TokensFromConsensusPower(suite.ctx, 200)
-	initCoins := sdk.NewCoins(sdk.NewCoin(sdk.DefaultBondDenom, initAmt))
-
-	// add coins to the accounts
 	for _, account := range accounts {
 		acc := suite.app.AccountKeeper.NewAccountWithAddress(suite.ctx, account.Address)
 		suite.app.AccountKeeper.SetAccount(suite.ctx, acc)
-		suite.Require().NoError(simapp.FundAccount(suite.app.BankKeeper, suite.ctx, account.Address, initCoins))
 	}
 
 	return accounts
@@ -45,23 +40,29 @@ func (suite *SimTestSuite) getTestingAccounts(r *rand.Rand, n int) []simtypes.Ac
 func (suite *SimTestSuite) testHandleInflations() {
 	s := rand.NewSource(1)
 	r := rand.New(s)
-	targetAccounts := suite.getTestingAccounts(r, 3)
 
+	targetAccounts := suite.getTestingAccounts(r, 3)
 	minter := suite.app.MintKeeper.GetMinter(suite.ctx)
+	var testSupply int64 = 1000000
 
 	tests := []struct {
-		inflation      Inflation
-		expectedToPass bool
+		coins           sdk.Coins
+		inflation       Inflation
+		expectedBalance sdk.Int
+		expectedToPass  bool
 	}{
-		{NewInflation("test-denom-1", targetAccounts[0].Address.String(), sdk.NewDecWithPrec(1, 2)), true},
-		{NewInflation("test-denom-2", targetAccounts[1].Address.String(), sdk.NewDecWithPrec(2, 2)), true},
-		{NewInflation("test-denom-3", targetAccounts[2].Address.String(), sdk.NewDecWithPrec(3, 2)), true},
+		{sdk.NewCoins(sdk.NewCoin("denom-1", sdk.NewInt(testSupply))), NewInflation("denom-1", targetAccounts[0].Address.String(), sdk.NewDecWithPrec(1, 2)), sdk.NewInt(0), true},
+		{sdk.NewCoins(sdk.NewCoin("denom-2", sdk.NewInt(testSupply))), NewInflation("denom-2", targetAccounts[1].Address.String(), sdk.NewDecWithPrec(2, 2)), sdk.NewInt(0), true},
+		{sdk.NewCoins(sdk.NewCoin("denom-3", sdk.NewInt(testSupply))), NewInflation("denom-3", targetAccounts[2].Address.String(), sdk.NewDecWithPrec(3, 2)), sdk.NewInt(0), true},
 	}
 	for i, tc := range tests {
 		minter.Inflations = []*Inflation{&tc.inflation}
+		require.NoError(suite.T(), suite.app.BankKeeper.MintCoins(suite.ctx, ModuleName, tc.coins))
 		require.NotPanics(suite.T(), func() { mint.HandleInflations(suite.ctx, suite.app.MintKeeper) })
 
-		testAccountBalance := suite.app.BankKeeper.GetBalance(suite.ctx, targetAccounts[i].Address, fmt.Sprintf("test-denom-%d", i+1))
-		require.Equal(suite.T(), sdk.ZeroDec(), testAccountBalance)
+		testAccountBalance := suite.app.BankKeeper.GetBalance(suite.ctx, targetAccounts[i].Address, fmt.Sprintf("denom-%d", i+1))
+		require.Equal(suite.T(), tc.expectedBalance, testAccountBalance.Amount)
 	}
 }
+
+// TODO(JS): add test asserting validation boundaries
