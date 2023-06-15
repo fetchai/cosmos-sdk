@@ -148,6 +148,7 @@ func (AppModule) ConsensusVersion() uint64 { return 1 }
 
 // BeginBlock returns the begin blocker for the mint module.
 func (am AppModule) BeginBlock(ctx sdk.Context, _ abci.RequestBeginBlock) {
+	HandleInflations(ctx, am.keeper)
 	BeginBlocker(ctx, am.keeper)
 }
 
