@@ -65,4 +65,30 @@ func (suite *SimTestSuite) testHandleInflations() {
 	}
 }
 
-// TODO(JS): add test asserting validation boundaries
+func (suite *SimTestSuite) testInflationsValidation() {
+	s := rand.NewSource(1)
+	r := rand.New(s)
+
+	targetAccounts := suite.getTestingAccounts(r, 3)
+	minter := suite.app.MintKeeper.GetMinter(suite.ctx)
+	var testSupply int64 = 1000000
+
+	tests := []struct {
+		inflation      Inflation
+		expectedToPass bool
+	}{
+		{NewInflation("stake", targetAccounts[0].Address.String(), sdk.OneDec()), true},
+		{NewInflation("stake", targetAccounts[0].Address.String(), sdk.NewDecWithPrec(1, 2)), true},
+		{NewInflation("stake", targetAccounts[0].Address.String(), sdk.NewDec(-1)), false},
+		{NewInflation("!&£$%", targetAccounts[0].Address.String(), sdk.OneDec()), false},
+		{NewInflation("stake", "", sdk.OneDec()), false},
+	}
+	for _, tc := range tests {
+		minter.Inflations = []*Inflation{&tc.inflation}
+		if tc.expectedToPass {
+			require.NoError(suite.T(), ValidateInflations(minter.Inflations))
+		} else {
+			require.Error(suite.T(), ValidateInflations(minter.Inflations))
+		}
+	}
+}
