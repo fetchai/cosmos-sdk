@@ -30,7 +30,7 @@ func HandleInflations(ctx sdk.Context, k keeper.Keeper) {
 
 		// gather supply value & calculate number of new tokens created from relevant inflation
 		totalDenomSupply := k.BankKeeper.GetSupply(ctx, denom)
-		inflationPerBlock := int(math.Pow((inflationRate.Add(sdk.OneDec())).MustFloat64(), float64(1/params.BlocksPerYear)))
+		inflationPerBlock := int(math.Pow((inflationRate.Add(sdk.OneDec())).MustFloat64(), float64(1/params.BlocksPerYear))) - 1
 		newCoinAmounts := totalDenomSupply.Amount.Mul(sdk.NewInt(int64(inflationPerBlock)))
 
 		// mint these new tokens
