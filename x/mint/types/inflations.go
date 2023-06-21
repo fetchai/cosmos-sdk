@@ -16,16 +16,11 @@ func NewInflation(denom string, targetAddress string, inflationRate sdk.Dec) Inf
 }
 
 func CalculateInflation(inflation *Inflation, blocksPerYear uint64, supply sdk.Coin) (result sdk.Coins, err error) {
-	// TODO(JS): pull this calc out to new file
 	inflationPerBlockPlusOne, err := inflation.InflationRate.Add(sdk.OneDec()).ApproxRoot(blocksPerYear)
 	if err != nil {
 		return nil, fmt.Errorf("CalculateInflationError: %s", err)
 	}
 	inflationPerBlock := inflationPerBlockPlusOne.Sub(sdk.OneDec())
-
-	//inflationPerBlock := math.Pow((inflationRate.Add(sdk.OneDec())).MustFloat64(), float64(1/params.BlocksPerYear)) - 1)
-	//s, err := sdk.NewDecFromStr(strconv.FormatFloat(inflationPerBlock, 'g', -1, 64))
-	// TODO(JS): maybe test timings of this 10k cycles?
 	newCoinAmounts := inflationPerBlock.MulInt(supply.Amount)
 	return sdk.NewCoins(sdk.NewCoin(inflation.Denom, sdk.Int(newCoinAmounts))), nil
 }

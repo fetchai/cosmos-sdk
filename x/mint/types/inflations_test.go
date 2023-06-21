@@ -1,47 +1,44 @@
 package types
 
 import (
+	"fmt"
 	"github.com/cosmos/cosmos-sdk/simapp"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	simtypes "github.com/cosmos/cosmos-sdk/types/simulation"
 	"github.com/stretchr/testify/require"
-	"github.com/stretchr/testify/suite"
 	tmproto "github.com/tendermint/tendermint/proto/tendermint/types"
+	"math"
 	"math/rand"
+	"strconv"
+	"testing"
+	"time"
 )
 
-type SimTestSuite struct {
-	suite.Suite
-
-	ctx sdk.Context
-	app *simapp.SimApp
-}
-
-func (suite *SimTestSuite) SetupTest() {
-	checkTx := false
-	app := simapp.Setup(checkTx)
-	suite.app = app
-	suite.ctx = app.BaseApp.NewContext(checkTx, tmproto.Header{})
-}
-
-func (suite *SimTestSuite) getTestingAccounts(r *rand.Rand, n int) []simtypes.Account {
+func getTestingAccounts(r *rand.Rand, n int, ctx sdk.Context, app *simapp.SimApp) []simtypes.Account {
 	accounts := simtypes.RandomAccounts(r, n)
 
 	for _, account := range accounts {
-		acc := suite.app.AccountKeeper.NewAccountWithAddress(suite.ctx, account.Address)
-		suite.app.AccountKeeper.SetAccount(suite.ctx, acc)
+		acc := app.AccountKeeper.NewAccountWithAddress(ctx, account.Address)
+		app.AccountKeeper.SetAccount(ctx, acc)
 	}
 
 	return accounts
 }
 
-func (suite *SimTestSuite) testHandleInflations() {
+func TestHandleInflations(t *testing.T) {
+	app := simapp.Setup(false)
+	ctx := app.BaseApp.NewContext(false, tmproto.Header{})
+
 	s := rand.NewSource(1)
 	r := rand.New(s)
+	targetAccounts := getTestingAccounts(r, 3, ctx, app)
 
-	targetAccounts := suite.getTestingAccounts(r, 3)
-	minter := suite.app.MintKeeper.GetMinter(suite.ctx)
-	params := suite.app.MintKeeper.GetParams(suite.ctx)
+	minter := DefaultInitialMinter()
+	params := DefaultParams()
+
+	app.MintKeeper.SetParams(ctx, params)
+	app.MintKeeper.SetMinter(ctx, minter)
+
 	var testSupply int64 = 1000000
 
 	tests := []struct {
@@ -55,25 +52,25 @@ func (suite *SimTestSuite) testHandleInflations() {
 	}
 	for i, tc := range tests {
 		minter.Inflations = []*Inflation{&tc.inflation}
-		require.NoError(suite.T(), suite.app.BankKeeper.MintCoins(suite.ctx, ModuleName, tc.coins))
+		require.NoError(t, app.BankKeeper.MintCoins(ctx, ModuleName, tc.coins))
 
-		newCoinsToSend, err := CalculateInflation(&tc.inflation, params.BlocksPerYear, suite.app.BankKeeper.GetSupply(suite.ctx, tc.inflation.Denom))
-		require.NoError(suite.T(), err)
+		newCoinsToSend, err := CalculateInflation(&tc.inflation, params.BlocksPerYear, app.BankKeeper.GetSupply(ctx, tc.inflation.Denom))
+		require.NoError(t, err)
 
-		err = suite.app.BankKeeper.SendCoinsFromModuleToAccount(suite.ctx, ModuleName, sdk.AccAddress(tc.inflation.TargetAddress), newCoinsToSend)
-		require.NoError(suite.T(), err)
+		err = app.BankKeeper.SendCoinsFromModuleToAccount(ctx, ModuleName, sdk.AccAddress(tc.inflation.TargetAddress), newCoinsToSend)
+		require.NoError(t, err)
 
-		testAccountBalance := suite.app.BankKeeper.GetBalance(suite.ctx, targetAccounts[i].Address, tc.inflation.Denom)
-		require.Equal(suite.T(), tc.expectedBalance, testAccountBalance.Amount)
+		testAccountBalance := app.BankKeeper.GetBalance(ctx, targetAccounts[i].Address, tc.inflation.Denom)
+		require.Equal(t, tc.expectedBalance, testAccountBalance.Amount)
 	}
 }
 
-func (suite *SimTestSuite) testInflationsValidation() {
+func TestInflationsValidation(t *testing.T) {
 	s := rand.NewSource(1)
 	r := rand.New(s)
 
-	targetAccounts := suite.getTestingAccounts(r, 3)
-	minter := suite.app.MintKeeper.GetMinter(suite.ctx)
+	targetAccounts := simtypes.RandomAccounts(r, 1)
+	minter := DefaultInitialMinter()
 
 	tests := []struct {
 		inflation      Inflation
@@ -88,11 +85,77 @@ func (suite *SimTestSuite) testInflationsValidation() {
 	for _, tc := range tests {
 		minter.Inflations = []*Inflation{&tc.inflation}
 		if tc.expectedToPass {
-			require.NoError(suite.T(), ValidateInflations(minter.Inflations))
+			require.NoError(t, ValidateInflations(minter.Inflations))
 		} else {
-			require.Error(suite.T(), ValidateInflations(minter.Inflations))
+			require.Error(t, ValidateInflations(minter.Inflations))
 		}
 	}
 }
 
-// TODO(JS): different approaches of calculating inflations - timings + precision, test many different numbers
+func calculateInflationB(inflation *Inflation, blocksPerYear uint64, supply sdk.Coin) (result sdk.Coins, err error) {
+	inflationPerBlock := math.Pow((inflation.InflationRate.Add(sdk.OneDec())).MustFloat64(), float64(1/blocksPerYear)) - 1
+	s, err := sdk.NewDecFromStr(strconv.FormatFloat(inflationPerBlock, 'g', -1, 64))
+	reward := s.MulInt(supply.Amount).TruncateInt()
+	result = sdk.NewCoins(sdk.NewCoin("stake", reward))
+	return result, err
+}
+
+func TestInflationsCalculationsDuration(t *testing.T) {
+	app := simapp.Setup(false)
+	ctx := app.BaseApp.NewContext(false, tmproto.Header{})
+
+	s := rand.NewSource(1)
+	r := rand.New(s)
+	targetAccounts := simtypes.RandomAccounts(r, 1)
+	denom := "stake"
+
+	minter := DefaultInitialMinter()
+	params := DefaultParams()
+
+	app.MintKeeper.SetParams(ctx, params)
+	app.MintKeeper.SetMinter(ctx, minter)
+
+	inflation := NewInflation(
+		denom,
+		targetAccounts[0].Address.String(),
+		sdk.NewDecWithPrec(5, 2))
+	supply := app.BankKeeper.GetSupply(ctx, denom)
+	blocksPerYear := params.BlocksPerYear
+
+	tests := []struct {
+		calcType string
+		calc     func() (coins sdk.Coins, err error)
+	}{
+		{"ApproxRoot()", func() (coins sdk.Coins, err error) {
+			result, err := CalculateInflation(&inflation, blocksPerYear, supply)
+			return result, err
+		}},
+		{"Math.Pow & strconv", func() (coins sdk.Coins, err error) {
+			result, err := calculateInflationB(&inflation, blocksPerYear, supply)
+			return result, err
+		}},
+	}
+	for _, tc := range tests {
+		fmt.Println("Calculation approach: " + tc.calcType)
+		singleIterExactValue := sdk.NewInt(1000) // Exact inflated value, without type precision loss
+		manyIterExactValue := sdk.NewInt(10000)
+
+		start := time.Now()
+		value, _ := tc.calc()
+		elapsed := time.Since(start)
+		precisionLoss := singleIterExactValue.Sub(value.AmountOf(denom))
+
+		fmt.Println("Time elapsed to run once: " + elapsed.String())
+		fmt.Println("Precision loss: " + precisionLoss.String())
+
+		start = time.Now()
+		for i := 0; i < 10000; i++ {
+			value, _ = tc.calc()
+		}
+		elapsed = time.Since(start)
+		precisionLoss = manyIterExactValue.Sub(value.AmountOf(denom))
+
+		fmt.Println("Time elapsed to run 10,000 times: " + elapsed.String())
+		fmt.Println("Precision loss: " + precisionLoss.String())
+	}
+}
