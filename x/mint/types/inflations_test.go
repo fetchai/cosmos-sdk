@@ -78,7 +78,7 @@ func TestHandleInflations(t *testing.T) {
 		{types.NewInflation(testDenom, targetAccounts[1].Address.String(), sdk.NewDecWithPrec(2, 2)), sdk.NewInt(3137536969)},
 		{types.NewInflation(testDenom, targetAccounts[2].Address.String(), sdk.NewDecWithPrec(3, 2)), sdk.NewInt(4683309617)},
 	}
-	for i, tc := range tests {
+	for _, tc := range tests {
 		minter.Inflations = []*types.Inflation{&tc.inflation}
 		// Mint initial supply
 		resetSupply(app, ctx, sdk.NewCoins(initSupplyCoin), sdk.NewCoins(app.BankKeeper.GetSupply(ctx, testDenom)))
@@ -91,12 +91,16 @@ func TestHandleInflations(t *testing.T) {
 		// Mint inflation returns
 		require.NoError(t, app.BankKeeper.MintCoins(ctx, types.ModuleName, newCoinsToSend))
 
+		// Convert targetAddress to sdk.AccAddress
+		acc, err := sdk.AccAddressFromBech32(tc.inflation.TargetAddress)
+		require.NoError(t, err)
+
 		// Send new reward tokens to target address
-		err = app.BankKeeper.SendCoinsFromModuleToAccount(ctx, types.ModuleName, targetAccounts[i].Address, newCoinsToSend)
+		err = app.BankKeeper.SendCoinsFromModuleToAccount(ctx, types.ModuleName, acc, newCoinsToSend)
 		require.NoError(t, err)
 
 		// Assert tokens reached account
-		testAccountBalance := app.BankKeeper.GetBalance(ctx, targetAccounts[i].Address, tc.inflation.Denom)
+		testAccountBalance := app.BankKeeper.GetBalance(ctx, acc, tc.inflation.Denom)
 		require.Equal(t, tc.expectedBalance.Int64(), testAccountBalance.Amount.Int64())
 	}
 }
@@ -177,6 +181,8 @@ func TestInflationsCalculations(t *testing.T) {
 		for _, rate := range []int64{5, 50, 100} {
 			inflation.InflationRate = sdk.NewDecWithPrec(rate, 2)
 			resetSupply(app, ctx, sdk.NewCoins(initSupplyCoin), sdk.NewCoins(app.BankKeeper.GetSupply(ctx, testDenom)))
+			acc, err := sdk.AccAddressFromBech32(inflation.TargetAddress)
+			require.NoError(t, err)
 
 			fmt.Println("==> Calculation approach: " + tc.calcType)
 			fmt.Println("Inflation at: " + strconv.FormatInt(rate, 10) + "%\n")
@@ -184,11 +190,11 @@ func TestInflationsCalculations(t *testing.T) {
 			start := time.Now()
 
 			value, _ := tc.calc(app.BankKeeper.GetSupply(ctx, testDenom))
-			err := app.MintKeeper.MintCoins(ctx, value)
+			err = app.MintKeeper.MintCoins(ctx, value)
 			if err != nil {
 				panic(err)
 			}
-			err = app.BankKeeper.SendCoinsFromModuleToAccount(ctx, types.ModuleName, sdk.AccAddress(inflation.TargetAddress), value)
+			err = app.BankKeeper.SendCoinsFromModuleToAccount(ctx, types.ModuleName, acc, value)
 			if err != nil {
 				panic(err)
 			}
@@ -208,7 +214,7 @@ func TestInflationsCalculations(t *testing.T) {
 				if err != nil {
 					panic(err)
 				}
-				err = app.BankKeeper.SendCoinsFromModuleToAccount(ctx, types.ModuleName, sdk.AccAddress(inflation.TargetAddress), value)
+				err = app.BankKeeper.SendCoinsFromModuleToAccount(ctx, types.ModuleName, acc, value)
 				if err != nil {
 					panic(err)
 				}

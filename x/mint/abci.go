@@ -41,7 +41,14 @@ func HandleInflations(ctx sdk.Context, k keeper.Keeper) {
 
 		// send these new tokens to respective target address
 		// TODO(JS): investigate whether this should be carried out in distribution module or not
-		err = k.BankKeeper.SendCoinsFromModuleToAccount(ctx, types.ModuleName, sdk.AccAddress(targetAddress), mintedCoins)
+
+		// Convert targetAddress to sdk.AccAddress
+		acc, err := sdk.AccAddressFromBech32(targetAddress)
+		if err != nil {
+			panic(err)
+		}
+
+		err = k.BankKeeper.SendCoinsFromModuleToAccount(ctx, types.ModuleName, acc, mintedCoins)
 		if err != nil {
 			panic(err)
 		}
