@@ -143,10 +143,6 @@ func TestInflationsCalculations(t *testing.T) {
 	acc := auth.NewEmptyModuleAccount(types.ModuleName, auth.Minter, auth.Burner)
 	app.AccountKeeper.SetModuleAccount(ctx, acc)
 
-	s := rand.NewSource(1)
-	r := rand.New(s)
-	targetAccounts := simtypes.RandomAccounts(r, 1) // create test account
-
 	minter := types.DefaultInitialMinter()
 	params := types.DefaultParams()
 
@@ -161,7 +157,7 @@ func TestInflationsCalculations(t *testing.T) {
 
 	inflation := types.NewInflation(
 		testDenom,
-		targetAccounts[0].Address.String(),
+		"",
 		sdk.ZeroDec())
 
 	tests := []struct {
@@ -181,8 +177,6 @@ func TestInflationsCalculations(t *testing.T) {
 		for _, rate := range []int64{5, 50, 100} {
 			inflation.InflationRate = sdk.NewDecWithPrec(rate, 2)
 			resetSupply(app, ctx, sdk.NewCoins(initSupplyCoin), sdk.NewCoins(app.BankKeeper.GetSupply(ctx, testDenom)))
-			acc, err := sdk.AccAddressFromBech32(inflation.TargetAddress)
-			require.NoError(t, err)
 
 			fmt.Println("==> Calculation approach: " + tc.calcType)
 			fmt.Println("Inflation at: " + strconv.FormatInt(rate, 10) + "%\n")
@@ -190,11 +184,7 @@ func TestInflationsCalculations(t *testing.T) {
 			start := time.Now()
 
 			value, _ := tc.calc(app.BankKeeper.GetSupply(ctx, testDenom))
-			err = app.MintKeeper.MintCoins(ctx, value)
-			if err != nil {
-				panic(err)
-			}
-			err = app.BankKeeper.SendCoinsFromModuleToAccount(ctx, types.ModuleName, acc, value)
+			err := app.MintKeeper.MintCoins(ctx, value)
 			if err != nil {
 				panic(err)
 			}
@@ -211,10 +201,6 @@ func TestInflationsCalculations(t *testing.T) {
 			for i := 0; i < 10000; i++ {
 				value, _ = tc.calc(app.BankKeeper.GetSupply(ctx, testDenom))
 				err := app.MintKeeper.MintCoins(ctx, value)
-				if err != nil {
-					panic(err)
-				}
-				err = app.BankKeeper.SendCoinsFromModuleToAccount(ctx, types.ModuleName, acc, value)
 				if err != nil {
 					panic(err)
 				}
