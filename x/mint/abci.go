@@ -8,6 +8,29 @@ import (
 	"time"
 )
 
+type inflationCache struct {
+	blocksPerYear uint64
+	infCalcs      map[string]sdk.Dec // {denom: inflationPerBlock}
+}
+
+var (
+	infCache = inflationCache{0, nil}
+)
+
+func refreshInflationCache(minter *types.Minter, blocksPerYear uint64) {
+	infCache.blocksPerYear = blocksPerYear
+	infCache.infCalcs = nil
+
+	for _, inflation := range minter.Inflations {
+		inflationPerBlock, err := types.CalculateInflationPerBlock(inflation, blocksPerYear)
+		if err != nil {
+			panic(err)
+		}
+
+		infCache.infCalcs[inflation.Denom] = inflationPerBlock
+	}
+}
+
 // HandleInflations iterates through all other native tokens specified in the Minter.inflations structure, and processes
 // the minting of new coins in line with the respective inflation rate of each denomination
 func HandleInflations(ctx sdk.Context, k keeper.Keeper) {
@@ -20,20 +43,21 @@ func HandleInflations(ctx sdk.Context, k keeper.Keeper) {
 		panic(err)
 	}
 
-	// iterate through other native denominations
+	// check if cache needs to be refreshed
+	if params.BlocksPerYear != infCache.blocksPerYear {
+		refreshInflationCache(&minter, params.BlocksPerYear)
+	}
+
+	// iterate through native denominations
 	for _, inflation := range minter.Inflations {
 		denom := inflation.Denom
 		targetAddress := inflation.TargetAddress
 
 		// gather supply value & calculate number of new tokens created from relevant inflation
 		totalDenomSupply := k.BankKeeper.GetSupply(ctx, denom)
+		mintedCoins := types.CalculateInflationNewCoins(infCache.infCalcs[inflation.Denom], totalDenomSupply)
 
 		// mint these new tokens
-		mintedCoins, err := types.CalculateInflation(inflation, params.BlocksPerYear, totalDenomSupply)
-		if err != nil {
-			panic(err)
-		}
-
 		err = k.MintCoins(ctx, mintedCoins)
 		if err != nil {
 			panic(err)

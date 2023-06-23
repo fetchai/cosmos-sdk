@@ -15,17 +15,18 @@ func NewInflation(denom string, targetAddress string, inflationRate sdk.Dec) Inf
 	}
 }
 
-func CalculateInflation(inflation *Inflation, blocksPerYear uint64, supply sdk.Coin) (result sdk.Coins, err error) {
+func CalculateInflationPerBlock(inflation *Inflation, blocksPerYear uint64) (result sdk.Dec, err error) {
 	inflationPerBlockPlusOne, err := inflation.InflationRate.Add(sdk.OneDec()).ApproxRoot(blocksPerYear)
-	//fmt.Println("inflationPerBlockPlusOne := " + inflationPerBlockPlusOne.String())
 	if err != nil {
-		return nil, fmt.Errorf("CalculateInflationError: %s", err)
+		panic(err)
 	}
 	inflationPerBlock := inflationPerBlockPlusOne.Sub(sdk.OneDec())
-	//fmt.Println("inflationPerBlock := " + inflationPerBlock.String())
+	return inflationPerBlock, nil
+}
+
+func CalculateInflationNewCoins(inflationPerBlock sdk.Dec, supply sdk.Coin) (result sdk.Coins) {
 	newCoinAmounts := (inflationPerBlock.MulInt(supply.Amount)).TruncateInt()
-	//fmt.Println("newCoinAmounts := " + newCoinAmounts.String())
-	return sdk.NewCoins(sdk.NewCoin(inflation.Denom, newCoinAmounts)), nil
+	return sdk.NewCoins(sdk.NewCoin(supply.Denom, newCoinAmounts))
 }
 
 // ValidateInflation ensures validity of Inflation object fields

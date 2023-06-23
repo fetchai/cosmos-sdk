@@ -1,7 +1,6 @@
 package types_test
 
 import (
-	"fmt"
 	"github.com/cosmos/cosmos-sdk/simapp"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	simtypes "github.com/cosmos/cosmos-sdk/types/simulation"
@@ -13,20 +12,7 @@ import (
 	"math/rand"
 	"strconv"
 	"testing"
-	"time"
 )
-
-func CalculateInflationB(inflation *types.Inflation, blocksPerYear uint64, supply sdk.Coin) (result sdk.Coins, err error) {
-	inflationPerBlock := math.Pow((inflation.InflationRate.Add(sdk.OneDec())).MustFloat64(), 1/float64(blocksPerYear)) - 1
-	inflationPerBlockStr := strconv.FormatFloat(inflationPerBlock, 'f', 18, 64)
-	inflationPerBlockDec, err := sdk.NewDecFromStr(inflationPerBlockStr)
-	if err != nil {
-		return nil, err
-	}
-	reward := inflationPerBlockDec.MulInt(supply.Amount)
-	result = sdk.NewCoins(sdk.NewCoin(inflation.Denom, reward.TruncateInt()))
-	return result, err
-}
 
 func resetSupply(app *simapp.SimApp, ctx sdk.Context, initSupply sdk.Coins, curSupply sdk.Coins) {
 	err := app.BankKeeper.MintCoins(ctx, types.ModuleName, initSupply)
@@ -84,8 +70,12 @@ func TestHandleInflations(t *testing.T) {
 		resetSupply(app, ctx, sdk.NewCoins(initSupplyCoin), sdk.NewCoins(app.BankKeeper.GetSupply(ctx, testDenom)))
 
 		// Calculate inflation
-		newCoinsToSend, err := types.CalculateInflation(&tc.inflation, params.BlocksPerYear, app.BankKeeper.GetSupply(ctx, tc.inflation.Denom))
-		require.NoError(t, err)
+		inflationRatePerBlock, err := types.CalculateInflationPerBlock(&tc.inflation, params.BlocksPerYear)
+		if err != nil {
+			panic(err)
+		}
+
+		newCoinsToSend := types.CalculateInflationNewCoins(inflationRatePerBlock, app.BankKeeper.GetSupply(ctx, testDenom))
 		require.Equal(t, tc.expectedBalance.Int64(), newCoinsToSend.AmountOf(testDenom).Int64())
 
 		// Mint inflation returns
@@ -152,65 +142,40 @@ func TestInflationsCalculations(t *testing.T) {
 	testDenom := "testDenom"
 	initSupplyAmount, _ := sdk.NewIntFromString("1000000000000000000")
 	initSupplyCoin := sdk.NewCoin(testDenom, initSupplyAmount)
-
-	blocksPerYear := params.BlocksPerYear
-
-	inflation := types.NewInflation(
-		testDenom,
-		"",
-		sdk.ZeroDec())
+	var blocksPerYear uint64 = 100000
 
 	tests := []struct {
-		calcType string
-		calc     func(supply sdk.Coin) (coins sdk.Coins, err error)
+		inflation types.Inflation
 	}{
-		{"ApproxRoot()", func(supply sdk.Coin) (coins sdk.Coins, err error) {
-			result, err := types.CalculateInflation(&inflation, blocksPerYear, supply)
-			return result, err
-		}},
-		{"Math.Pow & strconv", func(supply sdk.Coin) (coins sdk.Coins, err error) {
-			result, err := CalculateInflationB(&inflation, blocksPerYear, supply)
-			return result, err
-		}},
+		{types.NewInflation(testDenom, "fetch123abc", sdk.NewDecWithPrec(1, 2))},
+		{types.NewInflation(testDenom, "fetch123abc", sdk.NewDecWithPrec(5, 2))},
+		{types.NewInflation(testDenom, "fetch123abc", sdk.NewDecWithPrec(50, 2))},
+		{types.NewInflation(testDenom, "fetch123abc", sdk.NewDecWithPrec(100, 2))},
 	}
 	for _, tc := range tests {
-		for _, rate := range []int64{5, 50, 100} {
-			inflation.InflationRate = sdk.NewDecWithPrec(rate, 2)
-			resetSupply(app, ctx, sdk.NewCoins(initSupplyCoin), sdk.NewCoins(app.BankKeeper.GetSupply(ctx, testDenom)))
-
-			fmt.Println("==> Calculation approach: " + tc.calcType)
-			fmt.Println("Inflation at: " + strconv.FormatInt(rate, 10) + "%\n")
-
-			start := time.Now()
-
-			value, _ := tc.calc(app.BankKeeper.GetSupply(ctx, testDenom))
-			err := app.MintKeeper.MintCoins(ctx, value)
+		resetSupply(app, ctx, sdk.NewCoins(initSupplyCoin), sdk.NewCoins(app.BankKeeper.GetSupply(ctx, testDenom)))
+		for i := 0; i < int(blocksPerYear); i++ {
+			inflationRatePerBlock, err := types.CalculateInflationPerBlock(&tc.inflation, blocksPerYear)
 			if err != nil {
 				panic(err)
 			}
 
-			elapsed := time.Since(start)
-
-			fmt.Println("Time elapsed to run once: " + elapsed.String())
-			fmt.Println("Supply inflated by: " + (app.BankKeeper.GetSupply(ctx, testDenom).Amount).Sub(initSupplyAmount).String() + testDenom + " \n")
-
-			start = time.Now()
-
-			resetSupply(app, ctx, sdk.NewCoins(initSupplyCoin), sdk.NewCoins(app.BankKeeper.GetSupply(ctx, testDenom)))
-
-			for i := 0; i < 10000; i++ {
-				value, _ = tc.calc(app.BankKeeper.GetSupply(ctx, testDenom))
-				err := app.MintKeeper.MintCoins(ctx, value)
-				if err != nil {
-					panic(err)
-				}
-			}
-
-			elapsed = time.Since(start)
-
-			fmt.Println("Time elapsed to run 10,000 times: " + elapsed.String())
-			fmt.Println("Supply inflated by: " + (app.BankKeeper.GetSupply(ctx, testDenom).Amount).Sub(initSupplyAmount).String() + testDenom)
-			fmt.Printf("===\n\n")
+			value := types.CalculateInflationNewCoins(inflationRatePerBlock, app.BankKeeper.GetSupply(ctx, testDenom))
+			require.NoError(t, app.BankKeeper.MintCoins(ctx, types.ModuleName, value))
 		}
+		inflatedSupplyA := (app.BankKeeper.GetSupply(ctx, testDenom).Amount).Sub(initSupplyAmount)
+		inflatedSupplyB := tc.inflation.InflationRate.MulInt64(int64(blocksPerYear))
+
+		inflationPerYear := tc.inflation.InflationRate
+		inflationPerBlock, _ := types.CalculateInflationPerBlock(&tc.inflation, blocksPerYear)
+
+		acquiredInfPerYear := math.Pow(1+inflationPerBlock.MustFloat64(), float64(blocksPerYear)) - 1
+		acquiredInfPerYearStr := strconv.FormatFloat(acquiredInfPerYear, 'f', 18, 64)
+		acquiredInfPerYearDec, _ := sdk.NewDecFromStr(acquiredInfPerYearStr)
+
+		deltaInflation := (acquiredInfPerYearDec.Quo(inflationPerYear)).Sub(sdk.OneDec()).Abs()
+		deltaSupply := inflatedSupplyB.QuoInt(inflatedSupplyA)
+		require.True(t, deltaSupply.LT(sdk.NewDecFromIntWithPrec(sdk.NewIntFromUint64(1), 8)))
+		require.True(t, deltaInflation.LT(sdk.NewDecFromIntWithPrec(sdk.NewIntFromUint64(1), 8)))
 	}
 }
