@@ -5,6 +5,7 @@ import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	simtypes "github.com/cosmos/cosmos-sdk/types/simulation"
 	auth "github.com/cosmos/cosmos-sdk/x/auth/types"
+	"github.com/cosmos/cosmos-sdk/x/mint"
 	"github.com/cosmos/cosmos-sdk/x/mint/types"
 	"github.com/stretchr/testify/require"
 	tmproto "github.com/tendermint/tendermint/proto/tendermint/types"
@@ -53,16 +54,16 @@ func TestHandleInflations(t *testing.T) {
 	app.MintKeeper.SetMinter(ctx, minter)
 
 	testDenom := "testDenom"
-	initSupplyAmount, _ := sdk.NewIntFromString("1000000000000000000")
+	initSupplyAmount, _ := sdk.NewIntFromString("1000000000000000000000000000")
 	initSupplyCoin := sdk.NewCoin(testDenom, initSupplyAmount)
 
 	tests := []struct {
 		inflation       types.Inflation
 		expectedBalance sdk.Int
 	}{
-		{types.NewInflation(testDenom, targetAccounts[0].Address.String(), sdk.NewDecWithPrec(1, 2)), sdk.NewInt(1576534791)},
-		{types.NewInflation(testDenom, targetAccounts[1].Address.String(), sdk.NewDecWithPrec(2, 2)), sdk.NewInt(3137536969)},
-		{types.NewInflation(testDenom, targetAccounts[2].Address.String(), sdk.NewDecWithPrec(3, 2)), sdk.NewInt(4683309617)},
+		{types.NewInflation(testDenom, targetAccounts[0].Address.String(), sdk.NewDecWithPrec(1, 2)), sdk.NewInt(1576534791000000000)},
+		{types.NewInflation(testDenom, targetAccounts[1].Address.String(), sdk.NewDecWithPrec(2, 2)), sdk.NewInt(3137536969000000000)},
+		{types.NewInflation(testDenom, targetAccounts[2].Address.String(), sdk.NewDecWithPrec(3, 2)), sdk.NewInt(4683309617000000000)},
 	}
 	for _, tc := range tests {
 		minter.Inflations = []*types.Inflation{&tc.inflation}
@@ -91,7 +92,7 @@ func TestHandleInflations(t *testing.T) {
 
 		// Assert tokens reached account
 		testAccountBalance := app.BankKeeper.GetBalance(ctx, acc, tc.inflation.Denom)
-		require.Equal(t, tc.expectedBalance.Int64(), testAccountBalance.Amount.Int64())
+		require.Equal(t, tc.expectedBalance, testAccountBalance.Amount)
 	}
 }
 
@@ -110,11 +111,15 @@ func TestInflationsValidation(t *testing.T) {
 		{types.NewInflation("stake", targetAccounts[0].Address.String(), sdk.OneDec()), true},
 		// Pass: 1% inflation
 		{types.NewInflation("stake", targetAccounts[0].Address.String(), sdk.NewDecWithPrec(1, 2)), true},
-		// Fail: -1% inflation
-		{types.NewInflation("stake", targetAccounts[0].Address.String(), sdk.NewDec(-1)), false},
+		// Pass: -1% inflation
+		{types.NewInflation("stake", targetAccounts[0].Address.String(), sdk.NewDecWithPrec(1, 2).Neg()), true},
+		// Fail: -1.1% inflation
+		{types.NewInflation("stake", targetAccounts[0].Address.String(), sdk.NewDecWithPrec(11, 3).Neg()), false},
 		// Fail: invalid denom
 		{types.NewInflation("!&£$%", targetAccounts[0].Address.String(), sdk.OneDec()), false},
+		{types.NewInflation("", targetAccounts[0].Address.String(), sdk.OneDec()), false},
 		// Fail: invalid targetAddress
+		{types.NewInflation("stake", "fetch123abc", sdk.OneDec()), false},
 		{types.NewInflation("stake", "", sdk.OneDec()), false},
 	}
 	for _, tc := range tests {
@@ -132,50 +137,61 @@ func TestInflationsCalculations(t *testing.T) {
 	ctx := app.BaseApp.NewContext(false, tmproto.Header{})
 	acc := auth.NewEmptyModuleAccount(types.ModuleName, auth.Minter, auth.Burner)
 	app.AccountKeeper.SetModuleAccount(ctx, acc)
+	keeper := app.MintKeeper
+
+	s := rand.NewSource(1)
+	r := rand.New(s)
+	targetAccounts := getTestingAccounts(r, 6, ctx, app)
 
 	minter := types.DefaultInitialMinter()
 	params := types.DefaultParams()
 
-	app.MintKeeper.SetParams(ctx, params)
-	app.MintKeeper.SetMinter(ctx, minter)
-
 	testDenom := "testDenom"
-	initSupplyAmount, _ := sdk.NewIntFromString("1000000000000000000")
+	initSupplyAmount, _ := sdk.NewIntFromString("1000000000000000000000000000")
 	initSupplyCoin := sdk.NewCoin(testDenom, initSupplyAmount)
-	var blocksPerYear uint64 = 100000
+	params.BlocksPerYear = 10000
+	keeper.SetParams(ctx, params)
 
 	tests := []struct {
 		inflation types.Inflation
 	}{
-		{types.NewInflation(testDenom, "fetch123abc", sdk.NewDecWithPrec(1, 2))},
-		{types.NewInflation(testDenom, "fetch123abc", sdk.NewDecWithPrec(5, 2))},
-		{types.NewInflation(testDenom, "fetch123abc", sdk.NewDecWithPrec(50, 2))},
-		{types.NewInflation(testDenom, "fetch123abc", sdk.NewDecWithPrec(100, 2))},
+		{types.NewInflation(testDenom, targetAccounts[0].Address.String(), sdk.NewDecWithPrec(1, 2))},
+		{types.NewInflation(testDenom, targetAccounts[1].Address.String(), sdk.NewDecWithPrec(5, 2))},
+		{types.NewInflation(testDenom, targetAccounts[2].Address.String(), sdk.NewDecWithPrec(25, 2))},
+		{types.NewInflation(testDenom, targetAccounts[3].Address.String(), sdk.NewDecWithPrec(50, 2))},
+		{types.NewInflation(testDenom, targetAccounts[4].Address.String(), sdk.NewDecWithPrec(75, 2))},
+		{types.NewInflation(testDenom, targetAccounts[5].Address.String(), sdk.NewDecWithPrec(100, 2))},
 	}
 	for _, tc := range tests {
-		resetSupply(app, ctx, sdk.NewCoins(initSupplyCoin), sdk.NewCoins(app.BankKeeper.GetSupply(ctx, testDenom)))
-		for i := 0; i < int(blocksPerYear); i++ {
-			inflationRatePerBlock, err := types.CalculateInflationPerBlock(&tc.inflation, blocksPerYear)
-			if err != nil {
-				panic(err)
-			}
+		resetSupply(app, ctx, sdk.NewCoins(initSupplyCoin), sdk.NewCoins(keeper.BankKeeper.GetSupply(ctx, testDenom)))
+		minter.Inflations = []*types.Inflation{&tc.inflation}
+		keeper.SetMinter(ctx, minter)
 
-			value := types.CalculateInflationNewCoins(inflationRatePerBlock, app.BankKeeper.GetSupply(ctx, testDenom))
-			require.NoError(t, app.BankKeeper.MintCoins(ctx, types.ModuleName, value))
+		for i := 0; i < int(params.BlocksPerYear); i++ {
+			mint.HandleInflations(ctx, keeper)
 		}
-		inflatedSupplyA := (app.BankKeeper.GetSupply(ctx, testDenom).Amount).Sub(initSupplyAmount)
-		inflatedSupplyB := tc.inflation.InflationRate.MulInt64(int64(blocksPerYear))
+
+		inflatedSupplyA := (keeper.BankKeeper.GetSupply(ctx, testDenom).Amount).Sub(initSupplyAmount)
+		inflatedSupplyB := tc.inflation.InflationRate.MulInt64(int64(params.BlocksPerYear))
 
 		inflationPerYear := tc.inflation.InflationRate
-		inflationPerBlock, _ := types.CalculateInflationPerBlock(&tc.inflation, blocksPerYear)
+		inflationPerBlock, _ := types.CalculateInflationPerBlock(&tc.inflation, params.BlocksPerYear)
 
-		acquiredInfPerYear := math.Pow(1+inflationPerBlock.MustFloat64(), float64(blocksPerYear)) - 1
+		acquiredInfPerYear := math.Pow(1+inflationPerBlock.MustFloat64(), float64(params.BlocksPerYear)) - 1
 		acquiredInfPerYearStr := strconv.FormatFloat(acquiredInfPerYear, 'f', 18, 64)
 		acquiredInfPerYearDec, _ := sdk.NewDecFromStr(acquiredInfPerYearStr)
 
+		account, _ := sdk.AccAddressFromBech32(tc.inflation.TargetAddress)
+		testAccountBalance := app.BankKeeper.GetBalance(ctx, account, tc.inflation.Denom).Amount
+
 		deltaInflation := (acquiredInfPerYearDec.Quo(inflationPerYear)).Sub(sdk.OneDec()).Abs()
 		deltaSupply := inflatedSupplyB.QuoInt(inflatedSupplyA)
-		require.True(t, deltaSupply.LT(sdk.NewDecFromIntWithPrec(sdk.NewIntFromUint64(1), 8)))
-		require.True(t, deltaInflation.LT(sdk.NewDecFromIntWithPrec(sdk.NewIntFromUint64(1), 8)))
+
+		// ensure target address is funded appropriately
+		require.True(t, testAccountBalance.Equal(inflatedSupplyA))
+		// ensure difference between actual inflated supply and theoretical is acceptable
+		require.True(t, deltaSupply.LT(sdk.NewDecWithPrec(1, 8)))
+		// ensure difference between actual inflation and theoretical is acceptable
+		require.True(t, deltaInflation.LT(sdk.NewDecWithPrec(1, 8)))
 	}
 }

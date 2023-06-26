@@ -30,22 +30,19 @@ func CalculateInflationNewCoins(inflationPerBlock sdk.Dec, supply sdk.Coin) (res
 }
 
 // ValidateInflation ensures validity of Inflation object fields
-// TODO(JS): potentially to introduce negative inflations
-func ValidateInflation(inflation Inflation) error {
-	if inflation.InflationRate.IsNegative() {
-		return fmt.Errorf("inflation object param, inflation_rate, should be positive, is %s",
+func ValidateInflation(inflation Inflation) error { // TODO(JS): potentially allow inflations less than -1
+	if inflation.InflationRate.LT(sdk.NewDecWithPrec(1, 2).Neg()) {
+		return fmt.Errorf("inflation object param, inflation_rate, cannot be less than -1, value: %s",
 			inflation.InflationRate.String())
 	}
-	//if inflation.InflationRate.GT(sdk.OneDec()) {
-	//	return fmt.Errorf("inflation object param, inflation_rate, cannot be more than 100%%, is %s",
-	//		inflation.InflationRate.String())
-	//}
 
-	if inflation.TargetAddress == "" {
-		return fmt.Errorf("inflation object param, target_address, cannot be empty")
+	_, err := sdk.AccAddressFromBech32(inflation.TargetAddress)
+	if err != nil {
+		return fmt.Errorf("inflation object param, target_address, is invalid: %s",
+			inflation.TargetAddress)
 	}
 
-	err := sdk.ValidateDenom(inflation.Denom)
+	err = sdk.ValidateDenom(inflation.Denom)
 	if err != nil {
 		return fmt.Errorf("inflation object param, denom: %s", err)
 	}

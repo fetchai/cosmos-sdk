@@ -19,7 +19,7 @@ var (
 
 func refreshInflationCache(minter *types.Minter, blocksPerYear uint64) {
 	infCache.blocksPerYear = blocksPerYear
-	infCache.infCalcs = nil
+	infCache.infCalcs = map[string]sdk.Dec{}
 
 	for _, inflation := range minter.Inflations {
 		inflationPerBlock, err := types.CalculateInflationPerBlock(inflation, blocksPerYear)
