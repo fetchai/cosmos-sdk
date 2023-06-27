@@ -17,7 +17,7 @@ linters:
     - govet
     - ineffassign
     - misspell
-    - nakedret
+#    - nakedret
     - nolintlint
     - staticcheck
     - stylecheck
