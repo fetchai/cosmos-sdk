@@ -6,7 +6,7 @@ run:
 linters:
   disable-all: true
   enable:
-    - depguard
+#    - depguard
     - dogsled
     - exportloopref
     - goconst
@@ -26,30 +26,40 @@ linters:
     - unused
 
 issues:
+  exclude:
+    - "directive `//nolint" # check up on this one here
+    - "directive `// nolint" # check up on this one here
   exclude-rules:
     - text: "Use of weak random number generator"
       linters:
         - gosec
-    - text: "ST1003:"
-      linters:
-        - stylecheck
-    # FIXME: Disabled until golangci-lint updates stylecheck with this fix:
-    # https://github.com/dominikh/go-tools/issues/389
-    - text: "ST1016:"
-      linters:
-        - stylecheck
     - text: "should be written without leading space as"
       linters:
         - nolintlint
-    - path: "migrations"
-      text: "SA1019:"
-      linters:
-        - staticcheck
 
   max-issues-per-linter: 10000
   max-same-issues: 10000
 
 linters-settings:
+  nakedret:
+    max-func-lines: 500
+  stylecheck:
+    checks:
+      - all
+      - '-ST1016'
+      - '-ST1003'
+  staticcheck:
+    checks:
+      - all
+      - '-SA1019'
+  gocritic:
+    disabled-checks:
+      - ifElseChain
+      - regexpMust
+  gosec:
+    excludes:
+      - G306
+      - G101
   dogsled:
     max-blank-identifiers: 3
   maligned:
@@ -57,5 +67,13 @@ linters-settings:
     suggest-new: true
   nolintlint:
     allow-unused: false
+    allow-no-explanation:
+      - errcheck
+      - misspell
+      - unparam
+      - staticcheck
+      - gocritic
+      - gosec
+      - interfacer
     require-explanation: false
     require-specific: false

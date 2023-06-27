@@ -1,0 +1,4 @@
+main:
+  files:
+    - "$all"
+    - "!$test"
