@@ -17,7 +17,7 @@ linters:
     - govet
     - ineffassign
     - misspell
-#    - nakedret
+    - nakedret
     - nolintlint
     - staticcheck
     - stylecheck
@@ -41,6 +41,8 @@ issues:
   max-same-issues: 10000
 
 linters-settings:
+  nakedret:
+    max-func-lines: 500
   stylecheck:
     checks:
       - all
