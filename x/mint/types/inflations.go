@@ -18,7 +18,7 @@ func NewInflation(denom string, targetAddress string, inflationRate sdk.Dec) Inf
 func CalculateInflationPerBlock(inflation *Inflation, blocksPerYear uint64) (result sdk.Dec, err error) {
 	inflationPerBlockPlusOne, err := inflation.InflationRate.Add(sdk.OneDec()).ApproxRoot(blocksPerYear)
 	if err != nil {
-		panic(err)
+		return sdk.ZeroDec(), err
 	}
 	inflationPerBlock := inflationPerBlockPlusOne.Sub(sdk.OneDec())
 	return inflationPerBlock, nil

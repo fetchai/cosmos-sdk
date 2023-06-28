@@ -175,13 +175,23 @@ func TestInflationsCalculations(t *testing.T) {
 		inflatedSupplyB := tc.inflation.InflationRate.MulInt64(int64(params.BlocksPerYear))
 
 		inflationPerYear := tc.inflation.InflationRate
-		inflationPerBlock, _ := types.CalculateInflationPerBlock(&tc.inflation, params.BlocksPerYear)
+		inflationPerBlock, err := types.CalculateInflationPerBlock(&tc.inflation, params.BlocksPerYear)
+		if err != nil {
+			panic(err)
+		}
 
 		acquiredInfPerYear := math.Pow(1+inflationPerBlock.MustFloat64(), float64(params.BlocksPerYear)) - 1
 		acquiredInfPerYearStr := strconv.FormatFloat(acquiredInfPerYear, 'f', 18, 64)
-		acquiredInfPerYearDec, _ := sdk.NewDecFromStr(acquiredInfPerYearStr)
+		acquiredInfPerYearDec, err := sdk.NewDecFromStr(acquiredInfPerYearStr)
+		if err != nil {
+			panic(err)
+		}
 
-		account, _ := sdk.AccAddressFromBech32(tc.inflation.TargetAddress)
+		account, err := sdk.AccAddressFromBech32(tc.inflation.TargetAddress)
+		if err != nil {
+			panic(err)
+		}
+
 		testAccountBalance := app.BankKeeper.GetBalance(ctx, account, tc.inflation.Denom).Amount
 
 		deltaInflation := (acquiredInfPerYearDec.Quo(inflationPerYear)).Sub(sdk.OneDec()).Abs()
