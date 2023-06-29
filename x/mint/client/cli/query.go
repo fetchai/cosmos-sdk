@@ -23,7 +23,7 @@ func GetQueryCmd() *cobra.Command {
 	mintingQueryCmd.AddCommand(
 		GetCmdQueryParams(),
 		GetCmdQueryInflation(),
-		GetCmdQueryInflations(),
+		GetCmdQueryMunicipalInflation(),
 		GetCmdQueryAnnualProvisions(),
 	)
 
@@ -88,12 +88,12 @@ func GetCmdQueryInflation() *cobra.Command {
 	return cmd
 }
 
-// GetCmdQueryInflations implements a command to return all token
+// GetCmdQueryMunicipalInflation implements a command to return all token
 // inflation values.
-func GetCmdQueryInflations() *cobra.Command {
+func GetCmdQueryMunicipalInflation() *cobra.Command {
 	cmd := &cobra.Command{
-		Use:   "inflations",
-		Short: "Query all token minting inflation values",
+		Use:   "municipal-inflation",
+		Short: "Query municipal inflation configurations for all registered denominations",
 		Args:  cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			clientCtx, err := client.GetClientQueryContext(cmd)
@@ -102,8 +102,8 @@ func GetCmdQueryInflations() *cobra.Command {
 			}
 			queryClient := types.NewQueryClient(clientCtx)
 
-			params := &types.QueryInflationsRequest{}
-			res, err := queryClient.Inflations(cmd.Context(), params)
+			params := &types.QueryMunicipalInflationRequest{}
+			res, err := queryClient.MunicipalInflation(cmd.Context(), params)
 			if err != nil {
 				return err
 			}

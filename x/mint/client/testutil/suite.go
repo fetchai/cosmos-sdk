@@ -113,7 +113,7 @@ func (s *IntegrationTestSuite) TestGetCmdQueryInflations() {
 		tc := tc
 
 		s.Run(tc.name, func() {
-			cmd := cli.GetCmdQueryInflations()
+			cmd := cli.GetCmdQueryMunicipalInflation()
 			clientCtx := val.ClientCtx
 
 			out, err := clitestutil.ExecTestCLICmd(clientCtx, cmd, tc.args)

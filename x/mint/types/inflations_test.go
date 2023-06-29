@@ -55,7 +55,7 @@ func TestCalculateInflationPerBlockAndIssuance(t *testing.T) {
 	testDenom := "testDenom"
 
 	tests := []struct {
-		inflation              *types.Inflation
+		inflation              *types.MunicipalInflation
 		expectedAnnualIssuance sdk.Int
 	}{
 		// Pass: 2 = 200% inflation
@@ -84,7 +84,7 @@ func TestCalculateInflationPerBlockAndIssuance(t *testing.T) {
 
 		reconstitutedInflationPerAnnum := inflationRatePerBlock.Add(sdk.OneDec()).Power(params.BlocksPerYear).Sub(sdk.OneDec())
 
-		mulErrorAfterReconstitution := reconstitutedInflationPerAnnum.Quo(tc.inflation.InflationRate).Sub(sdk.OneDec()).Abs()
+		mulErrorAfterReconstitution := reconstitutedInflationPerAnnum.Quo(tc.inflation.Inflation).Sub(sdk.OneDec()).Abs()
 		require.True(t, mulErrorAfterReconstitution.LT(allowedRelativeMulError))
 
 		issuedTokensAnnually := types.CalculateInflationIssuance(reconstitutedInflationPerAnnum, sdk.Coin{Denom: testDenom, Amount: supply})
@@ -101,7 +101,7 @@ func TestValidationOfMunicipalInflation(t *testing.T) {
 	targetAccounts := simtypes.RandomAccounts(r, 1)
 
 	tests := []struct {
-		inflation      *types.Inflation
+		inflation      *types.MunicipalInflation
 		expectedToPass bool
 	}{
 		// Pass: 2 = 200% inflation
@@ -145,7 +145,7 @@ func TestBulkValidationOfMunicipalInflations(t *testing.T) {
 
 	targetAccounts := simtypes.RandomAccounts(r, 1)
 
-	expectedToPass := []*types.Inflation{
+	expectedToPass := []*types.MunicipalInflation{
 		// Pass: 2 = 200% inflation
 		types.NewInflation("stake", targetAccounts[0].Address.String(), sdk.NewDec(2)),
 		// Pass: 1 = 100% inflation
@@ -172,7 +172,7 @@ func TestBulkValidationOfMunicipalInflations(t *testing.T) {
 	err = types.ValidateMunicipalInflations(expectedToPass2)
 	require.NoError(t, err)
 
-	expectedToPass3 := []*types.Inflation{types.NewInflation("stake", targetAccounts[0].Address.String(), onePercent)}
+	expectedToPass3 := []*types.MunicipalInflation{types.NewInflation("stake", targetAccounts[0].Address.String(), onePercent)}
 	err = types.ValidateMunicipalInflations(expectedToPass3)
 	require.NoError(t, err)
 
@@ -181,7 +181,7 @@ func TestBulkValidationOfMunicipalInflations(t *testing.T) {
 	err = types.ValidateMunicipalInflations(expectedToFail)
 	require.Error(t, err)
 
-	expectedToFail2 := []*types.Inflation{types.NewInflation("stake", targetAccounts[0].Address.String(), onePercent.Neg())}
+	expectedToFail2 := []*types.MunicipalInflation{types.NewInflation("stake", targetAccounts[0].Address.String(), onePercent.Neg())}
 	err = types.ValidateMunicipalInflations(expectedToFail2)
 	require.Error(t, err)
 }
@@ -207,7 +207,7 @@ func TestHandleMunicipalInflation(t *testing.T) {
 	keeper.SetParams(ctx, params)
 
 	tests := []struct {
-		inflation              *types.Inflation
+		inflation              *types.MunicipalInflation
 		expectedAnnualIssuance sdk.Int
 	}{
 		{types.NewInflation(testDenom, targetAccounts[0].Address.String(), sdk.NewDecWithPrec(1, 2)), initSupplyAmount.QuoRaw(100)},
@@ -220,7 +220,7 @@ func TestHandleMunicipalInflation(t *testing.T) {
 
 	for _, tc := range tests {
 		resetSupply(app, ctx, sdk.NewCoins(initSupplyCoin), sdk.NewCoins(keeper.BankKeeper.GetSupply(ctx, testDenom)))
-		minter.Inflations = []*types.Inflation{tc.inflation}
+		minter.MunicipalInflation = []*types.MunicipalInflation{tc.inflation}
 		keeper.SetMinter(ctx, minter)
 
 		account, _ := sdk.AccAddressFromBech32(tc.inflation.TargetAddress)

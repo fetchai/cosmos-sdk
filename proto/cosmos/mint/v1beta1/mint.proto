@@ -18,14 +18,15 @@ message Minter {
   ];
 
   //  map<string, Inflation> inflations = 3;
-  repeated Inflation inflations = 3;
+  repeated MunicipalInflation municipal_inflation = 3;
 }
 
 // Inflation holds parameters for individual native token inflation
-message Inflation {
+message MunicipalInflation {
   string denom          = 1;
   string target_address = 2;
-  string inflation_rate = 3 [
+  // current annual inflation rate
+  string inflation = 3 [
     (gogoproto.moretags)   = "yaml:\"inflation_rate\"",
     (gogoproto.customtype) = "github.com/cosmos/cosmos-sdk/types.Dec",
     (gogoproto.nullable)   = false

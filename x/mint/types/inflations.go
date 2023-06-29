@@ -7,16 +7,16 @@ import (
 
 // NewInflation returns a new Inflation object with the given denom, target_address
 // and inflation_rate
-func NewInflation(denom string, targetAddress string, inflationRate sdk.Dec) *Inflation {
-	return &Inflation{
+func NewInflation(denom string, targetAddress string, inflation sdk.Dec) *MunicipalInflation {
+	return &MunicipalInflation{
 		Denom:         denom,
 		TargetAddress: targetAddress,
-		InflationRate: inflationRate,
+		Inflation:     inflation,
 	}
 }
 
-func CalculateInflationPerBlock(inflation *Inflation, blocksPerYear uint64) (result sdk.Dec, err error) {
-	inflationPerBlockPlusOne, err := inflation.InflationRate.Add(sdk.OneDec()).ApproxRoot(blocksPerYear)
+func CalculateInflationPerBlock(inflation *MunicipalInflation, blocksPerYear uint64) (result sdk.Dec, err error) {
+	inflationPerBlockPlusOne, err := inflation.Inflation.Add(sdk.OneDec()).ApproxRoot(blocksPerYear)
 	if err != nil {
 		return
 	}
@@ -31,16 +31,16 @@ func CalculateInflationIssuance(inflation sdk.Dec, supply sdk.Coin) (result sdk.
 
 // Validate ensures validity of Inflation object fields
 
-func (inflation *Inflation) Validate() error {
+func (inflation *MunicipalInflation) Validate() error {
 	// NOTE(pb): Algebraically speaking, negative inflation >= -1 is logically
 	//			 valid, however it would cause issues once balance on
 	//			 target_address runs out (we would need to burn tokens from all
 	//			 addresses with non-zero token balance of given denomination,
 	//			 what is politically & performance wise unfeasible.
 	//		     To avoid issues for now, negative inflation is not allowed.
-	if inflation.InflationRate.IsNegative() {
+	if inflation.Inflation.IsNegative() {
 		return fmt.Errorf("inflation object param, inflation_rate, cannot be negative, value: %s",
-			inflation.InflationRate.String())
+			inflation.Inflation.String())
 	}
 
 	_, err := sdk.AccAddressFromBech32(inflation.TargetAddress)
@@ -58,7 +58,7 @@ func (inflation *Inflation) Validate() error {
 }
 
 func ValidateMunicipalInflations(i interface{}) (err error) {
-	v, ok := i.([]*Inflation)
+	v, ok := i.([]*MunicipalInflation)
 	if !ok {
 		err = fmt.Errorf("invalid parameter type: %T", i)
 		return

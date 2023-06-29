@@ -20,8 +20,8 @@ service Query {
   }
 
   // Inflation returns the current minting inflation value.
-  rpc Inflations(QueryInflationsRequest) returns (QueryInflationsResponse) {
-    option (google.api.http).get = "/cosmos/mint/v1beta1/inflations";
+  rpc MunicipalInflation(QueryMunicipalInflationRequest) returns (QueryMunicipalInflationResponse) {
+    option (google.api.http).get = "/cosmos/mint/v1beta1/municipal_inflation";
   }
 
   // AnnualProvisions current minting annual provisions value.
@@ -42,8 +42,8 @@ message QueryParamsResponse {
 // QueryInflationRequest is the request type for the Query/Inflation RPC method.
 message QueryInflationRequest {}
 
-// QueryInflationsRequest is the request type for the Query/Inflations RPC method.
-message QueryInflationsRequest {}
+// QueryMunicipalInflationRequest is the request type for the Query/MunicipalInflation RPC method.
+message QueryMunicipalInflationRequest {}
 
 // QueryInflationResponse is the response type for the Query/Inflation RPC
 // method.
@@ -54,9 +54,9 @@ message QueryInflationResponse {
 
 // QueryInflationResponse is the response type for the Query/Inflation RPC
 // method.
-message QueryInflationsResponse {
+message QueryMunicipalInflationResponse {
   // inflation is the current minting inflation value.
-  repeated Inflation inflations = 1;
+  repeated MunicipalInflation inflations = 1;
 }
 
 // QueryAnnualProvisionsRequest is the request type for the
