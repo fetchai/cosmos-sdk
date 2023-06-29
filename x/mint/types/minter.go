@@ -21,7 +21,7 @@ func InitialMinter(inflation sdk.Dec) Minter {
 	return NewMinter(
 		inflation,
 		sdk.NewDec(0),
-		[]*Inflation{},
+		nil,
 	)
 }
 

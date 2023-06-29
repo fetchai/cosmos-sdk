@@ -8,18 +8,29 @@ import (
 	"time"
 )
 
-type inflationCache struct {
-	blocksPerYear uint64
-	infCalcs      map[string]sdk.Dec // {denom: inflationPerBlock}
+type MunicipalInflationCache struct {
+	blocksPerYear      uint64
+	perBlockInflations map[string]sdk.Dec // {denom: inflationPerBlock}
 }
 
 var (
-	infCache = inflationCache{0, nil}
+	// NOTE(pb): This is *NOT* thread safe.
+	//			 However, in our case, this global variable is by design
+	//			 *NOT* supposed to be accessed simultaneously in multiple
+	//			 different threads, or in global scope somewhere else.
+	//			 Once such requirements arise, concept of this global variable
+	//			 needs to be changed to something what is thread safe.
+	infCache = MunicipalInflationCache{0, nil}
 )
 
-func refreshInflationCache(minter *types.Minter, blocksPerYear uint64) {
-	infCache.blocksPerYear = blocksPerYear
-	infCache.infCalcs = map[string]sdk.Dec{}
+// NOTE(pb): Not thread safe, as per comment above.
+func (cache *MunicipalInflationCache) refresh(minter *types.Minter, blocksPerYear uint64) {
+	if err := types.ValidateMunicipalInflations(minter.Inflations); err != nil {
+		panic(err)
+	}
+
+	cache.blocksPerYear = blocksPerYear
+	cache.perBlockInflations = map[string]sdk.Dec{}
 
 	for _, inflation := range minter.Inflations {
 		inflationPerBlock, err := types.CalculateInflationPerBlock(inflation, blocksPerYear)
@@ -27,26 +38,24 @@ func refreshInflationCache(minter *types.Minter, blocksPerYear uint64) {
 			panic(err)
 		}
 
-		infCache.infCalcs[inflation.Denom] = inflationPerBlock
+		cache.perBlockInflations[inflation.Denom] = inflationPerBlock
 	}
 }
 
-// HandleInflations iterates through all other native tokens specified in the Minter.inflations structure, and processes
+// NOTE(pb): Not thread safe, as per comment above.
+func (cache *MunicipalInflationCache) refreshIfNecessary(minter *types.Minter, blocksPerYear uint64) {
+	if infCache.blocksPerYear != blocksPerYear {
+		cache.refresh(minter, blocksPerYear)
+	}
+}
+
+// HandleMunicipalInflation iterates through all other native tokens specified in the Minter.inflations structure, and processes
 // the minting of new coins in line with the respective inflation rate of each denomination
-func HandleInflations(ctx sdk.Context, k keeper.Keeper) {
+func HandleMunicipalInflation(ctx sdk.Context, k keeper.Keeper) {
 	minter := k.GetMinter(ctx)
 	params := k.GetParams(ctx)
 
-	// validate inflations
-	err := types.ValidateInflations(minter.Inflations)
-	if err != nil {
-		panic(err)
-	}
-
-	// check if cache needs to be refreshed
-	if params.BlocksPerYear != infCache.blocksPerYear {
-		refreshInflationCache(&minter, params.BlocksPerYear)
-	}
+	infCache.refreshIfNecessary(&minter, params.BlocksPerYear)
 
 	// iterate through native denominations
 	for _, inflation := range minter.Inflations {
@@ -55,10 +64,10 @@ func HandleInflations(ctx sdk.Context, k keeper.Keeper) {
 
 		// gather supply value & calculate number of new tokens created from relevant inflation
 		totalDenomSupply := k.BankKeeper.GetSupply(ctx, denom)
-		mintedCoins := types.CalculateInflationNewCoins(infCache.infCalcs[inflation.Denom], totalDenomSupply)
+		coinsToMint := types.CalculateInflationIssuance(infCache.perBlockInflations[inflation.Denom], totalDenomSupply)
 
-		// mint these new tokens
-		err = k.MintCoins(ctx, mintedCoins)
+		err := k.MintCoins(ctx, coinsToMint)
+
 		if err != nil {
 			panic(err)
 		}
@@ -72,10 +81,19 @@ func HandleInflations(ctx sdk.Context, k keeper.Keeper) {
 			panic(err)
 		}
 
-		err = k.BankKeeper.SendCoinsFromModuleToAccount(ctx, types.ModuleName, acc, mintedCoins)
+		err = k.BankKeeper.SendCoinsFromModuleToAccount(ctx, types.ModuleName, acc, coinsToMint)
 		if err != nil {
 			panic(err)
 		}
+		ctx.EventManager().EmitEvent(
+			sdk.NewEvent(
+				types.EventTypeMunicipalMint,
+				sdk.NewAttribute(types.AttributeKeyDenom, inflation.Denom),
+				sdk.NewAttribute(types.AttributeKeyInflation, inflation.InflationRate.String()),
+				sdk.NewAttribute(types.AttributeKeyTargetAddr, inflation.TargetAddress),
+				sdk.NewAttribute(sdk.AttributeKeyAmount, coinsToMint.String()),
+			),
+		)
 	}
 }
 

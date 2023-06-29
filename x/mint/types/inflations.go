@@ -7,8 +7,8 @@ import (
 
 // NewInflation returns a new Inflation object with the given denom, target_address
 // and inflation_rate
-func NewInflation(denom string, targetAddress string, inflationRate sdk.Dec) Inflation {
-	return Inflation{
+func NewInflation(denom string, targetAddress string, inflationRate sdk.Dec) *Inflation {
+	return &Inflation{
 		Denom:         denom,
 		TargetAddress: targetAddress,
 		InflationRate: inflationRate,
@@ -18,21 +18,28 @@ func NewInflation(denom string, targetAddress string, inflationRate sdk.Dec) Inf
 func CalculateInflationPerBlock(inflation *Inflation, blocksPerYear uint64) (result sdk.Dec, err error) {
 	inflationPerBlockPlusOne, err := inflation.InflationRate.Add(sdk.OneDec()).ApproxRoot(blocksPerYear)
 	if err != nil {
-		panic(err)
+		return
 	}
-	inflationPerBlock := inflationPerBlockPlusOne.Sub(sdk.OneDec())
-	return inflationPerBlock, nil
+	result = inflationPerBlockPlusOne.Sub(sdk.OneDec())
+	return
 }
 
-func CalculateInflationNewCoins(inflationPerBlock sdk.Dec, supply sdk.Coin) (result sdk.Coins) {
-	newCoinAmounts := (inflationPerBlock.MulInt(supply.Amount)).TruncateInt()
-	return sdk.NewCoins(sdk.NewCoin(supply.Denom, newCoinAmounts))
+func CalculateInflationIssuance(inflation sdk.Dec, supply sdk.Coin) (result sdk.Coins) {
+	issuedAmount := (inflation.MulInt(supply.Amount)).TruncateInt()
+	return sdk.NewCoins(sdk.NewCoin(supply.Denom, issuedAmount))
 }
 
-// ValidateInflation ensures validity of Inflation object fields
-func ValidateInflation(inflation Inflation) error { // TODO(JS): potentially allow inflations less than -1
-	if inflation.InflationRate.LT(sdk.NewDecWithPrec(1, 2).Neg()) {
-		return fmt.Errorf("inflation object param, inflation_rate, cannot be less than -1, value: %s",
+// Validate ensures validity of Inflation object fields
+
+func (inflation *Inflation) Validate() error {
+	// NOTE(pb): Algebraically speaking, negative inflation >= -1 is logically
+	//			 valid, however it would cause issues once balance on
+	//			 target_address runs out (we would need to burn tokens from all
+	//			 addresses with non-zero token balance of given denomination,
+	//			 what is politically & performance wise unfeasible.
+	//		     To avoid issues for now, negative inflation is not allowed.
+	if inflation.InflationRate.IsNegative() {
+		return fmt.Errorf("inflation object param, inflation_rate, cannot be negative, value: %s",
 			inflation.InflationRate.String())
 	}
 
@@ -46,20 +53,23 @@ func ValidateInflation(inflation Inflation) error { // TODO(JS): potentially all
 	if err != nil {
 		return fmt.Errorf("inflation object param, denom: %s", err)
 	}
+
 	return nil
 }
 
-func ValidateInflations(i interface{}) error {
+func ValidateMunicipalInflations(i interface{}) (err error) {
 	v, ok := i.([]*Inflation)
 	if !ok {
-		return fmt.Errorf("invalid parameter type: %T", i)
+		err = fmt.Errorf("invalid parameter type: %T", i)
+		return
 	}
-	for _, key := range v {
-		err := ValidateInflation(*key)
+
+	for _, inflation := range v {
+		err = inflation.Validate()
 		if err != nil {
-			return fmt.Errorf("inflation params for %s are invalid: %s", key.Denom, err)
+			return
 		}
 	}
 
-	return nil
+	return
 }
