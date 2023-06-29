@@ -16,5 +16,6 @@ const (
 	// Query endpoints supported by the minting querier
 	QueryParameters       = "parameters"
 	QueryInflation        = "inflation"
+	QueryInflations       = "inflations"
 	QueryAnnualProvisions = "annual_provisions"
 )

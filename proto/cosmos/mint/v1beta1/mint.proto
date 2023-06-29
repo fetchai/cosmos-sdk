@@ -21,6 +21,7 @@ message Minter {
   repeated Inflation inflations = 3;
 }
 
+// Inflation holds parameters for individual native token inflation
 message Inflation {
   string denom          = 1;
   string target_address = 2;

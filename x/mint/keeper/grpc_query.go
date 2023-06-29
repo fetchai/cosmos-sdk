@@ -25,7 +25,7 @@ func (k Keeper) Inflation(c context.Context, _ *types.QueryInflationRequest) (*t
 	return &types.QueryInflationResponse{Inflation: minter.Inflation}, nil
 }
 
-// Inflation returns minter.Inflation of the mint module.
+// Inflations returns minter.Inflations of the mint module.
 func (k Keeper) Inflations(c context.Context, _ *types.QueryInflationsRequest) (*types.QueryInflationsResponse, error) {
 	ctx := sdk.UnwrapSDKContext(c)
 	minter := k.GetMinter(ctx)

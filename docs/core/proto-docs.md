@@ -5744,7 +5744,7 @@ Since: cosmos-sdk 0.43 | |
 <a name="cosmos.mint.v1beta1.Inflation"></a>
 
 ### Inflation
-
+Inflation holds parameters for individual native token inflation
 
 
 | Field | Type | Label | Description |

@@ -74,6 +74,7 @@ func (m *Minter) GetInflations() []*Inflation {
 	return nil
 }
 
+// Inflation holds parameters for individual native token inflation
 type Inflation struct {
 	Denom         string                                 `protobuf:"bytes,1,opt,name=denom,proto3" json:"denom,omitempty"`
 	TargetAddress string                                 `protobuf:"bytes,2,opt,name=target_address,json=targetAddress,proto3" json:"target_address,omitempty"`
