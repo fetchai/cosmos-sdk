@@ -25,14 +25,6 @@ func (k Keeper) Inflation(c context.Context, _ *types.QueryInflationRequest) (*t
 	return &types.QueryInflationResponse{Inflation: minter.Inflation}, nil
 }
 
-// MunicipalInflation returns minter.MunicipalInflation of the mint module.
-func (k Keeper) MunicipalInflation(c context.Context, _ *types.QueryMunicipalInflationRequest) (*types.QueryMunicipalInflationResponse, error) {
-	ctx := sdk.UnwrapSDKContext(c)
-	minter := k.GetMinter(ctx)
-
-	return &types.QueryMunicipalInflationResponse{Inflations: minter.MunicipalInflation}, nil
-}
-
 // AnnualProvisions returns minter.AnnualProvisions of the mint module.
 func (k Keeper) AnnualProvisions(c context.Context, _ *types.QueryAnnualProvisionsRequest) (*types.QueryAnnualProvisionsResponse, error) {
 	ctx := sdk.UnwrapSDKContext(c)

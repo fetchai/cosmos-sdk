@@ -2,11 +2,8 @@ package types
 
 // Minting module event types
 const (
-	EventTypeMint          = ModuleName
-	EventTypeMunicipalMint = "municipal_mint"
+	EventTypeMint = ModuleName
 
 	AttributeKeyInflation        = "inflation"
 	AttributeKeyAnnualProvisions = "annual_provisions"
-	AttributeKeyDenom            = "denom"
-	AttributeKeyTargetAddr       = "target_address"
 )

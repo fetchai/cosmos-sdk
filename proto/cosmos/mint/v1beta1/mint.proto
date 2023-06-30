@@ -16,21 +16,6 @@ message Minter {
     (gogoproto.customtype) = "github.com/cosmos/cosmos-sdk/types.Dec",
     (gogoproto.nullable)   = false
   ];
-
-  //  map<string, Inflation> inflations = 3;
-  repeated MunicipalInflation municipal_inflation = 3;
-}
-
-// Inflation holds parameters for individual native token inflation
-message MunicipalInflation {
-  string denom          = 1;
-  string target_address = 2;
-  // current annual inflation rate
-  string inflation = 3 [
-    (gogoproto.moretags)   = "yaml:\"inflation_rate\"",
-    (gogoproto.customtype) = "github.com/cosmos/cosmos-sdk/types.Dec",
-    (gogoproto.nullable)   = false
-  ];
 }
 
 // Params holds parameters for the mint module.

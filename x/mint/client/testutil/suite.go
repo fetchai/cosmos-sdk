@@ -89,40 +89,6 @@ mint_denom: stake`,
 	}
 }
 
-func (s *IntegrationTestSuite) TestGetCmdQueryInflations() {
-	val := s.network.Validators[0]
-
-	testCases := []struct {
-		name           string
-		args           []string
-		expectedOutput string
-	}{
-		{
-			"json output",
-			[]string{fmt.Sprintf("--%s=1", flags.FlagHeight), fmt.Sprintf("--%s=json", tmcli.OutputFlag)},
-			`[]`,
-		},
-		{
-			"text output",
-			[]string{fmt.Sprintf("--%s=1", flags.FlagHeight), fmt.Sprintf("--%s=text", tmcli.OutputFlag)},
-			`[]`,
-		},
-	}
-
-	for _, tc := range testCases {
-		tc := tc
-
-		s.Run(tc.name, func() {
-			cmd := cli.GetCmdQueryMunicipalInflation()
-			clientCtx := val.ClientCtx
-
-			out, err := clitestutil.ExecTestCLICmd(clientCtx, cmd, tc.args)
-			s.Require().NoError(err)
-			s.Require().Equal(tc.expectedOutput, strings.TrimSpace(out.String()))
-		})
-	}
-}
-
 func (s *IntegrationTestSuite) TestGetCmdQueryInflation() {
 	val := s.network.Validators[0]
 

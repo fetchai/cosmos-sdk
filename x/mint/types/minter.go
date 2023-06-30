@@ -8,11 +8,10 @@ import (
 
 // NewMinter returns a new Minter object with the given inflation and annual
 // provisions values.
-func NewMinter(inflation, annualProvisions sdk.Dec, inflations []*MunicipalInflation) Minter {
+func NewMinter(inflation, annualProvisions sdk.Dec) Minter {
 	return Minter{
-		Inflation:          inflation,
-		AnnualProvisions:   annualProvisions,
-		MunicipalInflation: inflations,
+		Inflation:        inflation,
+		AnnualProvisions: annualProvisions,
 	}
 }
 
@@ -21,7 +20,6 @@ func InitialMinter(inflation sdk.Dec) Minter {
 	return NewMinter(
 		inflation,
 		sdk.NewDec(0),
-		nil,
 	)
 }
 
