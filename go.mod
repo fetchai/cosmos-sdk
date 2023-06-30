@@ -17,6 +17,7 @@ require (
 	github.com/gogo/protobuf v1.3.3
 	github.com/golang/mock v1.6.0
 	github.com/golang/protobuf v1.5.2
+	github.com/golangci/golangci-lint v1.48.0
 	github.com/gorilla/handlers v1.5.1
 	github.com/gorilla/mux v1.8.0
 	github.com/grpc-ecosystem/go-grpc-middleware v1.3.0
@@ -51,8 +52,6 @@ require (
 	google.golang.org/protobuf v1.28.0
 	gopkg.in/yaml.v2 v2.4.0
 )
-
-require github.com/golangci/golangci-lint v1.48.0
 
 require (
 	4d63.com/gochecknoglobals v0.1.0 // indirect

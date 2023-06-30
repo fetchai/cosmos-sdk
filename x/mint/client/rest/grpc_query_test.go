@@ -84,6 +84,15 @@ func (s *IntegrationTestSuite) TestQueryGRPC() {
 			},
 		},
 		{
+			"gRPC request inflations",
+			fmt.Sprintf("%s/cosmos/mint/v1beta1/inflations", baseURL),
+			map[string]string{},
+			&minttypes.QueryMunicipalInflationResponse{},
+			&minttypes.QueryMunicipalInflationResponse{
+				Inflations: nil,
+			},
+		},
+		{
 			"gRPC request annual provisions",
 			fmt.Sprintf("%s/cosmos/mint/v1beta1/annual_provisions", baseURL),
 			map[string]string{
