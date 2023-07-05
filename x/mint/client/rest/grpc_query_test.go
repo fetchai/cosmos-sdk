@@ -85,7 +85,7 @@ func (s *IntegrationTestSuite) TestQueryGRPC() {
 		},
 		{
 			"gRPC request inflations",
-			fmt.Sprintf("%s/cosmos/mint/v1beta1/inflations", baseURL),
+			fmt.Sprintf("%s/cosmos/mint/v1beta1/municipal_inflation", baseURL),
 			map[string]string{},
 			&minttypes.QueryMunicipalInflationResponse{},
 			&minttypes.QueryMunicipalInflationResponse{

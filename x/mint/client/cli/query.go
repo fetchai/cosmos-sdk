@@ -102,8 +102,7 @@ func GetCmdQueryMunicipalInflation() *cobra.Command {
 			}
 			queryClient := types.NewQueryClient(clientCtx)
 
-			params := &types.QueryMunicipalInflationRequest{}
-			res, err := queryClient.MunicipalInflation(cmd.Context(), params)
+			res, err := queryClient.MunicipalInflation(cmd.Context(), nil)
 			if err != nil {
 				return err
 			}
