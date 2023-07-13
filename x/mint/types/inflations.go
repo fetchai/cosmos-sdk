@@ -7,9 +7,8 @@ import (
 
 // NewInflation returns a new Inflation object with the given denom, target_address
 // and inflation_rate
-func NewInflation(denom string, targetAddress string, inflation sdk.Dec) *MunicipalInflation {
+func NewInflation(targetAddress string, inflation sdk.Dec) *MunicipalInflation {
 	return &MunicipalInflation{
-		Denom:         denom,
 		TargetAddress: targetAddress,
 		Inflation:     inflation,
 	}
@@ -49,22 +48,16 @@ func (inflation *MunicipalInflation) Validate() error {
 			inflation.TargetAddress)
 	}
 
-	err = sdk.ValidateDenom(inflation.Denom)
-	if err != nil {
-		return fmt.Errorf("inflation object param, denom: %s", err)
-	}
-
 	return nil
 }
 
-func ValidateMunicipalInflations(i interface{}) (err error) {
-	v, ok := i.([]*MunicipalInflation)
-	if !ok {
-		err = fmt.Errorf("invalid parameter type: %T", i)
-		return
-	}
+func ValidateMunicipalInflations(inflations *map[string]*MunicipalInflation) (err error) {
+	for denom, inflation := range *inflations {
+		err = sdk.ValidateDenom(denom)
+		if err != nil {
+			return fmt.Errorf("inflation object param, denom: %s", err)
+		}
 
-	for _, inflation := range v {
 		err = inflation.Validate()
 		if err != nil {
 			return

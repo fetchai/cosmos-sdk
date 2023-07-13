@@ -394,6 +394,7 @@
   
 - [cosmos/mint/v1beta1/mint.proto](#cosmos/mint/v1beta1/mint.proto)
     - [Minter](#cosmos.mint.v1beta1.Minter)
+    - [Minter.MunicipalInflationEntry](#cosmos.mint.v1beta1.Minter.MunicipalInflationEntry)
     - [MunicipalInflation](#cosmos.mint.v1beta1.MunicipalInflation)
     - [Params](#cosmos.mint.v1beta1.Params)
   
@@ -407,6 +408,7 @@
     - [QueryInflationResponse](#cosmos.mint.v1beta1.QueryInflationResponse)
     - [QueryMunicipalInflationRequest](#cosmos.mint.v1beta1.QueryMunicipalInflationRequest)
     - [QueryMunicipalInflationResponse](#cosmos.mint.v1beta1.QueryMunicipalInflationResponse)
+    - [QueryMunicipalInflationResponse.InflationsEntry](#cosmos.mint.v1beta1.QueryMunicipalInflationResponse.InflationsEntry)
     - [QueryParamsRequest](#cosmos.mint.v1beta1.QueryParamsRequest)
     - [QueryParamsResponse](#cosmos.mint.v1beta1.QueryParamsResponse)
   
@@ -5751,7 +5753,23 @@ Minter represents the minting state.
 | ----- | ---- | ----- | ----------- |
 | `inflation` | [string](#string) |  | current annual inflation rate |
 | `annual_provisions` | [string](#string) |  | current annual expected provisions |
-| `municipal_inflation` | [MunicipalInflation](#cosmos.mint.v1beta1.MunicipalInflation) | repeated | map<string, Inflation> inflations = 3; |
+| `municipal_inflation` | [Minter.MunicipalInflationEntry](#cosmos.mint.v1beta1.Minter.MunicipalInflationEntry) | repeated |  |
+
+
+
+
+
+
+<a name="cosmos.mint.v1beta1.Minter.MunicipalInflationEntry"></a>
+
+### Minter.MunicipalInflationEntry
+
+
+
+| Field | Type | Label | Description |
+| ----- | ---- | ----- | ----------- |
+| `key` | [string](#string) |  |  |
+| `value` | [MunicipalInflation](#cosmos.mint.v1beta1.MunicipalInflation) |  |  |
 
 
 
@@ -5766,7 +5784,6 @@ Inflation holds parameters for individual native token inflation
 
 | Field | Type | Label | Description |
 | ----- | ---- | ----- | ----------- |
-| `denom` | [string](#string) |  |  |
 | `target_address` | [string](#string) |  |  |
 | `inflation` | [string](#string) |  | current annual inflation rate |
 
@@ -5912,7 +5929,23 @@ method.
 
 | Field | Type | Label | Description |
 | ----- | ---- | ----- | ----------- |
-| `inflations` | [MunicipalInflation](#cosmos.mint.v1beta1.MunicipalInflation) | repeated | inflation is the current minting inflation value. |
+| `inflations` | [QueryMunicipalInflationResponse.InflationsEntry](#cosmos.mint.v1beta1.QueryMunicipalInflationResponse.InflationsEntry) | repeated | inflation is the current minting inflation value. |
+
+
+
+
+
+
+<a name="cosmos.mint.v1beta1.QueryMunicipalInflationResponse.InflationsEntry"></a>
+
+### QueryMunicipalInflationResponse.InflationsEntry
+
+
+
+| Field | Type | Label | Description |
+| ----- | ---- | ----- | ----------- |
+| `key` | [string](#string) |  |  |
+| `value` | [MunicipalInflation](#cosmos.mint.v1beta1.MunicipalInflation) |  |  |
 
 
 

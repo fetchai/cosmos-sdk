@@ -17,13 +17,11 @@ message Minter {
     (gogoproto.nullable)   = false
   ];
 
-  //  map<string, Inflation> inflations = 3;
-  repeated MunicipalInflation municipal_inflation = 3;
+  map<string, MunicipalInflation> municipal_inflation = 3;
 }
 
 // Inflation holds parameters for individual native token inflation
 message MunicipalInflation {
-  string denom          = 1;
   string target_address = 2;
   // current annual inflation rate
   string inflation = 3 [
