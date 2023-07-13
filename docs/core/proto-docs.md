@@ -5916,6 +5916,11 @@ method.
 QueryMunicipalInflationRequest is the request type for the Query/MunicipalInflation RPC method.
 
 
+| Field | Type | Label | Description |
+| ----- | ---- | ----- | ----------- |
+| `denom` | [string](#string) | optional |  |
+
+
 
 
 

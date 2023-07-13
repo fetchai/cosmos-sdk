@@ -2,6 +2,7 @@ package keeper
 
 import (
 	"context"
+	"fmt"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/x/mint/types"
@@ -26,11 +27,21 @@ func (k Keeper) Inflation(c context.Context, _ *types.QueryInflationRequest) (*t
 }
 
 // MunicipalInflation returns minter.MunicipalInflation of the mint module.
-func (k Keeper) MunicipalInflation(c context.Context, _ *types.QueryMunicipalInflationRequest) (*types.QueryMunicipalInflationResponse, error) {
+func (k Keeper) MunicipalInflation(c context.Context, req *types.QueryMunicipalInflationRequest) (*types.QueryMunicipalInflationResponse, error) {
 	ctx := sdk.UnwrapSDKContext(c)
 	minter := k.GetMinter(ctx)
+	denom := req.GetDenom()
 
-	return &types.QueryMunicipalInflationResponse{Inflations: minter.MunicipalInflation}, nil
+	if len(denom) == 0 {
+		return &types.QueryMunicipalInflationResponse{Inflations: minter.MunicipalInflation}, nil
+	}
+
+	infl, exists := minter.MunicipalInflation[denom]
+	if exists {
+		return nil, fmt.Errorf("there is no municipal inflation defined for requested \"%s\" denomination", denom)
+	}
+
+	return &types.QueryMunicipalInflationResponse{Inflations: map[string]*types.MunicipalInflation{denom: infl}}, nil
 }
 
 // AnnualProvisions returns minter.AnnualProvisions of the mint module.

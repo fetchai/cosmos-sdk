@@ -37,6 +37,9 @@ const (
 	SignModeLegacyAminoJSON = "amino-json"
 	// SignModeEIP191 is the value of the --sign-mode flag for SIGN_MODE_EIP_191
 	SignModeEIP191 = "eip-191"
+
+	OutputFormatText = "text"
+	OutputFormatJSON = "json"
 )
 
 // List of CLI flags

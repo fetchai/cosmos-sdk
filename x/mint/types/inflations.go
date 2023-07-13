@@ -5,9 +5,9 @@ import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
 )
 
-// NewInflation returns a new Inflation object with the given denom, target_address
+// NewMunicipalInflation returns a new Inflation object with the given denom, target_address
 // and inflation_rate
-func NewInflation(targetAddress string, inflation sdk.Dec) *MunicipalInflation {
+func NewMunicipalInflation(targetAddress string, inflation sdk.Dec) *MunicipalInflation {
 	return &MunicipalInflation{
 		TargetAddress: targetAddress,
 		Inflation:     inflation,
