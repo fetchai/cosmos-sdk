@@ -43,7 +43,9 @@ message QueryParamsResponse {
 message QueryInflationRequest {}
 
 // QueryMunicipalInflationRequest is the request type for the Query/MunicipalInflation RPC method.
-message QueryMunicipalInflationRequest {}
+message QueryMunicipalInflationRequest {
+  optional string denom = 1;
+}
 
 // QueryInflationResponse is the response type for the Query/Inflation RPC
 // method.
@@ -56,7 +58,7 @@ message QueryInflationResponse {
 // method.
 message QueryMunicipalInflationResponse {
   // inflation is the current minting inflation value.
-  repeated MunicipalInflation inflations = 1;
+  map<string, MunicipalInflation> inflations = 1;
 }
 
 // QueryAnnualProvisionsRequest is the request type for the

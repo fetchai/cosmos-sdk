@@ -9,6 +9,7 @@ import (
 	"github.com/cosmos/cosmos-sdk/x/mint/types"
 	"github.com/stretchr/testify/require"
 	tmproto "github.com/tendermint/tendermint/proto/tendermint/types"
+	"golang.org/x/exp/maps"
 	"math/rand"
 	"testing"
 )
@@ -59,21 +60,21 @@ func TestCalculateInflationPerBlockAndIssuance(t *testing.T) {
 		expectedAnnualIssuance sdk.Int
 	}{
 		// Pass: 2 = 200% inflation
-		{types.NewInflation(testDenom, targetAccounts[0].Address.String(), sdk.NewDec(2)), supply.MulRaw(2)},
+		{types.NewMunicipalInflation(targetAccounts[0].Address.String(), sdk.NewDec(2)), supply.MulRaw(2)},
 		// Pass: 1 = 100% inflation
-		{types.NewInflation(testDenom, targetAccounts[0].Address.String(), sdk.OneDec()), supply},
+		{types.NewMunicipalInflation(targetAccounts[0].Address.String(), sdk.OneDec()), supply},
 		// Pass: 0.5 = 50% inflation
-		{types.NewInflation(testDenom, targetAccounts[0].Address.String(), sdk.NewDecWithPrec(5, 1)), supply.QuoRaw(2)},
+		{types.NewMunicipalInflation(targetAccounts[0].Address.String(), sdk.NewDecWithPrec(5, 1)), supply.QuoRaw(2)},
 		// Pass: 0.01 = 1% inflation
-		{types.NewInflation(testDenom, targetAccounts[0].Address.String(), onePercent), supply.QuoRaw(100)},
+		{types.NewMunicipalInflation(targetAccounts[0].Address.String(), onePercent), supply.QuoRaw(100)},
 		//// Pass: -0.01 = -1% inflation
-		//{types.NewInflation(testDenom, targetAccounts[0].Address.String(), onePercent.Neg()), supply.QuoRaw(100).Neg()},
+		//{types.NewMunicipalInflation(testDenom, targetAccounts[0].Address.String(), onePercent.Neg()), supply.QuoRaw(100).Neg()},
 		//// Pass: -0.011 = -1.1% inflation
-		//{types.NewInflation(testDenom, targetAccounts[0].Address.String(), sdk.NewDecWithPrec(11, 3).Neg()), supply.MulRaw(11).QuoRaw(1000).Neg()},
+		//{types.NewMunicipalInflation(testDenom, targetAccounts[0].Address.String(), sdk.NewDecWithPrec(11, 3).Neg()), supply.MulRaw(11).QuoRaw(1000).Neg()},
 		//// Pass: -0.5 = -50% inflation
-		//{types.NewInflation(testDenom, targetAccounts[0].Address.String(), sdk.NewDecWithPrec(5, 1).Neg()), supply.QuoRaw(2)},
+		//{types.NewMunicipalInflation(testDenom, targetAccounts[0].Address.String(), sdk.NewDecWithPrec(5, 1).Neg()), supply.QuoRaw(2)},
 		//// Pass: -0.999...9 = -99.999...9% inflation
-		//{types.NewInflation(testDenom, targetAccounts[0].Address.String(), almostOne.Neg()), sdk.NewDecFromInt(supply).Mul(almostOne).TruncateInt().Neg()},
+		//{types.NewMunicipalInflation(testDenom, targetAccounts[0].Address.String(), almostOne.Neg()), sdk.NewDecFromInt(supply).Mul(almostOne).TruncateInt().Neg()},
 	}
 
 	for _, tc := range tests {
@@ -105,29 +106,26 @@ func TestValidationOfMunicipalInflation(t *testing.T) {
 		expectedToPass bool
 	}{
 		// Pass: 2 = 200% inflation
-		{types.NewInflation("stake", targetAccounts[0].Address.String(), sdk.NewDec(2)), true},
+		{types.NewMunicipalInflation(targetAccounts[0].Address.String(), sdk.NewDec(2)), true},
 		// Pass: 1 = 100% inflation
-		{types.NewInflation("stake", targetAccounts[0].Address.String(), sdk.OneDec()), true},
+		{types.NewMunicipalInflation(targetAccounts[0].Address.String(), sdk.OneDec()), true},
 		// Pass: 0.5 = 50% inflation
-		{types.NewInflation("stake", targetAccounts[0].Address.String(), sdk.NewDecWithPrec(5, 1)), true},
+		{types.NewMunicipalInflation(targetAccounts[0].Address.String(), sdk.NewDecWithPrec(5, 1)), true},
 		// Pass: 0.01 = 1% inflation
-		{types.NewInflation("stake", targetAccounts[0].Address.String(), onePercent), true},
+		{types.NewMunicipalInflation(targetAccounts[0].Address.String(), onePercent), true},
 		//// Pass: -0.01 = -1% inflation
-		//{types.NewInflation("stake", targetAccounts[0].Address.String(), onePercent.Neg()), true},
+		//{types.NewMunicipalInflation(targetAccounts[0].Address.String(), onePercent.Neg()), true},
 		//// Pass: -0.011 = -1.1% inflation
-		//{types.NewInflation("stake", targetAccounts[0].Address.String(), sdk.NewDecWithPrec(11, 3).Neg()), true},
+		//{types.NewMunicipalInflation(targetAccounts[0].Address.String(), sdk.NewDecWithPrec(11, 3).Neg()), true},
 		//// Pass: -0.5 = -50% inflation
-		//{types.NewInflation("stake", targetAccounts[0].Address.String(), sdk.NewDecWithPrec(5, 1).Neg()), true},
+		//{types.NewMunicipalInflation(targetAccounts[0].Address.String(), sdk.NewDecWithPrec(5, 1).Neg()), true},
 		//// Pass: -0.999...9 = -99.999...9% inflation
-		//{types.NewInflation("stake", targetAccounts[0].Address.String(), sdk.OneDec().Sub(sdk.NewDecWithPrec(1, sdk.Precision)).Neg()), true},
+		//{types.NewMunicipalInflation(targetAccounts[0].Address.String(), sdk.OneDec().Sub(sdk.NewDecWithPrec(1, sdk.Precision)).Neg()), true},
 		//// Fail: -1 = -100% inflation
-		//{types.NewInflation("stake", targetAccounts[0].Address.String(), sdk.OneDec().Neg()), false},
-		// Fail: invalid denom
-		{types.NewInflation("!&£$%", targetAccounts[0].Address.String(), onePercent), false},
-		{types.NewInflation("", targetAccounts[0].Address.String(), onePercent), false},
+		//{types.NewMunicipalInflation(targetAccounts[0].Address.String(), sdk.OneDec().Neg()), false},
 		// Fail: invalid targetAddress
-		{types.NewInflation("stake", "fetch123abc", onePercent), false},
-		{types.NewInflation("stake", "", onePercent), false},
+		{types.NewMunicipalInflation("fetch123abc", onePercent), false},
+		{types.NewMunicipalInflation("", onePercent), false},
 	}
 	for _, tc := range tests {
 		err := tc.inflation.Validate()
@@ -145,44 +143,46 @@ func TestBulkValidationOfMunicipalInflations(t *testing.T) {
 
 	targetAccounts := simtypes.RandomAccounts(r, 1)
 
-	expectedToPass := []*types.MunicipalInflation{
+	expectedToPass := map[string]*types.MunicipalInflation{
 		// Pass: 2 = 200% inflation
-		types.NewInflation("stake", targetAccounts[0].Address.String(), sdk.NewDec(2)),
+		"stake0": types.NewMunicipalInflation(targetAccounts[0].Address.String(), sdk.NewDec(2)),
 		// Pass: 1 = 100% inflation
-		types.NewInflation("stake", targetAccounts[0].Address.String(), sdk.OneDec()),
+		"stake1": types.NewMunicipalInflation(targetAccounts[0].Address.String(), sdk.OneDec()),
 		// Pass: 0.5 = 50% inflation
-		types.NewInflation("stake", targetAccounts[0].Address.String(), sdk.NewDecWithPrec(5, 1)),
+		"stake2": types.NewMunicipalInflation(targetAccounts[0].Address.String(), sdk.NewDecWithPrec(5, 1)),
 		// Pass: 0.01 = 1% inflation
-		types.NewInflation("stake", targetAccounts[0].Address.String(), onePercent),
+		"stake3": types.NewMunicipalInflation(targetAccounts[0].Address.String(), onePercent),
 		//// Pass: -0.01 = -1% inflation
-		//types.NewInflation("stake", targetAccounts[0].Address.String(), onePercent.Neg()),
+		//"stake4": types.NewMunicipalInflation(targetAccounts[0].Address.String(), onePercent.Neg()),
 		//// Pass: -0.011 = -1.1% inflation
-		//types.NewInflation("stake", targetAccounts[0].Address.String(), sdk.NewDecWithPrec(11, 3).Neg()),
+		//"stake5": types.NewMunicipalInflation(targetAccounts[0].Address.String(), sdk.NewDecWithPrec(11, 3).Neg()),
 		//// Pass: -0.5 = -50% inflation
-		//types.NewInflation("stake", targetAccounts[0].Address.String(), sdk.NewDecWithPrec(5, 1).Neg()),
+		//"stake6": types.NewMunicipalInflation(targetAccounts[0].Address.String(), sdk.NewDecWithPrec(5, 1).Neg()),
 		//// Pass: -0.999...9 = -99.999...9% inflation
-		//types.NewInflation("stake", targetAccounts[0].Address.String(), sdk.OneDec().Sub(sdk.NewDecWithPrec(1, sdk.Precision)).Neg()),
+		//"stake7": types.NewMunicipalInflation(targetAccounts[0].Address.String(), sdk.OneDec().Sub(sdk.NewDecWithPrec(1, sdk.Precision)).Neg()),
 	}
 
 	// Expected Success:
-	err := types.ValidateMunicipalInflations(expectedToPass)
+	err := types.ValidateMunicipalInflations(&expectedToPass)
 	require.NoError(t, err)
 
-	expectedToPass2 := append(expectedToPass, types.NewInflation("stake", targetAccounts[0].Address.String(), onePercent))
-	err = types.ValidateMunicipalInflations(expectedToPass2)
+	expectedToPass2 := maps.Clone(expectedToPass)
+	expectedToPass2["stake8"] = types.NewMunicipalInflation(targetAccounts[0].Address.String(), onePercent)
+	err = types.ValidateMunicipalInflations(&expectedToPass2)
 	require.NoError(t, err)
 
-	expectedToPass3 := []*types.MunicipalInflation{types.NewInflation("stake", targetAccounts[0].Address.String(), onePercent)}
-	err = types.ValidateMunicipalInflations(expectedToPass3)
+	expectedToPass3 := map[string]*types.MunicipalInflation{"stake": types.NewMunicipalInflation(targetAccounts[0].Address.String(), onePercent)}
+	err = types.ValidateMunicipalInflations(&expectedToPass3)
 	require.NoError(t, err)
 
 	// Expected Failures:
-	expectedToFail := append(expectedToPass, types.NewInflation("stake", targetAccounts[0].Address.String(), onePercent.Neg()))
-	err = types.ValidateMunicipalInflations(expectedToFail)
+	expectedToFail := maps.Clone(expectedToPass)
+	expectedToFail["stake8"] = types.NewMunicipalInflation(targetAccounts[0].Address.String(), onePercent.Neg())
+	err = types.ValidateMunicipalInflations(&expectedToFail)
 	require.Error(t, err)
 
-	expectedToFail2 := []*types.MunicipalInflation{types.NewInflation("stake", targetAccounts[0].Address.String(), onePercent.Neg())}
-	err = types.ValidateMunicipalInflations(expectedToFail2)
+	expectedToFail2 := map[string]*types.MunicipalInflation{"stake": types.NewMunicipalInflation(targetAccounts[0].Address.String(), onePercent.Neg())}
+	err = types.ValidateMunicipalInflations(&expectedToFail2)
 	require.Error(t, err)
 }
 
@@ -200,40 +200,53 @@ func TestHandleMunicipalInflation(t *testing.T) {
 	minter := types.DefaultInitialMinter()
 	params := types.DefaultParams()
 
-	testDenom := "testDenom"
 	initSupplyAmount, _ := sdk.NewIntFromString("1000000000000000000000000000")
-	initSupplyCoin := sdk.NewCoin(testDenom, initSupplyAmount)
 	params.BlocksPerYear = 10000
 	keeper.SetParams(ctx, params)
 
-	tests := []struct {
+	tests := map[string]struct {
 		inflation              *types.MunicipalInflation
 		expectedAnnualIssuance sdk.Int
 	}{
-		{types.NewInflation(testDenom, targetAccounts[0].Address.String(), sdk.NewDecWithPrec(1, 2)), initSupplyAmount.QuoRaw(100)},
-		{types.NewInflation(testDenom, targetAccounts[1].Address.String(), sdk.NewDecWithPrec(5, 2)), initSupplyAmount.MulRaw(5).QuoRaw(100)},
-		{types.NewInflation(testDenom, targetAccounts[2].Address.String(), sdk.NewDecWithPrec(25, 2)), initSupplyAmount.QuoRaw(4)},
-		{types.NewInflation(testDenom, targetAccounts[3].Address.String(), sdk.NewDecWithPrec(50, 2)), initSupplyAmount.QuoRaw(2)},
-		{types.NewInflation(testDenom, targetAccounts[4].Address.String(), sdk.NewDecWithPrec(75, 2)), initSupplyAmount.MulRaw(3).QuoRaw(4)},
-		{types.NewInflation(testDenom, targetAccounts[5].Address.String(), sdk.NewDecWithPrec(100, 2)), initSupplyAmount},
+		"denom0": {types.NewMunicipalInflation(targetAccounts[0].Address.String(), sdk.NewDecWithPrec(1, 2)), initSupplyAmount.QuoRaw(100)},
+		"denom1": {types.NewMunicipalInflation(targetAccounts[1].Address.String(), sdk.NewDecWithPrec(5, 2)), initSupplyAmount.MulRaw(5).QuoRaw(100)},
+		"denom2": {types.NewMunicipalInflation(targetAccounts[2].Address.String(), sdk.NewDecWithPrec(25, 2)), initSupplyAmount.QuoRaw(4)},
+		"denom3": {types.NewMunicipalInflation(targetAccounts[3].Address.String(), sdk.NewDecWithPrec(50, 2)), initSupplyAmount.QuoRaw(2)},
+		"denom4": {types.NewMunicipalInflation(targetAccounts[4].Address.String(), sdk.NewDecWithPrec(75, 2)), initSupplyAmount.MulRaw(3).QuoRaw(4)},
+		"denom5": {types.NewMunicipalInflation(targetAccounts[5].Address.String(), sdk.NewDecWithPrec(100, 2)), initSupplyAmount},
 	}
 
-	for _, tc := range tests {
-		resetSupply(app, ctx, sdk.NewCoins(initSupplyCoin), sdk.NewCoins(keeper.BankKeeper.GetSupply(ctx, testDenom)))
-		minter.MunicipalInflation = []*types.MunicipalInflation{tc.inflation}
-		keeper.SetMinter(ctx, minter)
+	// Configure/initialise Minter with MunicipalInflation:
+	minter.MunicipalInflation = map[string]*types.MunicipalInflation{}
+	for denom, tc := range tests {
+		minter.MunicipalInflation[denom] = tc.inflation
+	}
+	keeper.SetMinter(ctx, minter)
 
+	// Reset supplies for each denomination to the same `initSupplyAmount` amount:
+	for denom, _ := range tests {
+		resetSupply(app, ctx, sdk.NewCoins(sdk.NewCoin(denom, initSupplyAmount)), sdk.NewCoins(keeper.BankKeeper.GetSupply(ctx, denom)))
+	}
+
+	// Recording starting balances for all test accounts:
+	startingTestAccountBalances := map[string]sdk.Int{}
+	for denom, tc := range tests {
 		account, _ := sdk.AccAddressFromBech32(tc.inflation.TargetAddress)
-		startingTestAccountBalance := app.BankKeeper.GetBalance(ctx, account, tc.inflation.Denom).Amount
+		startingTestAccountBalances[denom] = app.BankKeeper.GetBalance(ctx, account, denom).Amount
+	}
 
-		for i := 0; i < int(params.BlocksPerYear); i++ {
-			mint.HandleMunicipalInflation(ctx, keeper)
-		}
+	// vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv
+	// TEST SUBJECT: Calling production code for as many times as there is number of blocks in a year
+	for i := 0; i < int(params.BlocksPerYear); i++ {
+		mint.HandleMunicipalInflation(ctx, keeper)
+	}
+	// ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-		issuedAmount := (keeper.BankKeeper.GetSupply(ctx, testDenom).Amount).Sub(initSupplyAmount)
-
-		currentTestAccountBalance := app.BankKeeper.GetBalance(ctx, account, tc.inflation.Denom).Amount
-		require.True(t, issuedAmount.Equal(currentTestAccountBalance.Sub(startingTestAccountBalance)))
+	for denom, tc := range tests {
+		issuedAmount := (keeper.BankKeeper.GetSupply(ctx, denom).Amount).Sub(initSupplyAmount)
+		account, _ := sdk.AccAddressFromBech32(tc.inflation.TargetAddress)
+		currentTestAccountBalance := app.BankKeeper.GetBalance(ctx, account, denom).Amount
+		require.True(t, issuedAmount.Equal(currentTestAccountBalance.Sub(startingTestAccountBalances[denom])))
 
 		issuanceRelativeMulError := sdk.NewDecFromInt(issuedAmount).QuoInt(tc.expectedAnnualIssuance).Sub(sdk.OneDec())
 		require.True(t, issuanceRelativeMulError.LT(allowedRelativeMulError))

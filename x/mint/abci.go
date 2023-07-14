@@ -25,20 +25,20 @@ var (
 
 // NOTE(pb): Not thread safe, as per comment above.
 func (cache *MunicipalInflationCache) refresh(minter *types.Minter, blocksPerYear uint64) {
-	if err := types.ValidateMunicipalInflations(minter.MunicipalInflation); err != nil {
+	if err := types.ValidateMunicipalInflations(&minter.MunicipalInflation); err != nil {
 		panic(err)
 	}
 
 	cache.blocksPerYear = blocksPerYear
 	cache.perBlockInflations = map[string]sdk.Dec{}
 
-	for _, inflation := range minter.MunicipalInflation {
+	for denom, inflation := range minter.MunicipalInflation {
 		inflationPerBlock, err := types.CalculateInflationPerBlock(inflation, blocksPerYear)
 		if err != nil {
 			panic(err)
 		}
 
-		cache.perBlockInflations[inflation.Denom] = inflationPerBlock
+		cache.perBlockInflations[denom] = inflationPerBlock
 	}
 }
 
@@ -58,13 +58,12 @@ func HandleMunicipalInflation(ctx sdk.Context, k keeper.Keeper) {
 	infCache.refreshIfNecessary(&minter, params.BlocksPerYear)
 
 	// iterate through native denominations
-	for _, inflation := range minter.MunicipalInflation {
-		denom := inflation.Denom
+	for denom, inflation := range minter.MunicipalInflation {
 		targetAddress := inflation.TargetAddress
 
 		// gather supply value & calculate number of new tokens created from relevant inflation
 		totalDenomSupply := k.BankKeeper.GetSupply(ctx, denom)
-		coinsToMint := types.CalculateInflationIssuance(infCache.perBlockInflations[inflation.Denom], totalDenomSupply)
+		coinsToMint := types.CalculateInflationIssuance(infCache.perBlockInflations[denom], totalDenomSupply)
 
 		err := k.MintCoins(ctx, coinsToMint)
 
@@ -88,7 +87,7 @@ func HandleMunicipalInflation(ctx sdk.Context, k keeper.Keeper) {
 		ctx.EventManager().EmitEvent(
 			sdk.NewEvent(
 				types.EventTypeMunicipalMint,
-				sdk.NewAttribute(types.AttributeKeyDenom, inflation.Denom),
+				sdk.NewAttribute(types.AttributeKeyDenom, denom),
 				sdk.NewAttribute(types.AttributeKeyInflation, inflation.Inflation.String()),
 				sdk.NewAttribute(types.AttributeKeyTargetAddr, inflation.TargetAddress),
 				sdk.NewAttribute(sdk.AttributeKeyAmount, coinsToMint.String()),
