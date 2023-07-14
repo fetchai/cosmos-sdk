@@ -37,7 +37,7 @@ func (k Keeper) MunicipalInflation(c context.Context, req *types.QueryMunicipalI
 	}
 
 	infl, exists := minter.MunicipalInflation[denom]
-	if exists {
+	if !exists {
 		return nil, fmt.Errorf("there is no municipal inflation defined for requested \"%s\" denomination", denom)
 	}
 
