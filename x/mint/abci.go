@@ -5,12 +5,15 @@ import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/x/mint/keeper"
 	"github.com/cosmos/cosmos-sdk/x/mint/types"
+	"golang.org/x/exp/maps"
+	"sort"
 	"time"
 )
 
 type MunicipalInflationCache struct {
 	blocksPerYear      uint64
 	perBlockInflations map[string]sdk.Dec // {denom: inflationPerBlock}
+	sortedDenoms       []string           // list of alphabetically sorted municipal inflation keys
 }
 
 var (
@@ -20,7 +23,7 @@ var (
 	//			 different threads, or in global scope somewhere else.
 	//			 Once such requirements arise, concept of this global variable
 	//			 needs to be changed to something what is thread safe.
-	infCache = MunicipalInflationCache{0, nil}
+	infCache = MunicipalInflationCache{0, nil, nil}
 )
 
 // NOTE(pb): Not thread safe, as per comment above.
@@ -31,6 +34,9 @@ func (cache *MunicipalInflationCache) refresh(minter *types.Minter, blocksPerYea
 
 	cache.blocksPerYear = blocksPerYear
 	cache.perBlockInflations = map[string]sdk.Dec{}
+
+	cache.sortedDenoms = maps.Keys(minter.MunicipalInflation)
+	sort.Strings(cache.sortedDenoms)
 
 	for denom, inflation := range minter.MunicipalInflation {
 		inflationPerBlock, err := types.CalculateInflationPerBlock(inflation, blocksPerYear)
@@ -58,7 +64,8 @@ func HandleMunicipalInflation(ctx sdk.Context, k keeper.Keeper) {
 	infCache.refreshIfNecessary(&minter, params.BlocksPerYear)
 
 	// iterate through native denominations
-	for denom, inflation := range minter.MunicipalInflation {
+	for _, denom := range infCache.sortedDenoms {
+		inflation := minter.MunicipalInflation[denom]
 		targetAddress := inflation.TargetAddress
 
 		// gather supply value & calculate number of new tokens created from relevant inflation
