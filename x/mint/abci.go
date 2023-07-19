@@ -25,20 +25,22 @@ var (
 
 // NOTE(pb): Not thread safe, as per comment above.
 func (cache *MunicipalInflationCache) refresh(minter *types.Minter, blocksPerYear uint64) {
-	if err := types.ValidateMunicipalInflations(&minter.MunicipalInflation); err != nil {
+	if err := types.ValidateMunicipalInflations(*minter.MunicipalInflation); err != nil {
 		panic(err)
 	}
 
 	cache.blocksPerYear = blocksPerYear
 	cache.perBlockInflations = map[string]sdk.Dec{}
 
-	for denom, inflation := range minter.MunicipalInflation {
+	for _, key := range minter.MunicipalInflation.Keys() {
+		value, _ := minter.MunicipalInflation.Get(key)
+		inflation := value.(*types.MunicipalInflation)
 		inflationPerBlock, err := types.CalculateInflationPerBlock(inflation, blocksPerYear)
 		if err != nil {
 			panic(err)
 		}
 
-		cache.perBlockInflations[denom] = inflationPerBlock
+		cache.perBlockInflations[key.(string)] = inflationPerBlock
 	}
 }
 
@@ -58,7 +60,10 @@ func HandleMunicipalInflation(ctx sdk.Context, k keeper.Keeper) {
 	infCache.refreshIfNecessary(&minter, params.BlocksPerYear)
 
 	// iterate through native denominations
-	for denom, inflation := range minter.MunicipalInflation {
+	for _, key := range minter.MunicipalInflation.Keys() {
+		denom := key.(string)
+		value, _ := minter.MunicipalInflation.Get(key)
+		inflation := value.(*types.MunicipalInflation)
 		targetAddress := inflation.TargetAddress
 
 		// gather supply value & calculate number of new tokens created from relevant inflation

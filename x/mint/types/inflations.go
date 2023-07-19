@@ -3,6 +3,7 @@ package types
 import (
 	"fmt"
 	sdk "github.com/cosmos/cosmos-sdk/types"
+	"github.com/emirpasic/gods/maps/treemap"
 )
 
 // NewMunicipalInflation returns a new Inflation object with the given denom, target_address
@@ -51,14 +52,16 @@ func (inflation *MunicipalInflation) Validate() error {
 	return nil
 }
 
-func ValidateMunicipalInflations(inflations *map[string]*MunicipalInflation) (err error) {
-	for denom, inflation := range *inflations {
-		err = sdk.ValidateDenom(denom)
+func ValidateMunicipalInflations(inflations treemap.Map) (err error) {
+
+	for _, key := range inflations.Keys() {
+		err = sdk.ValidateDenom(key.(string))
 		if err != nil {
 			return fmt.Errorf("inflation object param, denom: %s", err)
 		}
 
-		err = inflation.Validate()
+		value, _ := inflations.Get(key)
+		err = value.(*MunicipalInflation).Validate()
 		if err != nil {
 			return
 		}
