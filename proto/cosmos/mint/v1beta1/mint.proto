@@ -17,7 +17,10 @@ message Minter {
     (gogoproto.nullable)   = false
   ];
 
-  map<string, MunicipalInflation> municipal_inflation = 3;
+  map<string, MunicipalInflation> municipal_inflation = 3 [
+    (gogoproto.nullable) = false,
+    (gogoproto.casttype) = "github.com/emirpasic/gods/maps/treemap.Map"
+  ];
 }
 
 // Inflation holds parameters for individual native token inflation

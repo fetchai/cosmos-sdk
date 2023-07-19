@@ -143,7 +143,7 @@ func TestBulkValidationOfMunicipalInflations(t *testing.T) {
 
 	targetAccounts := simtypes.RandomAccounts(r, 1)
 
-	expectedToPass := map[string]*types.MunicipalInflation{
+	var expectedToPass types.UnorderedMunicipalInflations = map[string]*types.MunicipalInflation{
 		// Pass: 2 = 200% inflation
 		"stake0": types.NewMunicipalInflation(targetAccounts[0].Address.String(), sdk.NewDec(2)),
 		// Pass: 1 = 100% inflation
@@ -171,7 +171,7 @@ func TestBulkValidationOfMunicipalInflations(t *testing.T) {
 	err = types.ValidateMunicipalInflations(&expectedToPass2)
 	require.NoError(t, err)
 
-	expectedToPass3 := map[string]*types.MunicipalInflation{"stake": types.NewMunicipalInflation(targetAccounts[0].Address.String(), onePercent)}
+	var expectedToPass3 types.UnorderedMunicipalInflations = map[string]*types.MunicipalInflation{"stake": types.NewMunicipalInflation(targetAccounts[0].Address.String(), onePercent)}
 	err = types.ValidateMunicipalInflations(&expectedToPass3)
 	require.NoError(t, err)
 
@@ -181,7 +181,7 @@ func TestBulkValidationOfMunicipalInflations(t *testing.T) {
 	err = types.ValidateMunicipalInflations(&expectedToFail)
 	require.Error(t, err)
 
-	expectedToFail2 := map[string]*types.MunicipalInflation{"stake": types.NewMunicipalInflation(targetAccounts[0].Address.String(), onePercent.Neg())}
+	var expectedToFail2 types.UnorderedMunicipalInflations = map[string]*types.MunicipalInflation{"stake": types.NewMunicipalInflation(targetAccounts[0].Address.String(), onePercent.Neg())}
 	err = types.ValidateMunicipalInflations(&expectedToFail2)
 	require.Error(t, err)
 }

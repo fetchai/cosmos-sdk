@@ -5,12 +5,17 @@ import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/x/mint/keeper"
 	"github.com/cosmos/cosmos-sdk/x/mint/types"
+	"sort"
 	"time"
 )
 
+type UnorderedInflations map[string]sdk.Dec
+type OrderedDenominations []string
+
 type MunicipalInflationCache struct {
-	blocksPerYear      uint64
-	perBlockInflations map[string]sdk.Dec // {denom: inflationPerBlock}
+	blocksPerYear               uint64
+	unorderedPerBlockInflations UnorderedInflations // {denom: inflationPerBlock}
+	orderedDenominations        OrderedDenominations
 }
 
 var (
@@ -20,32 +25,44 @@ var (
 	//			 different threads, or in global scope somewhere else.
 	//			 Once such requirements arise, concept of this global variable
 	//			 needs to be changed to something what is thread safe.
-	infCache = MunicipalInflationCache{0, nil}
+	infCache = MunicipalInflationCache{0, nil, nil}
 )
 
 // NOTE(pb): Not thread safe, as per comment above.
-func (cache *MunicipalInflationCache) refresh(minter *types.Minter, blocksPerYear uint64) {
-	if err := types.ValidateMunicipalInflations(&minter.MunicipalInflation); err != nil {
+func (cache *MunicipalInflationCache) refresh(inflations *types.UnorderedMunicipalInflations, blocksPerYear uint64) {
+	if err := types.ValidateMunicipalInflations(inflations); err != nil {
 		panic(err)
 	}
 
 	cache.blocksPerYear = blocksPerYear
-	cache.perBlockInflations = map[string]sdk.Dec{}
+	cache.unorderedPerBlockInflations = UnorderedInflations{}
 
-	for denom, inflation := range minter.MunicipalInflation {
-		inflationPerBlock, err := types.CalculateInflationPerBlock(inflation, blocksPerYear)
+	// NOTE(pb): The `maps.Keys(...)` impl. is less performant than the impl. below:
+	//cache.orderedDenominations = maps.Keys(*inflations)
+	cache.orderedDenominations = make(OrderedDenominations, len(*inflations))
+
+	var i uint64 = 0
+	for denom, _ := range *inflations {
+		cache.orderedDenominations[i] = denom
+		i += 1
+	}
+
+	sort.Strings(cache.orderedDenominations)
+
+	for _, denom := range cache.orderedDenominations {
+		inflationPerBlock, err := types.CalculateInflationPerBlock((*inflations)[denom], blocksPerYear)
 		if err != nil {
 			panic(err)
 		}
 
-		cache.perBlockInflations[denom] = inflationPerBlock
+		cache.unorderedPerBlockInflations[denom] = inflationPerBlock
 	}
 }
 
 // NOTE(pb): Not thread safe, as per comment above.
-func (cache *MunicipalInflationCache) refreshIfNecessary(minter *types.Minter, blocksPerYear uint64) {
+func (cache *MunicipalInflationCache) refreshIfNecessary(inflations *types.UnorderedMunicipalInflations, blocksPerYear uint64) {
 	if infCache.blocksPerYear != blocksPerYear {
-		cache.refresh(minter, blocksPerYear)
+		cache.refresh(inflations, blocksPerYear)
 	}
 }
 
@@ -55,7 +72,7 @@ func HandleMunicipalInflation(ctx sdk.Context, k keeper.Keeper) {
 	minter := k.GetMinter(ctx)
 	params := k.GetParams(ctx)
 
-	infCache.refreshIfNecessary(&minter, params.BlocksPerYear)
+	infCache.refreshIfNecessary((*types.UnorderedMunicipalInflations)(&minter.MunicipalInflation), params.BlocksPerYear)
 
 	// iterate through native denominations
 	for denom, inflation := range minter.MunicipalInflation {
@@ -63,7 +80,7 @@ func HandleMunicipalInflation(ctx sdk.Context, k keeper.Keeper) {
 
 		// gather supply value & calculate number of new tokens created from relevant inflation
 		totalDenomSupply := k.BankKeeper.GetSupply(ctx, denom)
-		coinsToMint := types.CalculateInflationIssuance(infCache.perBlockInflations[denom], totalDenomSupply)
+		coinsToMint := types.CalculateInflationIssuance(infCache.unorderedPerBlockInflations[denom], totalDenomSupply)
 
 		err := k.MintCoins(ctx, coinsToMint)
 
