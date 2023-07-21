@@ -14,8 +14,8 @@ func NewMunicipalInflation(targetAddress string, inflation sdk.Dec) *MunicipalIn
 	}
 }
 
-func CalculateInflationPerBlock(inflation *MunicipalInflation, blocksPerYear uint64) (result sdk.Dec, err error) {
-	inflationPerBlockPlusOne, err := inflation.Inflation.Add(sdk.OneDec()).ApproxRoot(blocksPerYear)
+func CalculateInflationPerBlock(inflation sdk.Dec, blocksPerYear uint64) (result sdk.Dec, err error) {
+	inflationPerBlockPlusOne, err := inflation.Add(sdk.OneDec()).ApproxRoot(blocksPerYear)
 	if err != nil {
 		return
 	}
@@ -51,14 +51,21 @@ func (inflation *MunicipalInflation) Validate() error {
 	return nil
 }
 
-func ValidateMunicipalInflations(inflations *map[string]*MunicipalInflation) (err error) {
-	for denom, inflation := range *inflations {
-		err = sdk.ValidateDenom(denom)
+func ValidateMunicipalInflations(inflations *[]*MunicipalInflationPair) (err error) {
+	var denoms map[string]struct{}
+	for _, pair := range *inflations {
+
+		_, exists := denoms[pair.Denom]
+		if exists {
+			return fmt.Errorf("municipal inflation: denomination \"%s\" defined more than once", pair.Denom)
+		}
+
+		err = sdk.ValidateDenom(pair.Denom)
 		if err != nil {
 			return fmt.Errorf("inflation object param, denom: %s", err)
 		}
 
-		err = inflation.Validate()
+		err = pair.Inflation.Validate()
 		if err != nil {
 			return
 		}

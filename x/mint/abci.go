@@ -1,53 +1,14 @@
 package mint
 
 import (
+	"fmt"
 	"github.com/cosmos/cosmos-sdk/telemetry"
 	sdk "github.com/cosmos/cosmos-sdk/types"
+	"github.com/cosmos/cosmos-sdk/x/mint/cache"
 	"github.com/cosmos/cosmos-sdk/x/mint/keeper"
 	"github.com/cosmos/cosmos-sdk/x/mint/types"
 	"time"
 )
-
-type MunicipalInflationCache struct {
-	blocksPerYear      uint64
-	perBlockInflations map[string]sdk.Dec // {denom: inflationPerBlock}
-}
-
-var (
-	// NOTE(pb): This is *NOT* thread safe.
-	//			 However, in our case, this global variable is by design
-	//			 *NOT* supposed to be accessed simultaneously in multiple
-	//			 different threads, or in global scope somewhere else.
-	//			 Once such requirements arise, concept of this global variable
-	//			 needs to be changed to something what is thread safe.
-	infCache = MunicipalInflationCache{0, nil}
-)
-
-// NOTE(pb): Not thread safe, as per comment above.
-func (cache *MunicipalInflationCache) refresh(minter *types.Minter, blocksPerYear uint64) {
-	if err := types.ValidateMunicipalInflations(&minter.MunicipalInflation); err != nil {
-		panic(err)
-	}
-
-	cache.blocksPerYear = blocksPerYear
-	cache.perBlockInflations = map[string]sdk.Dec{}
-
-	for denom, inflation := range minter.MunicipalInflation {
-		inflationPerBlock, err := types.CalculateInflationPerBlock(inflation, blocksPerYear)
-		if err != nil {
-			panic(err)
-		}
-
-		cache.perBlockInflations[denom] = inflationPerBlock
-	}
-}
-
-// NOTE(pb): Not thread safe, as per comment above.
-func (cache *MunicipalInflationCache) refreshIfNecessary(minter *types.Minter, blocksPerYear uint64) {
-	if infCache.blocksPerYear != blocksPerYear {
-		cache.refresh(minter, blocksPerYear)
-	}
-}
 
 // HandleMunicipalInflation iterates through all other native tokens specified in the minter.MunicipalInflation structure, and processes
 // the minting of new coins in line with the respective inflation rate of each denomination
@@ -55,15 +16,22 @@ func HandleMunicipalInflation(ctx sdk.Context, k keeper.Keeper) {
 	minter := k.GetMinter(ctx)
 	params := k.GetParams(ctx)
 
-	infCache.refreshIfNecessary(&minter, params.BlocksPerYear)
+	cache.GMunicipalInflationCache.RefreshIfNecessary(&minter.MunicipalInflation, params.BlocksPerYear)
 
 	// iterate through native denominations
-	for denom, inflation := range minter.MunicipalInflation {
-		targetAddress := inflation.TargetAddress
+	for _, pair := range minter.MunicipalInflation {
+		targetAddress := pair.Inflation.TargetAddress
 
 		// gather supply value & calculate number of new tokens created from relevant inflation
-		totalDenomSupply := k.BankKeeper.GetSupply(ctx, denom)
-		coinsToMint := types.CalculateInflationIssuance(infCache.perBlockInflations[denom], totalDenomSupply)
+		totalDenomSupply := k.BankKeeper.GetSupply(ctx, pair.Denom)
+
+		cacheItem, exists := cache.GMunicipalInflationCache.GetInflation(pair.Denom)
+
+		if !exists {
+			panic(fmt.Errorf("numicipal inflation: missing cache item for the \"%s\" denomination", pair.Denom))
+		}
+
+		coinsToMint := types.CalculateInflationIssuance(cacheItem.PerBlockInflation, totalDenomSupply)
 
 		err := k.MintCoins(ctx, coinsToMint)
 
@@ -87,9 +55,9 @@ func HandleMunicipalInflation(ctx sdk.Context, k keeper.Keeper) {
 		ctx.EventManager().EmitEvent(
 			sdk.NewEvent(
 				types.EventTypeMunicipalMint,
-				sdk.NewAttribute(types.AttributeKeyDenom, denom),
-				sdk.NewAttribute(types.AttributeKeyInflation, inflation.Inflation.String()),
-				sdk.NewAttribute(types.AttributeKeyTargetAddr, inflation.TargetAddress),
+				sdk.NewAttribute(types.AttributeKeyDenom, pair.Denom),
+				sdk.NewAttribute(types.AttributeKeyInflation, pair.Inflation.Inflation.String()),
+				sdk.NewAttribute(types.AttributeKeyTargetAddr, pair.Inflation.TargetAddress),
 				sdk.NewAttribute(sdk.AttributeKeyAmount, coinsToMint.String()),
 			),
 		)
