@@ -220,7 +220,7 @@ func TestHandleMunicipalInflation(t *testing.T) {
 
 	var testMunicipalInflations = make([]*types.MunicipalInflationPair, len(definedInfations))
 	for i, infl := range definedInfations {
-		testMunicipalInflations[i] = &types.MunicipalInflationPair{"denom0", &types.MunicipalInflation{targetAccounts[i].Address.String(), infl.annualInflation}}
+		testMunicipalInflations[i] = &types.MunicipalInflationPair{infl.denom, &types.MunicipalInflation{targetAccounts[i].Address.String(), infl.annualInflation}}
 	}
 
 	// Configure/initialise Minter with MunicipalInflation:

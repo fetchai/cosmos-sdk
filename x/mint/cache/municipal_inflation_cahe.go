@@ -8,7 +8,7 @@ import (
 
 type MunicipalInflationCacheItem struct {
 	PerBlockInflation sdk.Dec
-	Inflation         *types.MunicipalInflation
+	AnnualInflation   *types.MunicipalInflation
 }
 
 type MunicipalInflationCache struct {

@@ -5,7 +5,7 @@ import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
 )
 
-// NewMunicipalInflation returns a new Inflation object with the given denom, target_address
+// NewMunicipalInflation returns a new AnnualInflation object with the given denom, target_address
 // and inflation_rate
 func NewMunicipalInflation(targetAddress string, inflation sdk.Dec) *MunicipalInflation {
 	return &MunicipalInflation{
@@ -28,7 +28,7 @@ func CalculateInflationIssuance(inflation sdk.Dec, supply sdk.Coin) (result sdk.
 	return sdk.NewCoins(sdk.NewCoin(supply.Denom, issuedAmount))
 }
 
-// Validate ensures validity of Inflation object fields
+// Validate ensures validity of AnnualInflation object fields
 
 func (inflation *MunicipalInflation) Validate() error {
 	// NOTE(pb): Algebraically speaking, negative inflation >= -1 is logically
