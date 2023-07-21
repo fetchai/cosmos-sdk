@@ -56,7 +56,7 @@ func HandleMunicipalInflation(ctx sdk.Context, k keeper.Keeper) {
 			sdk.NewEvent(
 				types.EventTypeMunicipalMint,
 				sdk.NewAttribute(types.AttributeKeyDenom, pair.Denom),
-				sdk.NewAttribute(types.AttributeKeyInflation, pair.Inflation.Inflation.String()),
+				sdk.NewAttribute(types.AttributeKeyInflation, pair.Inflation.Value.String()),
 				sdk.NewAttribute(types.AttributeKeyTargetAddr, pair.Inflation.TargetAddress),
 				sdk.NewAttribute(sdk.AttributeKeyAmount, coinsToMint.String()),
 			),

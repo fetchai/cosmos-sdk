@@ -5767,8 +5767,8 @@ Inflation holds parameters for individual native token inflation
 
 | Field | Type | Label | Description |
 | ----- | ---- | ----- | ----------- |
-| `target_address` | [string](#string) |  |  |
-| `inflation` | [string](#string) |  | current annual inflation rate |
+| `target_address` | [string](#string) |  | address where inflation induced new tokens will be minted |
+| `value` | [string](#string) |  | current ANNUAL inflation rate |
 
 
 
@@ -5778,13 +5778,19 @@ Inflation holds parameters for individual native token inflation
 <a name="cosmos.mint.v1beta1.MunicipalInflationPair"></a>
 
 ### MunicipalInflationPair
-
+Pair representing denom -> inflation mapping.
+This pair-like structure will be used in `repeating MunicipalInflationPair`
+type, what will have the same Protobuf binary representation on wire as the
+`map<string, MunicipalInflation>` type.
+This means that what is serialised as `repeating MunicipalInflationPair` on
+one end can be deserialised as `map<string, MunicipalInflation>` on the other
+end, and other vice versa.
 
 
 | Field | Type | Label | Description |
 | ----- | ---- | ----- | ----------- |
-| `denom` | [string](#string) |  |  |
-| `inflation` | [MunicipalInflation](#cosmos.mint.v1beta1.MunicipalInflation) |  |  |
+| `denom` | [string](#string) |  | token denomination |
+| `inflation` | [MunicipalInflation](#cosmos.mint.v1beta1.MunicipalInflation) |  | Structure representing municipal inflation for the the given `denom` |
 
 
 

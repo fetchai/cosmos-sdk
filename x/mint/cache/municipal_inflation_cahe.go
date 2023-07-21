@@ -73,7 +73,7 @@ func (cache *MunicipalInflationCache) refresh(inflations *[]*types.MunicipalInfl
 	cache.inflations = map[string]*MunicipalInflationCacheItem{}
 
 	for _, pair := range *inflations {
-		inflationPerBlock, err := types.CalculateInflationPerBlock(pair.Inflation.Inflation, blocksPerYear)
+		inflationPerBlock, err := types.CalculateInflationPerBlock(pair.Inflation.Value, blocksPerYear)
 
 		if err != nil {
 			panic(err)

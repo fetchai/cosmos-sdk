@@ -113,7 +113,7 @@ func (m *QueryParamsResponse) GetParams() Params {
 	return Params{}
 }
 
-// QueryInflationRequest is the request type for the Query/AnnualInflation RPC method.
+// QueryInflationRequest is the request type for the Query/Inflation RPC method.
 type QueryInflationRequest struct {
 }
 
@@ -223,7 +223,7 @@ func (*QueryMunicipalInflationRequest) XXX_OneofWrappers() []interface{} {
 	}
 }
 
-// QueryInflationResponse is the response type for the Query/AnnualInflation RPC
+// QueryInflationResponse is the response type for the Query/Inflation RPC
 // method.
 type QueryInflationResponse struct {
 	// inflation is the current minting inflation value.
@@ -263,7 +263,7 @@ func (m *QueryInflationResponse) XXX_DiscardUnknown() {
 
 var xxx_messageInfo_QueryInflationResponse proto.InternalMessageInfo
 
-// QueryInflationResponse is the response type for the Query/AnnualInflation RPC
+// QueryInflationResponse is the response type for the Query/Inflation RPC
 // method.
 type QueryMunicipalInflationResponse struct {
 	// inflation is the current minting inflation value.
@@ -481,7 +481,7 @@ func (c *queryClient) Params(ctx context.Context, in *QueryParamsRequest, opts .
 
 func (c *queryClient) Inflation(ctx context.Context, in *QueryInflationRequest, opts ...grpc.CallOption) (*QueryInflationResponse, error) {
 	out := new(QueryInflationResponse)
-	err := c.cc.Invoke(ctx, "/cosmos.mint.v1beta1.Query/AnnualInflation", in, out, opts...)
+	err := c.cc.Invoke(ctx, "/cosmos.mint.v1beta1.Query/Inflation", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -526,7 +526,7 @@ func (*UnimplementedQueryServer) Params(ctx context.Context, req *QueryParamsReq
 	return nil, status.Errorf(codes.Unimplemented, "method Params not implemented")
 }
 func (*UnimplementedQueryServer) Inflation(ctx context.Context, req *QueryInflationRequest) (*QueryInflationResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method AnnualInflation not implemented")
+	return nil, status.Errorf(codes.Unimplemented, "method Inflation not implemented")
 }
 func (*UnimplementedQueryServer) MunicipalInflation(ctx context.Context, req *QueryMunicipalInflationRequest) (*QueryMunicipalInflationResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method MunicipalInflation not implemented")
@@ -567,7 +567,7 @@ func _Query_Inflation_Handler(srv interface{}, ctx context.Context, dec func(int
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/cosmos.mint.v1beta1.Query/AnnualInflation",
+		FullMethod: "/cosmos.mint.v1beta1.Query/Inflation",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(QueryServer).Inflation(ctx, req.(*QueryInflationRequest))
@@ -620,7 +620,7 @@ var _Query_serviceDesc = grpc.ServiceDesc{
 			Handler:    _Query_Params_Handler,
 		},
 		{
-			MethodName: "AnnualInflation",
+			MethodName: "Inflation",
 			Handler:    _Query_Inflation_Handler,
 		},
 		{
@@ -1297,7 +1297,7 @@ func (m *QueryInflationResponse) Unmarshal(dAtA []byte) error {
 		switch fieldNum {
 		case 1:
 			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field AnnualInflation", wireType)
+				return fmt.Errorf("proto: wrong wireType = %d for field Inflation", wireType)
 			}
 			var byteLen int
 			for shift := uint(0); ; shift += 7 {
@@ -1380,7 +1380,7 @@ func (m *QueryMunicipalInflationResponse) Unmarshal(dAtA []byte) error {
 		switch fieldNum {
 		case 1:
 			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field inflations", wireType)
+				return fmt.Errorf("proto: wrong wireType = %d for field Inflations", wireType)
 			}
 			var msglen int
 			for shift := uint(0); ; shift += 7 {

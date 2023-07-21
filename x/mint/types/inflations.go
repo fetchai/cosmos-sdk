@@ -10,7 +10,7 @@ import (
 func NewMunicipalInflation(targetAddress string, inflation sdk.Dec) *MunicipalInflation {
 	return &MunicipalInflation{
 		TargetAddress: targetAddress,
-		Inflation:     inflation,
+		Value:         inflation,
 	}
 }
 
@@ -37,9 +37,9 @@ func (inflation *MunicipalInflation) Validate() error {
 	//			 addresses with non-zero token balance of given denomination,
 	//			 what is politically & performance wise unfeasible.
 	//		     To avoid issues for now, negative inflation is not allowed.
-	if inflation.Inflation.IsNegative() {
+	if inflation.Value.IsNegative() {
 		return fmt.Errorf("inflation object param, inflation_rate, cannot be negative, value: %s",
-			inflation.Inflation.String())
+			inflation.Value.String())
 	}
 
 	_, err := sdk.AccAddressFromBech32(inflation.TargetAddress)

@@ -107,7 +107,7 @@ func (s *IntegrationTestSuite) TestGetCmdQueryMunicipalInflation() {
 		{
 			"full - json output",
 			[]string{fmt.Sprintf("--%s=1", flags.FlagHeight), fmt.Sprintf("--%s=json", tmcli.OutputFlag)},
-			`{"inflations":[{"denom":"denom1","inflation":{"target_address":"cosmos12kdu2sy0zcmz84qymyj6zcfvwss3a703xgpczm","inflation":"0.023400000000000000"}},{"denom":"denom0","inflation":{"target_address":"cosmos1d9pzg5542spe4anjgu2zmk7wxhgh04ysn2phpq","inflation":"1.230000000000000000"}},{"denom":"denom3","inflation":{"target_address":"cosmos1ck73rpk6eqxtla4rv7rspsq7apl3740rgjfte4","inflation":"0.456000000000000000"}},{"denom":"denom2","inflation":{"target_address":"cosmos1ury8qn5w7m3xkl9pdd9ehazd2c9urx7qht2jly","inflation":"0.345000000000000000"}}]}`,
+			`{"inflations":[{"denom":"denom1","inflation":{"target_address":"cosmos12kdu2sy0zcmz84qymyj6zcfvwss3a703xgpczm","value":"0.023400000000000000"}},{"denom":"denom0","inflation":{"target_address":"cosmos1d9pzg5542spe4anjgu2zmk7wxhgh04ysn2phpq","value":"1.230000000000000000"}},{"denom":"denom3","inflation":{"target_address":"cosmos1ck73rpk6eqxtla4rv7rspsq7apl3740rgjfte4","value":"0.456000000000000000"}},{"denom":"denom2","inflation":{"target_address":"cosmos1ury8qn5w7m3xkl9pdd9ehazd2c9urx7qht2jly","value":"0.345000000000000000"}}]}`,
 		},
 		{
 			"full - text output",
@@ -115,25 +115,25 @@ func (s *IntegrationTestSuite) TestGetCmdQueryMunicipalInflation() {
 			`inflations:
 - denom: denom1
   inflation:
-    inflation: "0.023400000000000000"
     target_address: cosmos12kdu2sy0zcmz84qymyj6zcfvwss3a703xgpczm
+    value: "0.023400000000000000"
 - denom: denom0
   inflation:
-    inflation: "1.230000000000000000"
     target_address: cosmos1d9pzg5542spe4anjgu2zmk7wxhgh04ysn2phpq
+    value: "1.230000000000000000"
 - denom: denom3
   inflation:
-    inflation: "0.456000000000000000"
     target_address: cosmos1ck73rpk6eqxtla4rv7rspsq7apl3740rgjfte4
+    value: "0.456000000000000000"
 - denom: denom2
   inflation:
-    inflation: "0.345000000000000000"
-    target_address: cosmos1ury8qn5w7m3xkl9pdd9ehazd2c9urx7qht2jly`,
+    target_address: cosmos1ury8qn5w7m3xkl9pdd9ehazd2c9urx7qht2jly
+    value: "0.345000000000000000"`,
 		},
 		{
 			"selected denom - json output",
 			[]string{"denom3", fmt.Sprintf("--%s=1", flags.FlagHeight), fmt.Sprintf("--%s=json", tmcli.OutputFlag)},
-			`{"inflations":[{"denom":"denom3","inflation":{"target_address":"cosmos1ck73rpk6eqxtla4rv7rspsq7apl3740rgjfte4","inflation":"0.456000000000000000"}}]}`,
+			`{"inflations":[{"denom":"denom3","inflation":{"target_address":"cosmos1ck73rpk6eqxtla4rv7rspsq7apl3740rgjfte4","value":"0.456000000000000000"}}]}`,
 		},
 		{
 			"selected denom - text output",
@@ -141,8 +141,8 @@ func (s *IntegrationTestSuite) TestGetCmdQueryMunicipalInflation() {
 			`inflations:
 - denom: denom3
   inflation:
-    inflation: "0.456000000000000000"
-    target_address: cosmos1ck73rpk6eqxtla4rv7rspsq7apl3740rgjfte4`,
+    target_address: cosmos1ck73rpk6eqxtla4rv7rspsq7apl3740rgjfte4
+    value: "0.456000000000000000"`,
 		},
 	}
 

@@ -79,12 +79,12 @@ func TestCalculateInflationPerBlockAndIssuance(t *testing.T) {
 	for _, tc := range tests {
 
 		// Calculate inflation
-		inflationRatePerBlock, err := types.CalculateInflationPerBlock(tc.inflation.Inflation, params.BlocksPerYear)
+		inflationRatePerBlock, err := types.CalculateInflationPerBlock(tc.inflation.Value, params.BlocksPerYear)
 		require.NoError(t, err)
 
 		reconstitutedInflationPerAnnum := inflationRatePerBlock.Add(sdk.OneDec()).Power(params.BlocksPerYear).Sub(sdk.OneDec())
 
-		mulErrorAfterReconstitution := reconstitutedInflationPerAnnum.Quo(tc.inflation.Inflation).Sub(sdk.OneDec()).Abs()
+		mulErrorAfterReconstitution := reconstitutedInflationPerAnnum.Quo(tc.inflation.Value).Sub(sdk.OneDec()).Abs()
 		require.True(t, mulErrorAfterReconstitution.LT(allowedRelativeMulError))
 
 		issuedTokensAnnually := types.CalculateInflationIssuance(reconstitutedInflationPerAnnum, sdk.Coin{Denom: testDenom, Amount: supply})
