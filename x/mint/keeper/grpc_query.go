@@ -3,8 +3,8 @@ package keeper
 import (
 	"context"
 	"fmt"
-
 	sdk "github.com/cosmos/cosmos-sdk/types"
+	"github.com/cosmos/cosmos-sdk/x/mint/cache"
 	"github.com/cosmos/cosmos-sdk/x/mint/types"
 )
 
@@ -18,7 +18,7 @@ func (k Keeper) Params(c context.Context, _ *types.QueryParamsRequest) (*types.Q
 	return &types.QueryParamsResponse{Params: params}, nil
 }
 
-// Inflation returns minter.Inflation of the mint module.
+// Inflation returns minter.AnnualInflation of the mint module.
 func (k Keeper) Inflation(c context.Context, _ *types.QueryInflationRequest) (*types.QueryInflationResponse, error) {
 	ctx := sdk.UnwrapSDKContext(c)
 	minter := k.GetMinter(ctx)
@@ -28,20 +28,22 @@ func (k Keeper) Inflation(c context.Context, _ *types.QueryInflationRequest) (*t
 
 // MunicipalInflation returns minter.MunicipalInflation of the mint module.
 func (k Keeper) MunicipalInflation(c context.Context, req *types.QueryMunicipalInflationRequest) (*types.QueryMunicipalInflationResponse, error) {
-	ctx := sdk.UnwrapSDKContext(c)
-	minter := k.GetMinter(ctx)
+	//ctx := sdk.UnwrapSDKContext(c)
+	//minter := k.GetMinter(ctx)
 	denom := req.GetDenom()
 
 	if len(denom) == 0 {
-		return &types.QueryMunicipalInflationResponse{Inflations: minter.MunicipalInflation}, nil
+
+		return &types.QueryMunicipalInflationResponse{Inflations: *cache.GMunicipalInflationCache.GetOriginal()}, nil
 	}
 
-	infl, exists := minter.MunicipalInflation[denom]
+	//for _, infl := minter.MunicipalInflation
+	infl, exists := cache.GMunicipalInflationCache.GetInflation(denom)
 	if !exists {
 		return nil, fmt.Errorf("there is no municipal inflation defined for requested \"%s\" denomination", denom)
 	}
 
-	return &types.QueryMunicipalInflationResponse{Inflations: map[string]*types.MunicipalInflation{denom: infl}}, nil
+	return &types.QueryMunicipalInflationResponse{Inflations: []*types.MunicipalInflationPair{{denom, infl.AnnualInflation}}}, nil
 }
 
 // AnnualProvisions returns minter.AnnualProvisions of the mint module.

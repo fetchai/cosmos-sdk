@@ -5,17 +5,17 @@ import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
 )
 
-// NewMunicipalInflation returns a new Inflation object with the given denom, target_address
+// NewMunicipalInflation returns a new AnnualInflation object with the given denom, target_address
 // and inflation_rate
 func NewMunicipalInflation(targetAddress string, inflation sdk.Dec) *MunicipalInflation {
 	return &MunicipalInflation{
 		TargetAddress: targetAddress,
-		Inflation:     inflation,
+		Value:         inflation,
 	}
 }
 
-func CalculateInflationPerBlock(inflation *MunicipalInflation, blocksPerYear uint64) (result sdk.Dec, err error) {
-	inflationPerBlockPlusOne, err := inflation.Inflation.Add(sdk.OneDec()).ApproxRoot(blocksPerYear)
+func CalculateInflationPerBlock(inflation sdk.Dec, blocksPerYear uint64) (result sdk.Dec, err error) {
+	inflationPerBlockPlusOne, err := inflation.Add(sdk.OneDec()).ApproxRoot(blocksPerYear)
 	if err != nil {
 		return
 	}
@@ -28,7 +28,7 @@ func CalculateInflationIssuance(inflation sdk.Dec, supply sdk.Coin) (result sdk.
 	return sdk.NewCoins(sdk.NewCoin(supply.Denom, issuedAmount))
 }
 
-// Validate ensures validity of Inflation object fields
+// Validate ensures validity of AnnualInflation object fields
 
 func (inflation *MunicipalInflation) Validate() error {
 	// NOTE(pb): Algebraically speaking, negative inflation >= -1 is logically
@@ -37,9 +37,9 @@ func (inflation *MunicipalInflation) Validate() error {
 	//			 addresses with non-zero token balance of given denomination,
 	//			 what is politically & performance wise unfeasible.
 	//		     To avoid issues for now, negative inflation is not allowed.
-	if inflation.Inflation.IsNegative() {
+	if inflation.Value.IsNegative() {
 		return fmt.Errorf("inflation object param, inflation_rate, cannot be negative, value: %s",
-			inflation.Inflation.String())
+			inflation.Value.String())
 	}
 
 	_, err := sdk.AccAddressFromBech32(inflation.TargetAddress)
@@ -51,14 +51,21 @@ func (inflation *MunicipalInflation) Validate() error {
 	return nil
 }
 
-func ValidateMunicipalInflations(inflations *map[string]*MunicipalInflation) (err error) {
-	for denom, inflation := range *inflations {
-		err = sdk.ValidateDenom(denom)
+func ValidateMunicipalInflations(inflations *[]*MunicipalInflationPair) (err error) {
+	var denoms map[string]struct{}
+	for _, pair := range *inflations {
+
+		_, exists := denoms[pair.Denom]
+		if exists {
+			return fmt.Errorf("municipal inflation: denomination \"%s\" defined more than once", pair.Denom)
+		}
+
+		err = sdk.ValidateDenom(pair.Denom)
 		if err != nil {
 			return fmt.Errorf("inflation object param, denom: %s", err)
 		}
 
-		err = inflation.Validate()
+		err = pair.Inflation.Validate()
 		if err != nil {
 			return
 		}

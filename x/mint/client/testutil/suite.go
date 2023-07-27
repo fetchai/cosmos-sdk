@@ -37,9 +37,11 @@ func (s *IntegrationTestSuite) SetupSuite() {
 	inflation := sdk.MustNewDecFromStr("1.0")
 	mintData.Minter.Inflation = inflation
 
-	mintData.Minter.MunicipalInflation = map[string]*minttypes.MunicipalInflation{
-		"denom1": minttypes.NewMunicipalInflation("cosmos12kdu2sy0zcmz84qymyj6zcfvwss3a703xgpczm", sdk.NewDecWithPrec(345, 4)),
-		"denom0": minttypes.NewMunicipalInflation("cosmos1d9pzg5542spe4anjgu2zmk7wxhgh04ysn2phpq", sdk.NewDecWithPrec(123, 2)),
+	mintData.Minter.MunicipalInflation = []*minttypes.MunicipalInflationPair{
+		{"denom1", minttypes.NewMunicipalInflation("cosmos12kdu2sy0zcmz84qymyj6zcfvwss3a703xgpczm", sdk.NewDecWithPrec(234, 4))},
+		{"denom0", minttypes.NewMunicipalInflation("cosmos1d9pzg5542spe4anjgu2zmk7wxhgh04ysn2phpq", sdk.NewDecWithPrec(123, 2))},
+		{"denom3", minttypes.NewMunicipalInflation("cosmos1ck73rpk6eqxtla4rv7rspsq7apl3740rgjfte4", sdk.NewDecWithPrec(456, 3))},
+		{"denom2", minttypes.NewMunicipalInflation("cosmos1ury8qn5w7m3xkl9pdd9ehazd2c9urx7qht2jly", sdk.NewDecWithPrec(345, 3))},
 	}
 
 	mintDataBz, err := s.cfg.Codec.MarshalJSON(&mintData)
@@ -105,31 +107,42 @@ func (s *IntegrationTestSuite) TestGetCmdQueryMunicipalInflation() {
 		{
 			"full - json output",
 			[]string{fmt.Sprintf("--%s=1", flags.FlagHeight), fmt.Sprintf("--%s=json", tmcli.OutputFlag)},
-			`{"inflations":{"denom0":{"target_address":"cosmos1d9pzg5542spe4anjgu2zmk7wxhgh04ysn2phpq","inflation":"1.230000000000000000"},"denom1":{"target_address":"cosmos12kdu2sy0zcmz84qymyj6zcfvwss3a703xgpczm","inflation":"0.034500000000000000"}}}`,
+			`{"inflations":[{"denom":"denom1","inflation":{"target_address":"cosmos12kdu2sy0zcmz84qymyj6zcfvwss3a703xgpczm","value":"0.023400000000000000"}},{"denom":"denom0","inflation":{"target_address":"cosmos1d9pzg5542spe4anjgu2zmk7wxhgh04ysn2phpq","value":"1.230000000000000000"}},{"denom":"denom3","inflation":{"target_address":"cosmos1ck73rpk6eqxtla4rv7rspsq7apl3740rgjfte4","value":"0.456000000000000000"}},{"denom":"denom2","inflation":{"target_address":"cosmos1ury8qn5w7m3xkl9pdd9ehazd2c9urx7qht2jly","value":"0.345000000000000000"}}]}`,
 		},
 		{
 			"full - text output",
 			[]string{fmt.Sprintf("--%s=1", flags.FlagHeight), fmt.Sprintf("--%s=text", tmcli.OutputFlag)},
 			`inflations:
-  denom0:
-    inflation: "1.230000000000000000"
+- denom: denom1
+  inflation:
+    target_address: cosmos12kdu2sy0zcmz84qymyj6zcfvwss3a703xgpczm
+    value: "0.023400000000000000"
+- denom: denom0
+  inflation:
     target_address: cosmos1d9pzg5542spe4anjgu2zmk7wxhgh04ysn2phpq
-  denom1:
-    inflation: "0.034500000000000000"
-    target_address: cosmos12kdu2sy0zcmz84qymyj6zcfvwss3a703xgpczm`,
+    value: "1.230000000000000000"
+- denom: denom3
+  inflation:
+    target_address: cosmos1ck73rpk6eqxtla4rv7rspsq7apl3740rgjfte4
+    value: "0.456000000000000000"
+- denom: denom2
+  inflation:
+    target_address: cosmos1ury8qn5w7m3xkl9pdd9ehazd2c9urx7qht2jly
+    value: "0.345000000000000000"`,
 		},
 		{
 			"selected denom - json output",
-			[]string{"denom1", fmt.Sprintf("--%s=1", flags.FlagHeight), fmt.Sprintf("--%s=json", tmcli.OutputFlag)},
-			`{"inflations":{"denom1":{"target_address":"cosmos12kdu2sy0zcmz84qymyj6zcfvwss3a703xgpczm","inflation":"0.034500000000000000"}}}`,
+			[]string{"denom3", fmt.Sprintf("--%s=1", flags.FlagHeight), fmt.Sprintf("--%s=json", tmcli.OutputFlag)},
+			`{"inflations":[{"denom":"denom3","inflation":{"target_address":"cosmos1ck73rpk6eqxtla4rv7rspsq7apl3740rgjfte4","value":"0.456000000000000000"}}]}`,
 		},
 		{
 			"selected denom - text output",
-			[]string{"denom1", fmt.Sprintf("--%s=1", flags.FlagHeight), fmt.Sprintf("--%s=text", tmcli.OutputFlag)},
+			[]string{"denom3", fmt.Sprintf("--%s=1", flags.FlagHeight), fmt.Sprintf("--%s=text", tmcli.OutputFlag)},
 			`inflations:
-  denom1:
-    inflation: "0.034500000000000000"
-    target_address: cosmos12kdu2sy0zcmz84qymyj6zcfvwss3a703xgpczm`,
+- denom: denom3
+  inflation:
+    target_address: cosmos1ck73rpk6eqxtla4rv7rspsq7apl3740rgjfte4
+    value: "0.456000000000000000"`,
 		},
 	}
 

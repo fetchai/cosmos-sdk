@@ -58,7 +58,7 @@ message QueryInflationResponse {
 // method.
 message QueryMunicipalInflationResponse {
   // inflation is the current minting inflation value.
-  map<string, MunicipalInflation> inflations = 1;
+  repeated MunicipalInflationPair inflations = 1;
 }
 
 // QueryAnnualProvisionsRequest is the request type for the

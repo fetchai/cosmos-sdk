@@ -8,7 +8,7 @@ import (
 
 // NewMinter returns a new Minter object with the given inflation and annual
 // provisions values.
-func NewMinter(inflation, annualProvisions sdk.Dec, inflations map[string]*MunicipalInflation) Minter {
+func NewMinter(inflation, annualProvisions sdk.Dec, inflations []*MunicipalInflationPair) Minter {
 	return Minter{
 		Inflation:          inflation,
 		AnnualProvisions:   annualProvisions,
@@ -36,7 +36,7 @@ func DefaultInitialMinter() Minter {
 // validate minter
 func ValidateMinter(minter Minter) error {
 	if minter.Inflation.IsNegative() {
-		return fmt.Errorf("mint parameter Inflation should be positive, is %s",
+		return fmt.Errorf("mint parameter AnnualInflation should be positive, is %s",
 			minter.Inflation.String())
 	}
 	return nil
