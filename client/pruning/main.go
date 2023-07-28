@@ -76,15 +76,17 @@ func PruningCmd(appCreator servertypes.AppCreator) *cobra.Command {
 				return fmt.Errorf("the database has no valid heights to prune, the latest height: %v", latestHeight)
 			}
 
-			var pruningHeights []int64
-			for height := int64(1); height < latestHeight; height++ {
-				if height < latestHeight-int64(pruningOptions.KeepRecent) {
-					pruningHeights = append(pruningHeights, height)
-				}
-			}
-			if len(pruningHeights) == 0 {
+			effectiveLastHeight := latestHeight - int64(pruningOptions.KeepRecent)
+
+			if effectiveLastHeight < 1 {
 				fmt.Printf("no heights to prune\n")
 				return nil
+			}
+
+			pruningHeights := make([]int64, effectiveLastHeight)
+
+			for height := int64(0); height < effectiveLastHeight; height++ {
+				pruningHeights[height] = height + 1
 			}
 			fmt.Printf(
 				"pruning heights start from %v, end at %v\n",
