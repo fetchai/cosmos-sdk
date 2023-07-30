@@ -83,11 +83,13 @@ func PruningCmd(appCreator servertypes.AppCreator) *cobra.Command {
 				return nil
 			}
 
-			pruningHeights := make([]int64, effectiveLastHeight)
-
-			for height := int64(0); height < effectiveLastHeight; height++ {
-				pruningHeights[height] = height + 1
+			lenPH := effectiveLastHeight + 1
+			pruningHeights := make([]int64, lenPH)
+			for height := int64(1); height < lenPH; height++ {
+				pruningHeights[height] = height
 			}
+			pruningHeights = pruningHeights[1:]
+
 			fmt.Printf(
 				"pruning heights start from %v, end at %v\n",
 				pruningHeights[0],
