@@ -27,14 +27,14 @@ func PruningCmd(appCreator servertypes.AppCreator) *cobra.Command {
 		Use:   "prune",
 		Short: "Prune app history states by keeping the recent heights and deleting old heights",
 		Long: `Prune app history states by keeping the recent heights and deleting old heights.
-		The pruning option is provided via the '--pruning' flag or alternatively with '--pruning-keep-recent'
+		The pruning strategy is provided via the '--pruning' flag or alternatively with '--pruning-keep-recent'
 		
 		For '--pruning' the options are as follows:
 		
 		default: the last 362880 states are kept
 		nothing: all historic states will be saved, nothing will be deleted (i.e. archiving node)
 		everything: 2 latest states will be kept
-		custom: allow pruning options to be manually specified through 'pruning-keep-recent'.
+		custom: allow pruning options to be manually specified through the 'app.toml' config file or through CLI flags.
 		besides pruning options, database home directory and database backend type should also be specified via flags
 		'--home' and '--app-db-backend'.
 		valid app-db-backend type includes 'goleveldb', 'cleveldb', 'rocksdb', 'boltdb', and 'badgerdb'.
