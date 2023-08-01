@@ -3,7 +3,6 @@ package cli
 import (
 	"github.com/spf13/cobra"
 
-	"encoding/base64"
 	"github.com/cosmos/cosmos-sdk/client"
 	"github.com/cosmos/cosmos-sdk/client/flags"
 	"github.com/cosmos/cosmos-sdk/client/tx"
@@ -14,7 +13,7 @@ import (
 func NewTxCmd() *cobra.Command {
 	txCmd := &cobra.Command{
 		Use:                        types.ModuleName,
-		Short:                      "Bank transaction subcommands",
+		Short:                      "Verification transaction subcommands",
 		DisableFlagParsing:         true,
 		SuggestionsMinimumDistance: 2,
 		RunE:                       client.ValidateCmd,
@@ -28,8 +27,8 @@ func NewTxCmd() *cobra.Command {
 // NewSendTxCmd returns a CLI command handler for creating a MsgSend transaction.
 func NewSendTxCmd() *cobra.Command {
 	cmd := &cobra.Command{
-		Use: "verification [from_key_or_address] [to_address] [amount]",
-		Short: `Send funds from one account to another. Note, the'--from' flag is
+		Use: "send [from_key_or_address] [to_address] [amount]",
+		Short: `send verification message from account with arbitrery data. Note, the'--from' flag is
 ignored as it is implied from [from_key_or_address].`,
 		Args: cobra.ExactArgs(3),
 		RunE: func(cmd *cobra.Command, args []string) error {
@@ -39,18 +38,9 @@ ignored as it is implied from [from_key_or_address].`,
 				return err
 			}
 
-			decoded_data, err := base64.StdEncoding.DecodeString(args[1])
-			if err != nil {
-				return err
-			}
-
 			msg := &types.MsgSignData{
 				FromAddress: clientCtx.GetFromAddress().String(),
-				Data:        decoded_data,
-			}
-
-			if err := msg.ValidateBasic(); err != nil {
-				return err
+				Data:        []byte("abc"),
 			}
 
 			return tx.GenerateOrBroadcastTxCLI(clientCtx, cmd.Flags(), msg)

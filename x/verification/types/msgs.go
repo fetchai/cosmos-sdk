@@ -7,19 +7,10 @@ import (
 
 // bank message types
 const (
-	TypeMsgSignData = "sigdata"
+	TypeMsgSignData = "signdata"
 )
 
 var _ sdk.Msg = &MsgSignData{}
-
-/*
-// NewMsgSignData - construct a msg to send coins from one account to another.
-//
-//nolint:interfacer
-func NewMsgSignData(fromAddr, data []byte) *MsgSignData {
-	return &MsgSignData{FromAddress: fromAddr.String(), Data: data}
-}
-*/
 
 // Route Implements Msg.
 func (msg MsgSignData) Route() string { return RouterKey }
@@ -50,3 +41,5 @@ func (msg MsgSignData) GetSigners() []sdk.AccAddress {
 	}
 	return []sdk.AccAddress{from}
 }
+
+// ValidateBasic - v
