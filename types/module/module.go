@@ -85,7 +85,6 @@ func (bm BasicManager) RegisterInterfaces(registry codectypes.InterfaceRegistry)
 	for _, m := range bm {
 		m.RegisterInterfaces(registry)
 	}
-
 }
 
 // DefaultGenesis provides default genesis information for all modules
