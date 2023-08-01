@@ -1,6 +1,7 @@
 package cli
 
 import (
+	"encoding/base64"
 	"github.com/spf13/cobra"
 
 	"github.com/cosmos/cosmos-sdk/client"
@@ -27,10 +28,10 @@ func NewTxCmd() *cobra.Command {
 // NewSendTxCmd returns a CLI command handler for creating a MsgSend transaction.
 func NewSendTxCmd() *cobra.Command {
 	cmd := &cobra.Command{
-		Use: "send [from_key_or_address] [to_address] [amount]",
-		Short: `send verification message from account with arbitrery data. Note, the'--from' flag is
+		Use: "send [from_key_or_address] [base64_encoded_data]",
+		Short: `send verification message from account with arbitrary data. Note, the'--from' flag is
 ignored as it is implied from [from_key_or_address].`,
-		Args: cobra.ExactArgs(3),
+		Args: cobra.ExactArgs(2),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			cmd.Flags().Set(flags.FlagFrom, args[0])
 			clientCtx, err := client.GetClientTxContext(cmd)
@@ -38,9 +39,11 @@ ignored as it is implied from [from_key_or_address].`,
 				return err
 			}
 
+			decoded_data, err := base64.StdEncoding.DecodeString(args[1])
+
 			msg := &types.MsgSignData{
 				FromAddress: clientCtx.GetFromAddress().String(),
-				Data:        []byte("abc"),
+				Data:        decoded_data,
 			}
 
 			return tx.GenerateOrBroadcastTxCLI(clientCtx, cmd.Flags(), msg)
