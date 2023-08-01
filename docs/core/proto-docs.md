@@ -581,6 +581,12 @@
   
     - [Query](#cosmos.upgrade.v1beta1.Query)
   
+- [cosmos/verification/v1beta1/tx.proto](#cosmos/verification/v1beta1/tx.proto)
+    - [MsgSignData](#cosmos.verification.v1beta1.MsgSignData)
+    - [MsgSignDataResponse](#cosmos.verification.v1beta1.MsgSignDataResponse)
+  
+    - [Msg](#cosmos.verification.v1beta1.Msg)
+  
 - [cosmos/vesting/v1beta1/tx.proto](#cosmos/vesting/v1beta1/tx.proto)
     - [MsgCreateVestingAccount](#cosmos.vesting.v1beta1.MsgCreateVestingAccount)
     - [MsgCreateVestingAccountResponse](#cosmos.vesting.v1beta1.MsgCreateVestingAccountResponse)
@@ -8315,6 +8321,58 @@ Query defines the gRPC upgrade querier service.
 | `ModuleVersions` | [QueryModuleVersionsRequest](#cosmos.upgrade.v1beta1.QueryModuleVersionsRequest) | [QueryModuleVersionsResponse](#cosmos.upgrade.v1beta1.QueryModuleVersionsResponse) | ModuleVersions queries the list of module versions from state.
 
 Since: cosmos-sdk 0.43 | GET|/cosmos/upgrade/v1beta1/module_versions|
+
+ <!-- end services -->
+
+
+
+<a name="cosmos/verification/v1beta1/tx.proto"></a>
+<p align="right"><a href="#top">Top</a></p>
+
+## cosmos/verification/v1beta1/tx.proto
+
+
+
+<a name="cosmos.verification.v1beta1.MsgSignData"></a>
+
+### MsgSignData
+MsgSignData defines an arbitrary, general-purpose, off-chain message
+
+
+| Field | Type | Label | Description |
+| ----- | ---- | ----- | ----------- |
+| `from_address` | [string](#string) |  | Signer is the sdk.AccAddress of the message signer |
+| `data` | [bytes](#bytes) |  | Data represents the raw bytes of the content that is signed (text, json, etc) |
+
+
+
+
+
+
+<a name="cosmos.verification.v1beta1.MsgSignDataResponse"></a>
+
+### MsgSignDataResponse
+MsgSignDataResponse defines the Msg/Send response type.
+
+
+
+
+
+ <!-- end messages -->
+
+ <!-- end enums -->
+
+ <!-- end HasExtensions -->
+
+
+<a name="cosmos.verification.v1beta1.Msg"></a>
+
+### Msg
+Msg defines the sign Msg service.
+
+| Method Name | Request Type | Response Type | Description | HTTP Verb | Endpoint |
+| ----------- | ------------ | ------------- | ------------| ------- | -------- |
+| `SignData` | [MsgSignData](#cosmos.verification.v1beta1.MsgSignData) | [MsgSignDataResponse](#cosmos.verification.v1beta1.MsgSignDataResponse) | Send defines a method for sending coins from one account to another account. | |
 
  <!-- end services -->
 

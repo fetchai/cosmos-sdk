@@ -1,0 +1,26 @@
+syntax = "proto3";
+package cosmos.verification.v1beta1;
+
+import "gogoproto/gogo.proto";
+
+option go_package = "github.com/cosmos/cosmos-sdk/x/verification/types";
+
+// Msg defines the sign Msg service.
+service Msg {
+  // Send defines a method for sending coins from one account to another account.
+  rpc SignData(MsgSignData) returns (MsgSignDataResponse);
+}
+
+// MsgSignData defines an arbitrary, general-purpose, off-chain message
+message MsgSignData {
+  option (gogoproto.equal)           = false;
+  option (gogoproto.goproto_getters) = false;
+
+  // Signer is the sdk.AccAddress of the message signer
+  string from_address = 1 [(gogoproto.moretags) = "yaml:\"from_address\""];
+  // Data represents the raw bytes of the content that is signed (text, json, etc)
+  bytes data = 2;
+}
+
+// MsgSignDataResponse defines the Msg/Send response type.
+message MsgSignDataResponse {}
