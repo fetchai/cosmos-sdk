@@ -2,12 +2,13 @@ package mint
 
 import (
 	"fmt"
+	"time"
+
 	"github.com/cosmos/cosmos-sdk/telemetry"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/x/mint/cache"
 	"github.com/cosmos/cosmos-sdk/x/mint/keeper"
 	"github.com/cosmos/cosmos-sdk/x/mint/types"
-	"time"
 )
 
 // HandleMunicipalInflation iterates through all other native tokens specified in the minter.MunicipalInflation structure, and processes
@@ -34,7 +35,6 @@ func HandleMunicipalInflation(ctx sdk.Context, k keeper.Keeper) {
 		coinsToMint := types.CalculateInflationIssuance(cacheItem.PerBlockInflation, totalDenomSupply)
 
 		err := k.MintCoins(ctx, coinsToMint)
-
 		if err != nil {
 			panic(err)
 		}

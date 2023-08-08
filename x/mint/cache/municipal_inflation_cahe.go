@@ -1,9 +1,10 @@
 package cache
 
 import (
+	"sync"
+
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/x/mint/types"
-	"sync"
 )
 
 type MunicipalInflationCacheItem struct {
@@ -18,19 +19,17 @@ type MunicipalInflationCache struct {
 	mu            sync.RWMutex
 }
 
-var (
-	// GMunicipalInflationCache Thread safety:
-	// As the things stand now from design & impl. perspective:
-	//  1. This global variable is supposed to be initialised(= its value set)
-	//     just *ONCE* here, at this place,
-	//  2. This global variable is *NOT* used anywhere else in the initialisation
-	//     context of the *global scope* - e.g. as input for initialisation of
-	//     another global variable, etc. ...
-	//  3. All *exported* methods of `MunicipalInflationCache` type *ARE* thread safe,
-	//     and so can be called from anywhere, *EXCEPT* from the initialisation context
-	//     of the global scope(implication of the point 2 above)!
-	GMunicipalInflationCache = MunicipalInflationCache{}
-)
+// GMunicipalInflationCache Thread safety:
+// As the things stand now from design & impl. perspective:
+//  1. This global variable is supposed to be initialised(= its value set)
+//     just *ONCE* here, at this place,
+//  2. This global variable is *NOT* used anywhere else in the initialisation
+//     context of the *global scope* - e.g. as input for initialisation of
+//     another global variable, etc. ...
+//  3. All *exported* methods of `MunicipalInflationCache` type *ARE* thread safe,
+//     and so can be called from anywhere, *EXCEPT* from the initialisation context
+//     of the global scope(implication of the point 2 above)!
+var GMunicipalInflationCache = MunicipalInflationCache{}
 
 func (cache *MunicipalInflationCache) Refresh(inflations *[]*types.MunicipalInflationPair, blocksPerYear uint64) {
 	cache.mu.Lock()
@@ -78,7 +77,6 @@ func (cache *MunicipalInflationCache) refresh(inflations *[]*types.MunicipalInfl
 
 	for _, pair := range *inflations {
 		inflationPerBlock, err := types.CalculateInflationPerBlock(pair.Inflation.Value, blocksPerYear)
-
 		if err != nil {
 			panic(err)
 		}
