@@ -19,12 +19,16 @@ type MunicipalInflationCache struct {
 }
 
 var (
-	// NOTE(pb): This is *NOT* thread safe.
-	//			 However, in our case, this global variable is by design
-	//			 *NOT* supposed to be accessed simultaneously in multiple
-	//			 different threads, or in global scope somewhere else.
-	//			 Once such requirements arise, concept of this global variable
-	//			 needs to be changed to something what is thread safe.
+	// GMunicipalInflationCache Thread safety:
+	// As the things stand now from design & impl. perspective:
+	//  1. This global variable is supposed to be initialised(= its value set)
+	//     just *ONCE* here, at this place,
+	//  2. This global variable is *NOT* used anywhere else in the initialisation
+	//     context of the *global scope* - e.g. as input for initialisation of
+	//     another global variable, etc. ...
+	//  3. All *exported* methods of `MunicipalInflationCache` type *ARE* thread safe,
+	//     and so can be called from anywhere, *EXCEPT* from the initialisation context
+	//     of the global scope(implication of the point 2 above)!
 	GMunicipalInflationCache = MunicipalInflationCache{}
 )
 
