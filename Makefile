@@ -321,13 +321,17 @@ benchmark:
 ###                                Linting                                  ###
 ###############################################################################
 
+golangCliLintVersion=v1.53.3
+
 containerMarkdownLintImage=tmknom/markdownlint
 containerMarkdownLint=cosmos-sdk-markdownlint
 containerMarkdownLintFix=cosmos-sdk-markdownlint-fix
+containerGolangCliLint=golangci/golangci-lint:$(golangCliLintVersion)
 
-golangci_lint_cmd=go run github.com/golangci/golangci-lint/cmd/golangci-lint
+#golangci_lint_cmd_shared_cache=$(DOCKER) run --rm -v $(CURDIR):/work -v ./.cache/golangci-lint/$(golangCliLintVersion):/root/.cache -w /work $(containerGolangCliLint) golangci-lint
+golangci_lint_cmd=$(DOCKER) run --rm -v $(CURDIR):/work -w /work $(containerGolangCliLint) golangci-lint
 
-lint: lint-go
+lint: lint-go-diff
 	@#if docker ps -a --format '{{.Names}}' | grep -Eq "^${containerMarkdownLint}$$"; then docker start -a $(containerMarkdownLint); else docker run --name $(containerMarkdownLint) -i -v "$(CURDIR):/work" $(markdownLintImage); fi
 	docker run -i --rm -v "$(CURDIR):/work" $(containerMarkdownLintImage) .
 
@@ -335,9 +339,26 @@ lint-fix:
 	@#if docker ps -a --format '{{.Names}}' | grep -Eq "^${containerMarkdownLintFix}$$"; then docker start -a $(containerMarkdownLintFix); else docker run --name $(containerMarkdownLintFix) -i -v "$(CURDIR):/work" $(markdownLintImage) . --fix; fi
 	docker run -i --rm -v "$(CURDIR):/work" $(containerMarkdownLintImage) --fix .
 
-lint-go:
+lint-go-diff:
 	echo $(GIT_DIFF)
-	$(golangci_lint_cmd) run --out-format=tab $(GIT_DIFF)
+	#$(golangci_lint_cmd) run --out-format=tab $(GIT_DIFF)
+	#
+	#mkdir -p ./.cache/golangci-lint/$(golangCliLintVersion)
+	#$(golangci_lint_cmd_shared_cache) run -v --out-format=tab $(GIT_DIFF)
+	#
+	$(golangci_lint_cmd) run -v --out-format=tab $(GIT_DIFF)
+
+lint-go:
+	#mkdir -p ./.cache/golangci-lint/$(golangCliLintVersion)
+	#$(golangci_lint_cmd_shared_cache) run -v --out-format=tab
+	#
+	$(golangci_lint_cmd) run -v --out-format=tab
+
+lint-go-fix:
+	#mkdir -p ./.cache/golangci-lint/$(golangCliLintVersion)
+	#$(golangci_lint_cmd_shared_cache) run -v --fix --out-format=tab
+	#
+	$(golangci_lint_cmd) run -v --fix --out-format=tab
 
 .PHONY: lint lint-fix
 

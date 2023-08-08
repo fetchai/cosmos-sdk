@@ -38,10 +38,10 @@ func (s *IntegrationTestSuite) SetupSuite() {
 	mintData.Minter.Inflation = inflation
 
 	mintData.Minter.MunicipalInflation = []*minttypes.MunicipalInflationPair{
-		{"denom1", minttypes.NewMunicipalInflation("cosmos12kdu2sy0zcmz84qymyj6zcfvwss3a703xgpczm", sdk.NewDecWithPrec(234, 4))},
-		{"denom0", minttypes.NewMunicipalInflation("cosmos1d9pzg5542spe4anjgu2zmk7wxhgh04ysn2phpq", sdk.NewDecWithPrec(123, 2))},
-		{"denom3", minttypes.NewMunicipalInflation("cosmos1ck73rpk6eqxtla4rv7rspsq7apl3740rgjfte4", sdk.NewDecWithPrec(456, 3))},
-		{"denom2", minttypes.NewMunicipalInflation("cosmos1ury8qn5w7m3xkl9pdd9ehazd2c9urx7qht2jly", sdk.NewDecWithPrec(345, 3))},
+		{Denom: "denom1", Inflation: minttypes.NewMunicipalInflation("cosmos12kdu2sy0zcmz84qymyj6zcfvwss3a703xgpczm", sdk.NewDecWithPrec(234, 4))},
+		{Denom: "denom0", Inflation: minttypes.NewMunicipalInflation("cosmos1d9pzg5542spe4anjgu2zmk7wxhgh04ysn2phpq", sdk.NewDecWithPrec(123, 2))},
+		{Denom: "denom3", Inflation: minttypes.NewMunicipalInflation("cosmos1ck73rpk6eqxtla4rv7rspsq7apl3740rgjfte4", sdk.NewDecWithPrec(456, 3))},
+		{Denom: "denom2", Inflation: minttypes.NewMunicipalInflation("cosmos1ury8qn5w7m3xkl9pdd9ehazd2c9urx7qht2jly", sdk.NewDecWithPrec(345, 3))},
 	}
 
 	mintDataBz, err := s.cfg.Codec.MarshalJSON(&mintData)
