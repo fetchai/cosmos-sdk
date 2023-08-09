@@ -445,7 +445,7 @@ func (rs *Store) PruneStores(clearStorePruningHeihgts bool, pruningHeights []int
 		pruningHeights = append(pruningHeights, rs.pruneHeights...)
 	}
 
-	if len(rs.pruneHeights) == 0 {
+	if len(pruningHeights) == 0 {
 		return
 	}
 

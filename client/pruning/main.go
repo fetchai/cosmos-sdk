@@ -27,14 +27,14 @@ func PruningCmd(appCreator servertypes.AppCreator) *cobra.Command {
 		Use:   "prune",
 		Short: "Prune app history states by keeping the recent heights and deleting old heights",
 		Long: `Prune app history states by keeping the recent heights and deleting old heights.
-		The pruning option is provided via the '--pruning' flag or alternatively with '--pruning-keep-recent'
+		The pruning strategy is provided via the '--pruning' flag or alternatively with '--pruning-keep-recent'
 		
 		For '--pruning' the options are as follows:
 		
 		default: the last 362880 states are kept
 		nothing: all historic states will be saved, nothing will be deleted (i.e. archiving node)
 		everything: 2 latest states will be kept
-		custom: allow pruning options to be manually specified through 'pruning-keep-recent'.
+		custom: allow pruning options to be manually specified through the 'app.toml' config file or through CLI flags.
 		besides pruning options, database home directory and database backend type should also be specified via flags
 		'--home' and '--app-db-backend'.
 		valid app-db-backend type includes 'goleveldb', 'cleveldb', 'rocksdb', 'boltdb', and 'badgerdb'.
@@ -76,16 +76,20 @@ func PruningCmd(appCreator servertypes.AppCreator) *cobra.Command {
 				return fmt.Errorf("the database has no valid heights to prune, the latest height: %v", latestHeight)
 			}
 
-			var pruningHeights []int64
-			for height := int64(1); height < latestHeight; height++ {
-				if height < latestHeight-int64(pruningOptions.KeepRecent) {
-					pruningHeights = append(pruningHeights, height)
-				}
-			}
-			if len(pruningHeights) == 0 {
+			effectiveLastHeight := latestHeight - int64(pruningOptions.KeepRecent)
+
+			if effectiveLastHeight < 1 {
 				fmt.Printf("no heights to prune\n")
 				return nil
 			}
+
+			lenPH := effectiveLastHeight + 1
+			pruningHeights := make([]int64, lenPH)
+			for height := int64(1); height < lenPH; height++ {
+				pruningHeights[height] = height
+			}
+			pruningHeights = pruningHeights[1:]
+
 			fmt.Printf(
 				"pruning heights start from %v, end at %v\n",
 				pruningHeights[0],
