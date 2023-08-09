@@ -23,13 +23,9 @@ message Minter {
 // Inflation holds parameters for individual native token inflation
 message MunicipalInflation {
   // address where inflation induced new tokens will be minted
-  string target_address = 2;
+  string target_address = 2 [(gogoproto.moretags) = "yaml:\"target_address\""];
   // current ANNUAL inflation rate
-  string value = 3 [
-    (gogoproto.moretags)   = "yaml:\"inflation_rate\"",
-    (gogoproto.customtype) = "github.com/cosmos/cosmos-sdk/types.Dec",
-    (gogoproto.nullable)   = false
-  ];
+  string value = 3 [(gogoproto.customtype) = "github.com/cosmos/cosmos-sdk/types.Dec", (gogoproto.nullable) = false];
 }
 
 // Pair representing denom -> inflation mapping.
