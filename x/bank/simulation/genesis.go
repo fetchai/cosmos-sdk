@@ -12,6 +12,16 @@ import (
 	"github.com/cosmos/cosmos-sdk/x/bank/types"
 )
 
+var (
+	testSupplyVal, _     = sdk.NewIntFromString("1000000000000000000")
+	AdditionalTestSupply = sdk.NewCoins(
+		sdk.NewCoin("denom0", testSupplyVal),
+		sdk.NewCoin("denom1", testSupplyVal),
+		sdk.NewCoin("denom2", testSupplyVal),
+		sdk.NewCoin("denom3", testSupplyVal),
+	)
+)
+
 // RandomGenesisDefaultSendParam computes randomized allow all send transfers param for the bank module
 func RandomGenesisDefaultSendParam(r *rand.Rand) bool {
 	// 90% chance of transfers being enable or P(a) = 0.9 for success
@@ -47,6 +57,11 @@ func RandomGenesisBalances(simState *module.SimulationState) []types.Balance {
 		})
 	}
 
+	if len(genesisBalances) > 0 {
+		nb := genesisBalances[0].Coins.Add(AdditionalTestSupply...)
+		genesisBalances[0].Coins = nb
+	}
+
 	return genesisBalances
 }
 
@@ -66,7 +81,8 @@ func RandomizedGenState(simState *module.SimulationState) {
 
 	numAccs := int64(len(simState.Accounts))
 	totalSupply := sdk.NewInt(simState.InitialStake * (numAccs + simState.NumBonded))
-	supply := sdk.NewCoins(sdk.NewCoin(sdk.DefaultBondDenom, totalSupply))
+
+	supply := AdditionalTestSupply.Add(sdk.NewCoin(sdk.DefaultBondDenom, totalSupply))
 
 	bankGenesis := types.GenesisState{
 		Params: types.Params{

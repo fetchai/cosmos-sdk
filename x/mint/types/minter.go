@@ -33,13 +33,15 @@ func DefaultInitialMinter() Minter {
 	)
 }
 
-// validate minter
+// ValidateMinter validate minter
 func ValidateMinter(minter Minter) error {
 	if minter.Inflation.IsNegative() {
 		return fmt.Errorf("mint parameter AnnualInflation should be positive, is %s",
 			minter.Inflation.String())
 	}
-	return nil
+
+	err := ValidateMunicipalInflations(&minter.MunicipalInflation)
+	return err
 }
 
 // NextInflationRate returns the new inflation rate for the next hour.
