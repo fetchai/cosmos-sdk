@@ -20,11 +20,10 @@ GO_MINOR_VERSION := $(shell echo $(GO_VERSION) | cut -d. -f2)
 GO_MICRO_VERSION := $(shell echo $(GO_VERSION) | cut -d. -f3)
 SUPPORTED_GO_VERSION = 1.18.10
 
-IS_SUPPORTED_VERSION := $(shell expr "$(GO_VERSION)" "==" "$(SUPPORTED_GO_VERSION)")
-ifeq "$(IS_SUPPORTED_VERSION)" "1"
-    $(info Go version is supported: $(GO_VERSION))
+ifeq ($(GO_VERSION), $(SUPPORTED_GO_VERSION))
+    $(info Go version $(GO_VERSION) is supported)
 else
-    $(info WARN: Go version not supported, some tests might fail without version $(SUPPORTED_GO_VERSION))
+    $(info WARN: Go version $(GO_VERSION) is not supported, some tests might fail on different version than supported $(SUPPORTED_GO_VERSION))
 endif
 
 export GO111MODULE = on
@@ -167,7 +166,7 @@ clean:
 ###############################################################################
 
 go.sum: go.mod
-	echo "Ensure dependencies have not been modified ..." >&2
+	@echo "Ensure dependencies have not been modified ..." >&2
 	go mod verify
 	go mod tidy
 

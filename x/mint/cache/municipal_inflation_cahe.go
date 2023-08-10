@@ -1,6 +1,7 @@
 package cache
 
 import (
+	"sync"
 	"sync/atomic"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
@@ -18,8 +19,12 @@ type MunicipalInflationCacheInternal struct {
 	inflations    map[string]*MunicipalInflationCacheItem // {denom: inflationPerBlock}
 }
 
+// MunicipalInflationCache Cache optimised for concurrent reading performance.
+// *NO* support for concurrent writing operations.
 type MunicipalInflationCache struct {
-	internal atomic.Pointer[MunicipalInflationCacheInternal]
+	internal atomic.Value
+	// writeGuard is present solely to synchronise writ
+	writeGuard sync.Mutex
 }
 
 // GMunicipalInflationCache Thread safety:
@@ -37,6 +42,8 @@ var GMunicipalInflationCache = MunicipalInflationCache{}
 func (cache *MunicipalInflationCache) Refresh(inflations *[]*types.MunicipalInflationPair, blocksPerYear uint64) {
 	newCache := MunicipalInflationCacheInternal{}
 	newCache.refresh(inflations, blocksPerYear)
+	cache.writeGuard.Lock()
+	defer cache.writeGuard.Unlock()
 	cache.internal.Store(&newCache)
 }
 
@@ -48,20 +55,24 @@ func (cache *MunicipalInflationCache) Refresh(inflations *[]*types.MunicipalInfl
 // limitation for write operations (there should not be concurrent write operations).
 // Most of the read operations are assumed to be done from RPC (querying municipal inflation).
 func (cache *MunicipalInflationCache) RefreshIfNecessary(inflations *[]*types.MunicipalInflationPair, blocksPerYear uint64) {
-	current := cache.internal.Load()
+	cache.writeGuard.Lock()
+	defer cache.writeGuard.Unlock()
+	current := cache.internal.Load().(*MunicipalInflationCacheInternal)
 	if current.isRefreshRequired(blocksPerYear) {
-		cache.Refresh(inflations, blocksPerYear)
+		newCache := MunicipalInflationCacheInternal{}
+		newCache.refresh(inflations, blocksPerYear)
+		cache.internal.Store(&newCache)
 	}
 }
 
 func (cache *MunicipalInflationCache) GetInflation(denom string) (MunicipalInflationCacheItem, bool) {
-	current := cache.internal.Load()
+	current := cache.internal.Load().(*MunicipalInflationCacheInternal)
 	infl, exists := current.inflations[denom]
 	return *infl, exists
 }
 
 func (cache *MunicipalInflationCache) GetOriginal() *[]*types.MunicipalInflationPair {
-	current := cache.internal.Load()
+	current := cache.internal.Load().(*MunicipalInflationCacheInternal)
 	return current.original
 }
 
