@@ -2,12 +2,14 @@ package mint
 
 import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
+	"github.com/cosmos/cosmos-sdk/x/mint/cache"
 	"github.com/cosmos/cosmos-sdk/x/mint/keeper"
 	"github.com/cosmos/cosmos-sdk/x/mint/types"
 )
 
 // InitGenesis new mint genesis
 func InitGenesis(ctx sdk.Context, keeper keeper.Keeper, ak types.AccountKeeper, data *types.GenesisState) {
+	cache.GMunicipalInflationCache.Refresh(&data.Minter.MunicipalInflation, data.Params.BlocksPerYear)
 	keeper.SetMinter(ctx, data.Minter)
 	keeper.SetParams(ctx, data.Params)
 	ak.GetModuleAccount(ctx, types.ModuleName)

@@ -5,8 +5,9 @@ package simulation
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/cosmos/cosmos-sdk/x/bank/simulation"
 	"math/rand"
+
+	"github.com/cosmos/cosmos-sdk/x/bank/simulation"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/types/module"
@@ -33,9 +34,9 @@ func GenInflationRate(r *rand.Rand) sdk.Dec {
 func GenMunicipalInflation(simState *module.SimulationState) []*types.MunicipalInflationPair {
 	r := simState.Rand
 
-	coins := make([]*sdk.Coin, len(simulation.AdditionalTestSupply))
-	for i := 0; i < len(simulation.AdditionalTestSupply); i++ {
-		coins[i] = &simulation.AdditionalTestSupply[i]
+	coins := make([]*sdk.Coin, len(simulation.AdditionalTestBalancePerAccount))
+	for i := 0; i < len(simulation.AdditionalTestBalancePerAccount); i++ {
+		coins[i] = &simulation.AdditionalTestBalancePerAccount[i]
 	}
 
 	len_ := r.Intn(len(coins) + 1)
@@ -44,7 +45,8 @@ func GenMunicipalInflation(simState *module.SimulationState) []*types.MunicipalI
 		lenCoins := len(coins)
 		lastIdx := lenCoins - 1
 		rndIdx := r.Intn(lenCoins)
-		fmt.Println(">>>>>>>>>>>>>>>", coins, "rndIdx:", rndIdx)
+
+		// Swapping rndIdx element with the last element in the slice and cuttig slice without last element
 		c := coins[rndIdx]
 		coins[rndIdx] = coins[lastIdx]
 		coins = coins[:lastIdx]

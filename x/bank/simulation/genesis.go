@@ -13,8 +13,8 @@ import (
 )
 
 var (
-	testSupplyVal, _     = sdk.NewIntFromString("1000000000000000000")
-	AdditionalTestSupply = sdk.NewCoins(
+	testSupplyVal, _                = sdk.NewIntFromString("1000000000000000000")
+	AdditionalTestBalancePerAccount = sdk.NewCoins(
 		sdk.NewCoin("denom0", testSupplyVal),
 		sdk.NewCoin("denom1", testSupplyVal),
 		sdk.NewCoin("denom2", testSupplyVal),
@@ -51,15 +51,12 @@ func RandomGenesisBalances(simState *module.SimulationState) []types.Balance {
 	genesisBalances := []types.Balance{}
 
 	for _, acc := range simState.Accounts {
+		coins := sdk.NewCoins(sdk.NewCoin(sdk.DefaultBondDenom, sdk.NewInt(simState.InitialStake)))
+		coins.Add(AdditionalTestBalancePerAccount...)
 		genesisBalances = append(genesisBalances, types.Balance{
 			Address: acc.Address.String(),
-			Coins:   sdk.NewCoins(sdk.NewCoin(sdk.DefaultBondDenom, sdk.NewInt(simState.InitialStake))),
+			Coins:   coins,
 		})
-	}
-
-	if len(genesisBalances) > 0 {
-		nb := genesisBalances[0].Coins.Add(AdditionalTestSupply...)
-		genesisBalances[0].Coins = nb
 	}
 
 	return genesisBalances
@@ -82,7 +79,10 @@ func RandomizedGenState(simState *module.SimulationState) {
 	numAccs := int64(len(simState.Accounts))
 	totalSupply := sdk.NewInt(simState.InitialStake * (numAccs + simState.NumBonded))
 
-	supply := AdditionalTestSupply.Add(sdk.NewCoin(sdk.DefaultBondDenom, totalSupply))
+	supply := sdk.NewCoins(sdk.NewCoin(sdk.DefaultBondDenom, totalSupply))
+	for _, b := range AdditionalTestBalancePerAccount {
+		supply.Add(sdk.NewCoin(b.Denom, b.Amount.MulRaw(numAccs)))
+	}
 
 	bankGenesis := types.GenesisState{
 		Params: types.Params{
