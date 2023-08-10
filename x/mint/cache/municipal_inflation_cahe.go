@@ -28,7 +28,7 @@ type MunicipalInflationCache struct {
 // As the things stand now from design & impl. perspective:
 //  1. This global variable is supposed to be initialised(= its value set)
 //     just *ONCE* here, at this place,
-//  2. This global variable shall *NOT* used anywhere else in the initialisation
+//  2. This global variable shall *NOT* be used anywhere else in the initialisation
 //     context of the *global scope* - e.g. as input for initialisation of
 //     another global variable, etc. ...
 //  3. All *exported* methods of `MunicipalInflationCache` type *ARE* thread safe,
