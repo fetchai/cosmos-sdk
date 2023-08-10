@@ -31,7 +31,7 @@ type MunicipalInflationCache struct {
 // As the things stand now from design & impl. perspective:
 //  1. This global variable is supposed to be initialised(= its value set)
 //     just *ONCE* here, at this place,
-//  2. This global variable is *NOT* used anywhere else in the initialisation
+//  2. This global variable shall *NOT* used anywhere else in the initialisation
 //     context of the *global scope* - e.g. as input for initialisation of
 //     another global variable, etc. ...
 //  3. All *exported* methods of `MunicipalInflationCache` type *ARE* thread safe,
@@ -48,17 +48,26 @@ func (cache *MunicipalInflationCache) Refresh(inflations *[]*types.MunicipalInfl
 }
 
 // RefreshIfNecessary
-// IMPORTANT: Assuming *NO* concurrent writes, designed with emphasis for concurrent reads. This requirement
-// guaranteed, since this method is called exclusively from call contexts which are never concurrent.
+// NOTE: Current implementation is using mutex to allow concurrent write operations, however,
+// it is actually not necessary to implement support for concurrent write operations given the
+// non-concurrent threading model in which write operation are executed from = hence no real
+// necessity for mutex. The current implementation uses mutex solely for experimental & backup
+// reasons, and it is going to be dropped in the following commit.
+//
+// IMPORTANT: (In the case without mutex) Assuming *NO* concurrent writes. This requirement is
+// guaranteed given the *current* usage of this component = this method is called exclusively
+// from non-concurrent call contexts.
 // This approach will guarantee the most possible effective cache operation in heavily concurrent
-// read environment with minimum possible blocking for concurrent read operations, but with slight
-// limitation for write operations (there should not be concurrent write operations).
-// Most of the read operations are assumed to be done from RPC (querying municipal inflation).
+// read environment = with minimum possible blocking for concurrent read operations, but with slight
+// limitation for write operations (= no concurrent write operations).
+// Most of the read operations are assumed to be done from RPC (querying municipal inflation),
+// and since threading models of the RPC implementation is not know, the worst scenario(= heavily
+// concurrent threading model) for read operation is assumed.
 func (cache *MunicipalInflationCache) RefreshIfNecessary(inflations *[]*types.MunicipalInflationPair, blocksPerYear uint64) {
 	cache.writeGuard.Lock()
 	defer cache.writeGuard.Unlock()
-	current := cache.internal.Load().(*MunicipalInflationCacheInternal)
-	if current.isRefreshRequired(blocksPerYear) {
+
+	if val := cache.internal.Load(); val == nil || val.(*MunicipalInflationCacheInternal).isRefreshRequired(blocksPerYear) {
 		newCache := MunicipalInflationCacheInternal{}
 		newCache.refresh(inflations, blocksPerYear)
 		cache.internal.Store(&newCache)
@@ -66,13 +75,22 @@ func (cache *MunicipalInflationCache) RefreshIfNecessary(inflations *[]*types.Mu
 }
 
 func (cache *MunicipalInflationCache) GetInflation(denom string) (MunicipalInflationCacheItem, bool) {
-	current := cache.internal.Load().(*MunicipalInflationCacheInternal)
-	infl, exists := current.inflations[denom]
+	val := cache.internal.Load()
+	if val == nil {
+		return MunicipalInflationCacheItem{}, false
+	}
+
+	infl, exists := val.(*MunicipalInflationCacheInternal).inflations[denom]
 	return *infl, exists
 }
 
 func (cache *MunicipalInflationCache) GetOriginal() *[]*types.MunicipalInflationPair {
-	current := cache.internal.Load().(*MunicipalInflationCacheInternal)
+	val := cache.internal.Load()
+	if val == nil {
+		return &[]*types.MunicipalInflationPair{}
+	}
+
+	current := val.(*MunicipalInflationCacheInternal)
 	return current.original
 }
 
