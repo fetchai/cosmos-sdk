@@ -1,7 +1,6 @@
 package cache
 
 import (
-	"sync"
 	"sync/atomic"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
@@ -23,8 +22,6 @@ type MunicipalInflationCacheInternal struct {
 // *NO* support for concurrent writing operations.
 type MunicipalInflationCache struct {
 	internal atomic.Value
-	// writeGuard is present solely to synchronise writ
-	writeGuard sync.Mutex
 }
 
 // GMunicipalInflationCache Thread safety:
@@ -42,21 +39,12 @@ var GMunicipalInflationCache = MunicipalInflationCache{}
 func (cache *MunicipalInflationCache) Refresh(inflations *[]*types.MunicipalInflationPair, blocksPerYear uint64) {
 	newCache := MunicipalInflationCacheInternal{}
 	newCache.refresh(inflations, blocksPerYear)
-	cache.writeGuard.Lock()
-	defer cache.writeGuard.Unlock()
 	cache.internal.Store(&newCache)
 }
 
 // RefreshIfNecessary
-// NOTE: Current implementation is using mutex to allow concurrent write operations, however,
-// it is actually not necessary to implement support for concurrent write operations given the
-// non-concurrent threading model in which write operation are executed from = hence no real
-// necessity for mutex. The current implementation uses mutex solely for experimental & backup
-// reasons, and it is going to be dropped in the following commit.
-//
-// IMPORTANT: (In the case without mutex) Assuming *NO* concurrent writes. This requirement is
-// guaranteed given the *current* usage of this component = this method is called exclusively
-// from non-concurrent call contexts.
+// IMPORTANT: Assuming *NO* concurrent writes. This requirement is guaranteed given the *current*
+// usage of this component = this method is called exclusively from non-concurrent call contexts.
 // This approach will guarantee the most possible effective cache operation in heavily concurrent
 // read environment = with minimum possible blocking for concurrent read operations, but with slight
 // limitation for write operations (= no concurrent write operations).
@@ -64,13 +52,8 @@ func (cache *MunicipalInflationCache) Refresh(inflations *[]*types.MunicipalInfl
 // and since threading models of the RPC implementation is not know, the worst scenario(= heavily
 // concurrent threading model) for read operation is assumed.
 func (cache *MunicipalInflationCache) RefreshIfNecessary(inflations *[]*types.MunicipalInflationPair, blocksPerYear uint64) {
-	cache.writeGuard.Lock()
-	defer cache.writeGuard.Unlock()
-
 	if val := cache.internal.Load(); val == nil || val.(*MunicipalInflationCacheInternal).isRefreshRequired(blocksPerYear) {
-		newCache := MunicipalInflationCacheInternal{}
-		newCache.refresh(inflations, blocksPerYear)
-		cache.internal.Store(&newCache)
+		cache.Refresh(inflations, blocksPerYear)
 	}
 }
 
