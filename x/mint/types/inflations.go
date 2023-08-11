@@ -53,13 +53,14 @@ func (inflation *MunicipalInflation) Validate() error {
 }
 
 func ValidateMunicipalInflations(inflations *[]*MunicipalInflationPair) (err error) {
-	var denoms map[string]struct{}
+	denoms := map[string]struct{}{}
 	for _, pair := range *inflations {
-
 		_, exists := denoms[pair.Denom]
 		if exists {
 			return fmt.Errorf("municipal inflation: denomination \"%s\" defined more than once", pair.Denom)
 		}
+
+		denoms[pair.Denom] = struct{}{}
 
 		err = sdk.ValidateDenom(pair.Denom)
 		if err != nil {

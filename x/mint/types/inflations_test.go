@@ -184,7 +184,7 @@ func TestBulkValidationOfMunicipalInflations(t *testing.T) {
 
 	expectedToFail2_DuplicatedDenom := append(expectedToPass, &types.MunicipalInflationPair{"stake0", types.NewMunicipalInflation(targetAccounts[0].Address.String(), onePercent)})
 	err = types.ValidateMunicipalInflations(&expectedToFail2_DuplicatedDenom)
-	require.NoError(t, err)
+	require.Error(t, err)
 }
 
 func TestHandleMunicipalInflation(t *testing.T) {
@@ -241,8 +241,12 @@ func TestHandleMunicipalInflation(t *testing.T) {
 
 	// vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv
 	// TEST SUBJECT: Calling production code for as many times as there is number of blocks in a year
+
 	for i := 0; i < int(params.BlocksPerYear); i++ {
-		mint.HandleMunicipalInflation(ctx, keeper)
+		minter := keeper.GetMinter(ctx)
+		params := keeper.GetParams(ctx)
+
+		mint.HandleMunicipalInflation(&minter, &params, &ctx, &keeper)
 	}
 	// ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
