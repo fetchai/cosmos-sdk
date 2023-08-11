@@ -243,9 +243,6 @@ func TestHandleMunicipalInflation(t *testing.T) {
 	// TEST SUBJECT: Calling production code for as many times as there is number of blocks in a year
 
 	for i := 0; i < int(params.BlocksPerYear); i++ {
-		minter := keeper.GetMinter(ctx)
-		params := keeper.GetParams(ctx)
-
 		mint.HandleMunicipalInflation(&minter, &params, &ctx, &keeper)
 	}
 	// ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
