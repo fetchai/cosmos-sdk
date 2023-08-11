@@ -13,10 +13,7 @@ import (
 
 // HandleMunicipalInflation iterates through all other native tokens specified in the minter.MunicipalInflation structure, and processes
 // the minting of new coins in line with the respective inflation rate of each denomination
-func HandleMunicipalInflation(ctx sdk.Context, k keeper.Keeper) {
-	minter := k.GetMinter(ctx)
-	params := k.GetParams(ctx)
-
+func HandleMunicipalInflation(minter *types.Minter, params *types.Params, ctx *sdk.Context, k *keeper.Keeper) {
 	cache.GMunicipalInflationCache.RefreshIfNecessary(&minter.MunicipalInflation, params.BlocksPerYear)
 
 	// iterate through native denominations
@@ -24,7 +21,7 @@ func HandleMunicipalInflation(ctx sdk.Context, k keeper.Keeper) {
 		targetAddress := pair.Inflation.TargetAddress
 
 		// gather supply value & calculate number of new tokens created from relevant inflation
-		totalDenomSupply := k.BankKeeper.GetSupply(ctx, pair.Denom)
+		totalDenomSupply := k.BankKeeper.GetSupply(*ctx, pair.Denom)
 
 		cacheItem, exists := cache.GMunicipalInflationCache.GetInflation(pair.Denom)
 
@@ -34,7 +31,7 @@ func HandleMunicipalInflation(ctx sdk.Context, k keeper.Keeper) {
 
 		coinsToMint := types.CalculateInflationIssuance(cacheItem.PerBlockInflation, totalDenomSupply)
 
-		err := k.MintCoins(ctx, coinsToMint)
+		err := k.MintCoins(*ctx, coinsToMint)
 		if err != nil {
 			panic(err)
 		}
@@ -48,7 +45,7 @@ func HandleMunicipalInflation(ctx sdk.Context, k keeper.Keeper) {
 			panic(err)
 		}
 
-		err = k.BankKeeper.SendCoinsFromModuleToAccount(ctx, types.ModuleName, acc, coinsToMint)
+		err = k.BankKeeper.SendCoinsFromModuleToAccount(*ctx, types.ModuleName, acc, coinsToMint)
 		if err != nil {
 			panic(err)
 		}
@@ -71,6 +68,8 @@ func BeginBlocker(ctx sdk.Context, k keeper.Keeper) {
 	// fetch stored minter & params
 	minter := k.GetMinter(ctx)
 	params := k.GetParams(ctx)
+
+	HandleMunicipalInflation(&minter, &params, &ctx, &k)
 
 	// recalculate inflation rate
 	totalStakingSupply := k.StakingTokenSupply(ctx)
