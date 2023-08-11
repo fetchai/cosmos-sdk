@@ -1,7 +1,7 @@
 package cache
 
 import (
-	"sync"
+	"sync/atomic"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/x/mint/types"
@@ -12,18 +12,23 @@ type MunicipalInflationCacheItem struct {
 	AnnualInflation   *types.MunicipalInflation
 }
 
-type MunicipalInflationCache struct {
+type MunicipalInflationCacheInternal struct {
 	blocksPerYear uint64
 	original      *[]*types.MunicipalInflationPair
 	inflations    map[string]*MunicipalInflationCacheItem // {denom: inflationPerBlock}
-	mu            sync.RWMutex
+}
+
+// MunicipalInflationCache Cache optimised for concurrent reading performance.
+// *NO* support for concurrent writing operations.
+type MunicipalInflationCache struct {
+	internal atomic.Value
 }
 
 // GMunicipalInflationCache Thread safety:
 // As the things stand now from design & impl. perspective:
 //  1. This global variable is supposed to be initialised(= its value set)
 //     just *ONCE* here, at this place,
-//  2. This global variable is *NOT* used anywhere else in the initialisation
+//  2. This global variable shall *NOT* be used anywhere else in the initialisation
 //     context of the *global scope* - e.g. as input for initialisation of
 //     another global variable, etc. ...
 //  3. All *exported* methods of `MunicipalInflationCache` type *ARE* thread safe,
@@ -32,41 +37,48 @@ type MunicipalInflationCache struct {
 var GMunicipalInflationCache = MunicipalInflationCache{}
 
 func (cache *MunicipalInflationCache) Refresh(inflations *[]*types.MunicipalInflationPair, blocksPerYear uint64) {
-	cache.mu.Lock()
-	defer cache.mu.Unlock()
-
-	cache.refresh(inflations, blocksPerYear)
+	newCache := MunicipalInflationCacheInternal{}
+	newCache.refresh(inflations, blocksPerYear)
+	cache.internal.Store(&newCache)
 }
 
+// RefreshIfNecessary
+// IMPORTANT: Assuming *NO* concurrent writes. This requirement is guaranteed given the *current*
+// usage of this component = this method is called exclusively from non-concurrent call contexts.
+// This approach will guarantee the most possible effective cache operation in heavily concurrent
+// read environment = with minimum possible blocking for concurrent read operations, but with slight
+// limitation for write operations (= no concurrent write operations).
+// Most of the read operations are assumed to be done from RPC (querying municipal inflation),
+// and since threading models of the RPC implementation is not know, the worst scenario(= heavily
+// concurrent threading model) for read operation is assumed.
 func (cache *MunicipalInflationCache) RefreshIfNecessary(inflations *[]*types.MunicipalInflationPair, blocksPerYear uint64) {
-	cache.mu.Lock()
-	defer cache.mu.Unlock()
-
-	cache.refreshIfNecessary(inflations, blocksPerYear)
-}
-
-func (cache *MunicipalInflationCache) IsRefreshRequired(blocksPerYear uint64) bool {
-	cache.mu.RLock()
-	defer cache.mu.RUnlock()
-	return cache.isRefreshRequired(blocksPerYear)
+	if val := cache.internal.Load(); val == nil || val.(*MunicipalInflationCacheInternal).isRefreshRequired(blocksPerYear) {
+		cache.Refresh(inflations, blocksPerYear)
+	}
 }
 
 func (cache *MunicipalInflationCache) GetInflation(denom string) (MunicipalInflationCacheItem, bool) {
-	cache.mu.RLock()
-	defer cache.mu.RUnlock()
-	infl, exists := cache.inflations[denom]
+	val := cache.internal.Load()
+	if val == nil {
+		return MunicipalInflationCacheItem{}, false
+	}
+
+	infl, exists := val.(*MunicipalInflationCacheInternal).inflations[denom]
 	return *infl, exists
 }
 
 func (cache *MunicipalInflationCache) GetOriginal() *[]*types.MunicipalInflationPair {
-	cache.mu.RLock()
-	defer cache.mu.RUnlock()
-	// NOTE(pb): Mutex locking might not be necessary here since we are returning by pointer
-	return cache.original
+	val := cache.internal.Load()
+	if val == nil {
+		return &[]*types.MunicipalInflationPair{}
+	}
+
+	current := val.(*MunicipalInflationCacheInternal)
+	return current.original
 }
 
 // NOTE(pb): *NOT* thread safe
-func (cache *MunicipalInflationCache) refresh(inflations *[]*types.MunicipalInflationPair, blocksPerYear uint64) {
+func (cache *MunicipalInflationCacheInternal) refresh(inflations *[]*types.MunicipalInflationPair, blocksPerYear uint64) {
 	if err := types.ValidateMunicipalInflations(inflations); err != nil {
 		panic(err)
 	}
@@ -89,13 +101,6 @@ func (cache *MunicipalInflationCache) refresh(inflations *[]*types.MunicipalInfl
 }
 
 // NOTE(pb): *NOT* thread safe
-func (cache *MunicipalInflationCache) refreshIfNecessary(inflations *[]*types.MunicipalInflationPair, blocksPerYear uint64) {
-	if cache.isRefreshRequired(blocksPerYear) {
-		cache.refresh(inflations, blocksPerYear)
-	}
-}
-
-// NOTE(pb): *NOT* thread safe
-func (cache *MunicipalInflationCache) isRefreshRequired(blocksPerYear uint64) bool {
+func (cache *MunicipalInflationCacheInternal) isRefreshRequired(blocksPerYear uint64) bool {
 	return cache.blocksPerYear != blocksPerYear
 }
