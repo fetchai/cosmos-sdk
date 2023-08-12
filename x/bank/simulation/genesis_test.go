@@ -2,6 +2,7 @@ package simulation_test
 
 import (
 	"encoding/json"
+	sdk "github.com/cosmos/cosmos-sdk/types"
 	"math/rand"
 	"testing"
 
@@ -43,7 +44,13 @@ func TestRandomizedGenState(t *testing.T) {
 	require.Len(t, bankGenesis.Balances, 3)
 	require.Equal(t, "cosmos1ghekyjucln7y67ntx7cf27m9dpuxxemn4c8g4r", bankGenesis.Balances[2].GetAddress().String())
 	require.Equal(t, "1000stake", bankGenesis.Balances[2].GetCoins().String())
-	require.Equal(t, "6000stake", bankGenesis.Supply.String())
+
+	numAccs := int64(len(simState.Accounts))
+	expectedSupply := sdk.NewCoins(sdk.NewCoin(sdk.DefaultBondDenom, sdk.NewInt(6000)))
+	for _, b := range simulation.AdditionalTestBalancePerAccount {
+		expectedSupply.Add(sdk.NewCoin(b.Denom, b.Amount.MulRaw(numAccs)))
+	}
+	require.Equal(t, expectedSupply.String(), bankGenesis.Supply.String())
 }
 
 // TestRandomizedGenState tests abnormal scenarios of applying RandomizedGenState.

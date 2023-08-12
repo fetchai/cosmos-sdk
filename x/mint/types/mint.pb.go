@@ -29,7 +29,8 @@ type Minter struct {
 	// current annual inflation rate
 	Inflation github_com_cosmos_cosmos_sdk_types.Dec `protobuf:"bytes,1,opt,name=inflation,proto3,customtype=github.com/cosmos/cosmos-sdk/types.Dec" json:"inflation"`
 	// current annual expected provisions
-	AnnualProvisions github_com_cosmos_cosmos_sdk_types.Dec `protobuf:"bytes,2,opt,name=annual_provisions,json=annualProvisions,proto3,customtype=github.com/cosmos/cosmos-sdk/types.Dec" json:"annual_provisions" yaml:"annual_provisions"`
+	AnnualProvisions   github_com_cosmos_cosmos_sdk_types.Dec `protobuf:"bytes,2,opt,name=annual_provisions,json=annualProvisions,proto3,customtype=github.com/cosmos/cosmos-sdk/types.Dec" json:"annual_provisions" yaml:"annual_provisions"`
+	MunicipalInflation []*MunicipalInflationPair              `protobuf:"bytes,3,rep,name=municipal_inflation,json=municipalInflation,proto3" json:"municipal_inflation,omitempty"`
 }
 
 func (m *Minter) Reset()         { *m = Minter{} }
@@ -65,6 +66,122 @@ func (m *Minter) XXX_DiscardUnknown() {
 
 var xxx_messageInfo_Minter proto.InternalMessageInfo
 
+func (m *Minter) GetMunicipalInflation() []*MunicipalInflationPair {
+	if m != nil {
+		return m.MunicipalInflation
+	}
+	return nil
+}
+
+// Inflation holds parameters for individual native token inflation
+type MunicipalInflation struct {
+	// address where inflation induced new tokens will be minted
+	TargetAddress string `protobuf:"bytes,2,opt,name=target_address,json=targetAddress,proto3" json:"target_address,omitempty" yaml:"target_address"`
+	// current ANNUAL inflation rate
+	Value github_com_cosmos_cosmos_sdk_types.Dec `protobuf:"bytes,3,opt,name=value,proto3,customtype=github.com/cosmos/cosmos-sdk/types.Dec" json:"value"`
+}
+
+func (m *MunicipalInflation) Reset()         { *m = MunicipalInflation{} }
+func (m *MunicipalInflation) String() string { return proto.CompactTextString(m) }
+func (*MunicipalInflation) ProtoMessage()    {}
+func (*MunicipalInflation) Descriptor() ([]byte, []int) {
+	return fileDescriptor_2df116d183c1e223, []int{1}
+}
+func (m *MunicipalInflation) XXX_Unmarshal(b []byte) error {
+	return m.Unmarshal(b)
+}
+func (m *MunicipalInflation) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	if deterministic {
+		return xxx_messageInfo_MunicipalInflation.Marshal(b, m, deterministic)
+	} else {
+		b = b[:cap(b)]
+		n, err := m.MarshalToSizedBuffer(b)
+		if err != nil {
+			return nil, err
+		}
+		return b[:n], nil
+	}
+}
+func (m *MunicipalInflation) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_MunicipalInflation.Merge(m, src)
+}
+func (m *MunicipalInflation) XXX_Size() int {
+	return m.Size()
+}
+func (m *MunicipalInflation) XXX_DiscardUnknown() {
+	xxx_messageInfo_MunicipalInflation.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_MunicipalInflation proto.InternalMessageInfo
+
+func (m *MunicipalInflation) GetTargetAddress() string {
+	if m != nil {
+		return m.TargetAddress
+	}
+	return ""
+}
+
+// Pair representing denom -> inflation mapping.
+// This pair-like structure will be used in `repeating MunicipalInflationPair`
+// type, what will have the same Protobuf binary representation on wire as the
+// `map<string, MunicipalInflation>` type.
+// This means that what is serialised as `repeating MunicipalInflationPair` on
+// one end can be deserialised as `map<string, MunicipalInflation>` on the other
+// end, and other vice versa.
+type MunicipalInflationPair struct {
+	// token denomination
+	Denom string `protobuf:"bytes,1,opt,name=denom,proto3" json:"denom,omitempty"`
+	// Structure representing municipal inflation for the the given `denom`
+	Inflation *MunicipalInflation `protobuf:"bytes,2,opt,name=inflation,proto3" json:"inflation,omitempty"`
+}
+
+func (m *MunicipalInflationPair) Reset()         { *m = MunicipalInflationPair{} }
+func (m *MunicipalInflationPair) String() string { return proto.CompactTextString(m) }
+func (*MunicipalInflationPair) ProtoMessage()    {}
+func (*MunicipalInflationPair) Descriptor() ([]byte, []int) {
+	return fileDescriptor_2df116d183c1e223, []int{2}
+}
+func (m *MunicipalInflationPair) XXX_Unmarshal(b []byte) error {
+	return m.Unmarshal(b)
+}
+func (m *MunicipalInflationPair) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	if deterministic {
+		return xxx_messageInfo_MunicipalInflationPair.Marshal(b, m, deterministic)
+	} else {
+		b = b[:cap(b)]
+		n, err := m.MarshalToSizedBuffer(b)
+		if err != nil {
+			return nil, err
+		}
+		return b[:n], nil
+	}
+}
+func (m *MunicipalInflationPair) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_MunicipalInflationPair.Merge(m, src)
+}
+func (m *MunicipalInflationPair) XXX_Size() int {
+	return m.Size()
+}
+func (m *MunicipalInflationPair) XXX_DiscardUnknown() {
+	xxx_messageInfo_MunicipalInflationPair.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_MunicipalInflationPair proto.InternalMessageInfo
+
+func (m *MunicipalInflationPair) GetDenom() string {
+	if m != nil {
+		return m.Denom
+	}
+	return ""
+}
+
+func (m *MunicipalInflationPair) GetInflation() *MunicipalInflation {
+	if m != nil {
+		return m.Inflation
+	}
+	return nil
+}
+
 // Params holds parameters for the mint module.
 type Params struct {
 	// type of coin to mint
@@ -78,7 +195,7 @@ type Params struct {
 func (m *Params) Reset()      { *m = Params{} }
 func (*Params) ProtoMessage() {}
 func (*Params) Descriptor() ([]byte, []int) {
-	return fileDescriptor_2df116d183c1e223, []int{1}
+	return fileDescriptor_2df116d183c1e223, []int{3}
 }
 func (m *Params) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
@@ -123,35 +240,45 @@ func (m *Params) GetBlocksPerYear() uint64 {
 
 func init() {
 	proto.RegisterType((*Minter)(nil), "cosmos.mint.v1beta1.Minter")
+	proto.RegisterType((*MunicipalInflation)(nil), "cosmos.mint.v1beta1.MunicipalInflation")
+	proto.RegisterType((*MunicipalInflationPair)(nil), "cosmos.mint.v1beta1.MunicipalInflationPair")
 	proto.RegisterType((*Params)(nil), "cosmos.mint.v1beta1.Params")
 }
 
 func init() { proto.RegisterFile("cosmos/mint/v1beta1/mint.proto", fileDescriptor_2df116d183c1e223) }
 
 var fileDescriptor_2df116d183c1e223 = []byte{
-	// 351 bytes of a gzipped FileDescriptorProto
-	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0x94, 0x92, 0x4d, 0x4b, 0xc3, 0x30,
-	0x18, 0xc7, 0x1b, 0x19, 0x85, 0x05, 0xe6, 0x4b, 0x7d, 0xa1, 0x0c, 0x6c, 0x47, 0x0f, 0x32, 0x0f,
-	0xb6, 0x0c, 0x6f, 0x3b, 0xd6, 0x81, 0x20, 0x0a, 0xa3, 0x37, 0xbd, 0x94, 0xb4, 0x8b, 0x33, 0xac,
-	0x4d, 0x4a, 0x92, 0x4d, 0xf7, 0x2d, 0x3c, 0x7a, 0xf4, 0xe3, 0xec, 0xe6, 0x8e, 0xe2, 0xa1, 0xe8,
-	0xf6, 0x0d, 0xf6, 0x09, 0xa4, 0xcd, 0xd8, 0x50, 0x41, 0xd8, 0x29, 0xc9, 0xef, 0x79, 0xf8, 0xe7,
-	0x97, 0xf0, 0x40, 0x2b, 0x66, 0x22, 0x65, 0xc2, 0x4b, 0x09, 0x95, 0xde, 0xa8, 0x15, 0x61, 0x89,
-	0x5a, 0xe5, 0xc1, 0xcd, 0x38, 0x93, 0xcc, 0xd8, 0x57, 0x75, 0xb7, 0x44, 0xcb, 0x7a, 0xfd, 0xa0,
-	0xcf, 0xfa, 0xac, 0xac, 0x7b, 0xc5, 0x4e, 0xb5, 0x3a, 0x6f, 0x00, 0xea, 0x37, 0x84, 0x4a, 0xcc,
-	0x8d, 0x6b, 0x58, 0x25, 0xf4, 0x3e, 0x41, 0x92, 0x30, 0x6a, 0x82, 0x06, 0x68, 0x56, 0x7d, 0x77,
-	0x92, 0xdb, 0xda, 0x47, 0x6e, 0x9f, 0xf4, 0x89, 0x7c, 0x18, 0x46, 0x6e, 0xcc, 0x52, 0x6f, 0x79,
-	0xb7, 0x5a, 0xce, 0x44, 0x6f, 0xe0, 0xc9, 0x71, 0x86, 0x85, 0xdb, 0xc1, 0x71, 0xb0, 0x0e, 0x30,
-	0x1e, 0xe1, 0x1e, 0xa2, 0x74, 0x88, 0x92, 0x30, 0xe3, 0x6c, 0x44, 0x04, 0x61, 0x54, 0x98, 0x5b,
-	0x65, 0xea, 0xd5, 0x66, 0xa9, 0x8b, 0xdc, 0x36, 0xc7, 0x28, 0x4d, 0xda, 0xce, 0x9f, 0x40, 0x27,
-	0xd8, 0x55, 0xac, 0xbb, 0x46, 0x5f, 0x00, 0xea, 0x5d, 0xc4, 0x51, 0x2a, 0x8c, 0x63, 0x08, 0x8b,
-	0x2f, 0x08, 0x7b, 0x98, 0xb2, 0x54, 0x3d, 0x29, 0xa8, 0x16, 0xa4, 0x53, 0x00, 0x83, 0xc2, 0xed,
-	0x95, 0x6f, 0xc8, 0x91, 0xc4, 0x4b, 0xbf, 0xcb, 0x8d, 0xfd, 0x0e, 0x95, 0xdf, 0xcf, 0x34, 0x27,
-	0xa8, 0xad, 0x40, 0x80, 0x24, 0x36, 0x7c, 0xb8, 0x13, 0x25, 0x2c, 0x1e, 0x88, 0x30, 0xc3, 0x3c,
-	0x1c, 0x63, 0xc4, 0x4d, 0xbd, 0x01, 0x9a, 0x15, 0xbf, 0xbe, 0xc8, 0xed, 0x23, 0x15, 0xf1, 0xab,
-	0xc1, 0x09, 0x6a, 0x8a, 0x74, 0x31, 0xbf, 0xc5, 0x88, 0xb7, 0x2b, 0x2f, 0xaf, 0xb6, 0xe6, 0x5f,
-	0x4c, 0x66, 0x16, 0x98, 0xce, 0x2c, 0xf0, 0x39, 0xb3, 0xc0, 0xf3, 0xdc, 0xd2, 0xa6, 0x73, 0x4b,
-	0x7b, 0x9f, 0x5b, 0xda, 0xdd, 0xe9, 0xbf, 0xce, 0x4f, 0x6a, 0x64, 0x4a, 0xf5, 0x48, 0x2f, 0x27,
-	0xe0, 0xfc, 0x3b, 0x00, 0x00, 0xff, 0xff, 0x04, 0x68, 0xe1, 0x61, 0x4e, 0x02, 0x00, 0x00,
+	// 476 bytes of a gzipped FileDescriptorProto
+	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0x9c, 0x53, 0xc1, 0x6e, 0xd3, 0x40,
+	0x10, 0xb5, 0x9b, 0x36, 0x52, 0xb6, 0x4a, 0x81, 0x6d, 0xa9, 0x4c, 0x25, 0xec, 0x68, 0x0f, 0x10,
+	0x84, 0xb0, 0xd5, 0x72, 0xeb, 0x09, 0x42, 0x10, 0x02, 0x51, 0x29, 0xf2, 0x0d, 0x84, 0x64, 0x4d,
+	0x9c, 0x25, 0xac, 0x6a, 0xef, 0x5a, 0xbb, 0xeb, 0x40, 0xfe, 0x82, 0x23, 0x07, 0x0e, 0xfc, 0x00,
+	0xff, 0xd1, 0x63, 0x8f, 0x88, 0x83, 0x05, 0xc9, 0x1f, 0xe4, 0x0b, 0x50, 0xbc, 0x49, 0x9a, 0x92,
+	0x0a, 0x91, 0x9e, 0x92, 0x79, 0xf3, 0xe6, 0xcd, 0xcc, 0x1b, 0x2f, 0x72, 0x63, 0xa1, 0x52, 0xa1,
+	0x82, 0x94, 0x71, 0x1d, 0x0c, 0x0e, 0xbb, 0x54, 0xc3, 0x61, 0x19, 0xf8, 0x99, 0x14, 0x5a, 0xe0,
+	0x5d, 0x93, 0xf7, 0x4b, 0x68, 0x96, 0x3f, 0xd8, 0xeb, 0x8b, 0xbe, 0x28, 0xf3, 0xc1, 0xf4, 0x9f,
+	0xa1, 0x92, 0xef, 0x1b, 0xa8, 0x7a, 0xc2, 0xb8, 0xa6, 0x12, 0xbf, 0x46, 0x35, 0xc6, 0xdf, 0x27,
+	0xa0, 0x99, 0xe0, 0x8e, 0xdd, 0xb0, 0x9b, 0xb5, 0x96, 0x7f, 0x56, 0x78, 0xd6, 0xcf, 0xc2, 0xbb,
+	0xd7, 0x67, 0xfa, 0x43, 0xde, 0xf5, 0x63, 0x91, 0x06, 0xb3, 0xde, 0xe6, 0xe7, 0x91, 0xea, 0x9d,
+	0x06, 0x7a, 0x98, 0x51, 0xe5, 0xb7, 0x69, 0x1c, 0x5e, 0x08, 0xe0, 0x8f, 0xe8, 0x16, 0x70, 0x9e,
+	0x43, 0x12, 0x65, 0x52, 0x0c, 0x98, 0x62, 0x82, 0x2b, 0x67, 0xa3, 0x54, 0x7d, 0xb5, 0x9e, 0xea,
+	0xa4, 0xf0, 0x9c, 0x21, 0xa4, 0xc9, 0x31, 0x59, 0x11, 0x24, 0xe1, 0x4d, 0x83, 0x75, 0x16, 0x10,
+	0x7e, 0x87, 0x76, 0xd3, 0x9c, 0xb3, 0x98, 0x65, 0x90, 0x44, 0x17, 0x0b, 0x55, 0x1a, 0x95, 0xe6,
+	0xf6, 0xd1, 0x43, 0xff, 0x0a, 0x6b, 0xfc, 0x93, 0x39, 0xff, 0xe5, 0x9c, 0xde, 0x01, 0x26, 0x43,
+	0x9c, 0xae, 0xe0, 0xe4, 0xab, 0x8d, 0xf0, 0x2a, 0x1d, 0x3f, 0x41, 0x3b, 0x1a, 0x64, 0x9f, 0xea,
+	0x08, 0x7a, 0x3d, 0x49, 0xd5, 0x7c, 0xd5, 0x3b, 0x93, 0xc2, 0xbb, 0x6d, 0x86, 0xbf, 0x9c, 0x27,
+	0x61, 0xdd, 0x00, 0x4f, 0x4d, 0x8c, 0xdb, 0x68, 0x6b, 0x00, 0x49, 0x4e, 0x9d, 0xca, 0xb5, 0x9c,
+	0x37, 0xc5, 0x24, 0x47, 0xfb, 0x57, 0x2f, 0x83, 0xf7, 0xd0, 0x56, 0x8f, 0x72, 0x91, 0x9a, 0xcb,
+	0x86, 0x26, 0xc0, 0xcf, 0x97, 0x6f, 0x3e, 0x1d, 0x79, 0xfb, 0xe8, 0xfe, 0x7f, 0x5a, 0xb4, 0x74,
+	0x6c, 0xf2, 0xdb, 0x46, 0xd5, 0x0e, 0x48, 0x48, 0x15, 0xbe, 0x8b, 0xd0, 0xb4, 0x30, 0x5a, 0x6e,
+	0x56, 0x9b, 0x22, 0xed, 0xb2, 0x21, 0x47, 0x3b, 0x8b, 0xb2, 0x48, 0x82, 0xa6, 0x33, 0xa3, 0x5e,
+	0xac, 0xfd, 0x4d, 0xcc, 0x6c, 0xbd, 0xac, 0x46, 0xc2, 0xfa, 0x02, 0x08, 0x41, 0x53, 0xdc, 0x42,
+	0x37, 0xba, 0x89, 0x88, 0x4f, 0x55, 0x94, 0x51, 0x19, 0x0d, 0x29, 0x48, 0xa7, 0xda, 0xb0, 0x9b,
+	0x9b, 0xad, 0x83, 0x49, 0xe1, 0xed, 0x1b, 0x89, 0xbf, 0x08, 0x24, 0xac, 0x1b, 0xa4, 0x43, 0xe5,
+	0x1b, 0x0a, 0xf2, 0x78, 0xf3, 0xcb, 0x37, 0xcf, 0x6a, 0x3d, 0x3b, 0x1b, 0xb9, 0xf6, 0xf9, 0xc8,
+	0xb5, 0x7f, 0x8d, 0x5c, 0xfb, 0xf3, 0xd8, 0xb5, 0xce, 0xc7, 0xae, 0xf5, 0x63, 0xec, 0x5a, 0x6f,
+	0x1f, 0xfc, 0x73, 0xe6, 0x4f, 0xe6, 0x99, 0x96, 0xa3, 0x77, 0xab, 0xe5, 0xab, 0x7b, 0xfc, 0x27,
+	0x00, 0x00, 0xff, 0xff, 0x65, 0xf2, 0xc8, 0x9b, 0xc2, 0x03, 0x00, 0x00,
 }
 
 func (m *Minter) Marshal() (dAtA []byte, err error) {
@@ -174,6 +301,20 @@ func (m *Minter) MarshalToSizedBuffer(dAtA []byte) (int, error) {
 	_ = i
 	var l int
 	_ = l
+	if len(m.MunicipalInflation) > 0 {
+		for iNdEx := len(m.MunicipalInflation) - 1; iNdEx >= 0; iNdEx-- {
+			{
+				size, err := m.MunicipalInflation[iNdEx].MarshalToSizedBuffer(dAtA[:i])
+				if err != nil {
+					return 0, err
+				}
+				i -= size
+				i = encodeVarintMint(dAtA, i, uint64(size))
+			}
+			i--
+			dAtA[i] = 0x1a
+		}
+	}
 	{
 		size := m.AnnualProvisions.Size()
 		i -= size
@@ -194,6 +335,88 @@ func (m *Minter) MarshalToSizedBuffer(dAtA []byte) (int, error) {
 	}
 	i--
 	dAtA[i] = 0xa
+	return len(dAtA) - i, nil
+}
+
+func (m *MunicipalInflation) Marshal() (dAtA []byte, err error) {
+	size := m.Size()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBuffer(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *MunicipalInflation) MarshalTo(dAtA []byte) (int, error) {
+	size := m.Size()
+	return m.MarshalToSizedBuffer(dAtA[:size])
+}
+
+func (m *MunicipalInflation) MarshalToSizedBuffer(dAtA []byte) (int, error) {
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	{
+		size := m.Value.Size()
+		i -= size
+		if _, err := m.Value.MarshalTo(dAtA[i:]); err != nil {
+			return 0, err
+		}
+		i = encodeVarintMint(dAtA, i, uint64(size))
+	}
+	i--
+	dAtA[i] = 0x1a
+	if len(m.TargetAddress) > 0 {
+		i -= len(m.TargetAddress)
+		copy(dAtA[i:], m.TargetAddress)
+		i = encodeVarintMint(dAtA, i, uint64(len(m.TargetAddress)))
+		i--
+		dAtA[i] = 0x12
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *MunicipalInflationPair) Marshal() (dAtA []byte, err error) {
+	size := m.Size()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBuffer(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *MunicipalInflationPair) MarshalTo(dAtA []byte) (int, error) {
+	size := m.Size()
+	return m.MarshalToSizedBuffer(dAtA[:size])
+}
+
+func (m *MunicipalInflationPair) MarshalToSizedBuffer(dAtA []byte) (int, error) {
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.Inflation != nil {
+		{
+			size, err := m.Inflation.MarshalToSizedBuffer(dAtA[:i])
+			if err != nil {
+				return 0, err
+			}
+			i -= size
+			i = encodeVarintMint(dAtA, i, uint64(size))
+		}
+		i--
+		dAtA[i] = 0x12
+	}
+	if len(m.Denom) > 0 {
+		i -= len(m.Denom)
+		copy(dAtA[i:], m.Denom)
+		i = encodeVarintMint(dAtA, i, uint64(len(m.Denom)))
+		i--
+		dAtA[i] = 0xa
+	}
 	return len(dAtA) - i, nil
 }
 
@@ -263,6 +486,44 @@ func (m *Minter) Size() (n int) {
 	n += 1 + l + sovMint(uint64(l))
 	l = m.AnnualProvisions.Size()
 	n += 1 + l + sovMint(uint64(l))
+	if len(m.MunicipalInflation) > 0 {
+		for _, e := range m.MunicipalInflation {
+			l = e.Size()
+			n += 1 + l + sovMint(uint64(l))
+		}
+	}
+	return n
+}
+
+func (m *MunicipalInflation) Size() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	l = len(m.TargetAddress)
+	if l > 0 {
+		n += 1 + l + sovMint(uint64(l))
+	}
+	l = m.Value.Size()
+	n += 1 + l + sovMint(uint64(l))
+	return n
+}
+
+func (m *MunicipalInflationPair) Size() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	l = len(m.Denom)
+	if l > 0 {
+		n += 1 + l + sovMint(uint64(l))
+	}
+	if m.Inflation != nil {
+		l = m.Inflation.Size()
+		n += 1 + l + sovMint(uint64(l))
+	}
 	return n
 }
 
@@ -384,6 +645,274 @@ func (m *Minter) Unmarshal(dAtA []byte) error {
 				return io.ErrUnexpectedEOF
 			}
 			if err := m.AnnualProvisions.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 3:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field MunicipalInflation", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowMint
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				msglen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return ErrInvalidLengthMint
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return ErrInvalidLengthMint
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.MunicipalInflation = append(m.MunicipalInflation, &MunicipalInflationPair{})
+			if err := m.MunicipalInflation[len(m.MunicipalInflation)-1].Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := skipMint(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return ErrInvalidLengthMint
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+func (m *MunicipalInflation) Unmarshal(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if shift >= 64 {
+				return ErrIntOverflowMint
+			}
+			if iNdEx >= l {
+				return io.ErrUnexpectedEOF
+			}
+			b := dAtA[iNdEx]
+			iNdEx++
+			wire |= uint64(b&0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: MunicipalInflation: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: MunicipalInflation: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field TargetAddress", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowMint
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return ErrInvalidLengthMint
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return ErrInvalidLengthMint
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.TargetAddress = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 3:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Value", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowMint
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return ErrInvalidLengthMint
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return ErrInvalidLengthMint
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if err := m.Value.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := skipMint(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return ErrInvalidLengthMint
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+func (m *MunicipalInflationPair) Unmarshal(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if shift >= 64 {
+				return ErrIntOverflowMint
+			}
+			if iNdEx >= l {
+				return io.ErrUnexpectedEOF
+			}
+			b := dAtA[iNdEx]
+			iNdEx++
+			wire |= uint64(b&0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: MunicipalInflationPair: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: MunicipalInflationPair: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Denom", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowMint
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return ErrInvalidLengthMint
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return ErrInvalidLengthMint
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.Denom = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Inflation", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowMint
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				msglen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return ErrInvalidLengthMint
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return ErrInvalidLengthMint
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if m.Inflation == nil {
+				m.Inflation = &MunicipalInflation{}
+			}
+			if err := m.Inflation.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
 				return err
 			}
 			iNdEx = postIndex

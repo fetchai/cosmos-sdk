@@ -394,6 +394,8 @@
   
 - [cosmos/mint/v1beta1/mint.proto](#cosmos/mint/v1beta1/mint.proto)
     - [Minter](#cosmos.mint.v1beta1.Minter)
+    - [MunicipalInflation](#cosmos.mint.v1beta1.MunicipalInflation)
+    - [MunicipalInflationPair](#cosmos.mint.v1beta1.MunicipalInflationPair)
     - [Params](#cosmos.mint.v1beta1.Params)
   
 - [cosmos/mint/v1beta1/genesis.proto](#cosmos/mint/v1beta1/genesis.proto)
@@ -404,6 +406,8 @@
     - [QueryAnnualProvisionsResponse](#cosmos.mint.v1beta1.QueryAnnualProvisionsResponse)
     - [QueryInflationRequest](#cosmos.mint.v1beta1.QueryInflationRequest)
     - [QueryInflationResponse](#cosmos.mint.v1beta1.QueryInflationResponse)
+    - [QueryMunicipalInflationRequest](#cosmos.mint.v1beta1.QueryMunicipalInflationRequest)
+    - [QueryMunicipalInflationResponse](#cosmos.mint.v1beta1.QueryMunicipalInflationResponse)
     - [QueryParamsRequest](#cosmos.mint.v1beta1.QueryParamsRequest)
     - [QueryParamsResponse](#cosmos.mint.v1beta1.QueryParamsResponse)
   
@@ -5748,6 +5752,45 @@ Minter represents the minting state.
 | ----- | ---- | ----- | ----------- |
 | `inflation` | [string](#string) |  | current annual inflation rate |
 | `annual_provisions` | [string](#string) |  | current annual expected provisions |
+| `municipal_inflation` | [MunicipalInflationPair](#cosmos.mint.v1beta1.MunicipalInflationPair) | repeated |  |
+
+
+
+
+
+
+<a name="cosmos.mint.v1beta1.MunicipalInflation"></a>
+
+### MunicipalInflation
+Inflation holds parameters for individual native token inflation
+
+
+| Field | Type | Label | Description |
+| ----- | ---- | ----- | ----------- |
+| `target_address` | [string](#string) |  | address where inflation induced new tokens will be minted |
+| `value` | [string](#string) |  | current ANNUAL inflation rate |
+
+
+
+
+
+
+<a name="cosmos.mint.v1beta1.MunicipalInflationPair"></a>
+
+### MunicipalInflationPair
+Pair representing denom -> inflation mapping.
+This pair-like structure will be used in `repeating MunicipalInflationPair`
+type, what will have the same Protobuf binary representation on wire as the
+`map<string, MunicipalInflation>` type.
+This means that what is serialised as `repeating MunicipalInflationPair` on
+one end can be deserialised as `map<string, MunicipalInflation>` on the other
+end, and other vice versa.
+
+
+| Field | Type | Label | Description |
+| ----- | ---- | ----- | ----------- |
+| `denom` | [string](#string) |  | token denomination |
+| `inflation` | [MunicipalInflation](#cosmos.mint.v1beta1.MunicipalInflation) |  | Structure representing municipal inflation for the the given `denom` |
 
 
 
@@ -5872,6 +5915,37 @@ method.
 
 
 
+<a name="cosmos.mint.v1beta1.QueryMunicipalInflationRequest"></a>
+
+### QueryMunicipalInflationRequest
+QueryMunicipalInflationRequest is the request type for the Query/MunicipalInflation RPC method.
+
+
+| Field | Type | Label | Description |
+| ----- | ---- | ----- | ----------- |
+| `denom` | [string](#string) | optional |  |
+
+
+
+
+
+
+<a name="cosmos.mint.v1beta1.QueryMunicipalInflationResponse"></a>
+
+### QueryMunicipalInflationResponse
+QueryInflationResponse is the response type for the Query/Inflation RPC
+method.
+
+
+| Field | Type | Label | Description |
+| ----- | ---- | ----- | ----------- |
+| `inflations` | [MunicipalInflationPair](#cosmos.mint.v1beta1.MunicipalInflationPair) | repeated | inflation is the current minting inflation value. |
+
+
+
+
+
+
 <a name="cosmos.mint.v1beta1.QueryParamsRequest"></a>
 
 ### QueryParamsRequest
@@ -5912,6 +5986,7 @@ Query provides defines the gRPC querier service.
 | ----------- | ------------ | ------------- | ------------| ------- | -------- |
 | `Params` | [QueryParamsRequest](#cosmos.mint.v1beta1.QueryParamsRequest) | [QueryParamsResponse](#cosmos.mint.v1beta1.QueryParamsResponse) | Params returns the total set of minting parameters. | GET|/cosmos/mint/v1beta1/params|
 | `Inflation` | [QueryInflationRequest](#cosmos.mint.v1beta1.QueryInflationRequest) | [QueryInflationResponse](#cosmos.mint.v1beta1.QueryInflationResponse) | Inflation returns the current minting inflation value. | GET|/cosmos/mint/v1beta1/inflation|
+| `MunicipalInflation` | [QueryMunicipalInflationRequest](#cosmos.mint.v1beta1.QueryMunicipalInflationRequest) | [QueryMunicipalInflationResponse](#cosmos.mint.v1beta1.QueryMunicipalInflationResponse) | Inflation returns the current minting inflation value. | GET|/cosmos/mint/v1beta1/municipal_inflation|
 | `AnnualProvisions` | [QueryAnnualProvisionsRequest](#cosmos.mint.v1beta1.QueryAnnualProvisionsRequest) | [QueryAnnualProvisionsResponse](#cosmos.mint.v1beta1.QueryAnnualProvisionsResponse) | AnnualProvisions current minting annual provisions value. | GET|/cosmos/mint/v1beta1/annual_provisions|
 
  <!-- end services -->

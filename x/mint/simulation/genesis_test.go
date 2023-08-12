@@ -46,6 +46,7 @@ func TestRandomizedGenState(t *testing.T) {
 	require.Equal(t, "0.170000000000000000", mintGenesis.Minter.NextAnnualProvisions(mintGenesis.Params, sdk.OneInt()).String())
 	require.Equal(t, "0.170000000000000000", mintGenesis.Minter.Inflation.String())
 	require.Equal(t, "0.000000000000000000", mintGenesis.Minter.AnnualProvisions.String())
+	require.Equal(t, 0, len(mintGenesis.Minter.MunicipalInflation))
 }
 
 // TestRandomizedGenState tests abnormal scenarios of applying RandomizedGenState.

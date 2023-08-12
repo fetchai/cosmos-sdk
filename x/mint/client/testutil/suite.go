@@ -37,6 +37,13 @@ func (s *IntegrationTestSuite) SetupSuite() {
 	inflation := sdk.MustNewDecFromStr("1.0")
 	mintData.Minter.Inflation = inflation
 
+	mintData.Minter.MunicipalInflation = []*minttypes.MunicipalInflationPair{
+		{Denom: "denom1", Inflation: minttypes.NewMunicipalInflation("cosmos12kdu2sy0zcmz84qymyj6zcfvwss3a703xgpczm", sdk.NewDecWithPrec(234, 4))},
+		{Denom: "denom0", Inflation: minttypes.NewMunicipalInflation("cosmos1d9pzg5542spe4anjgu2zmk7wxhgh04ysn2phpq", sdk.NewDecWithPrec(123, 2))},
+		{Denom: "denom3", Inflation: minttypes.NewMunicipalInflation("cosmos1ck73rpk6eqxtla4rv7rspsq7apl3740rgjfte4", sdk.NewDecWithPrec(456, 3))},
+		{Denom: "denom2", Inflation: minttypes.NewMunicipalInflation("cosmos1ury8qn5w7m3xkl9pdd9ehazd2c9urx7qht2jly", sdk.NewDecWithPrec(345, 3))},
+	}
+
 	mintDataBz, err := s.cfg.Codec.MarshalJSON(&mintData)
 	s.Require().NoError(err)
 	genesisState[minttypes.ModuleName] = mintDataBz
@@ -80,6 +87,70 @@ mint_denom: stake`,
 
 		s.Run(tc.name, func() {
 			cmd := cli.GetCmdQueryParams()
+			clientCtx := val.ClientCtx
+
+			out, err := clitestutil.ExecTestCLICmd(clientCtx, cmd, tc.args)
+			s.Require().NoError(err)
+			s.Require().Equal(tc.expectedOutput, strings.TrimSpace(out.String()))
+		})
+	}
+}
+
+func (s *IntegrationTestSuite) TestGetCmdQueryMunicipalInflation() {
+	val := s.network.Validators[0]
+
+	testCases := []struct {
+		name           string
+		args           []string
+		expectedOutput string
+	}{
+		{
+			"full - json output",
+			[]string{fmt.Sprintf("--%s=1", flags.FlagHeight), fmt.Sprintf("--%s=json", tmcli.OutputFlag)},
+			`{"inflations":[{"denom":"denom1","inflation":{"target_address":"cosmos12kdu2sy0zcmz84qymyj6zcfvwss3a703xgpczm","value":"0.023400000000000000"}},{"denom":"denom0","inflation":{"target_address":"cosmos1d9pzg5542spe4anjgu2zmk7wxhgh04ysn2phpq","value":"1.230000000000000000"}},{"denom":"denom3","inflation":{"target_address":"cosmos1ck73rpk6eqxtla4rv7rspsq7apl3740rgjfte4","value":"0.456000000000000000"}},{"denom":"denom2","inflation":{"target_address":"cosmos1ury8qn5w7m3xkl9pdd9ehazd2c9urx7qht2jly","value":"0.345000000000000000"}}]}`,
+		},
+		{
+			"full - text output",
+			[]string{fmt.Sprintf("--%s=1", flags.FlagHeight), fmt.Sprintf("--%s=text", tmcli.OutputFlag)},
+			`inflations:
+- denom: denom1
+  inflation:
+    target_address: cosmos12kdu2sy0zcmz84qymyj6zcfvwss3a703xgpczm
+    value: "0.023400000000000000"
+- denom: denom0
+  inflation:
+    target_address: cosmos1d9pzg5542spe4anjgu2zmk7wxhgh04ysn2phpq
+    value: "1.230000000000000000"
+- denom: denom3
+  inflation:
+    target_address: cosmos1ck73rpk6eqxtla4rv7rspsq7apl3740rgjfte4
+    value: "0.456000000000000000"
+- denom: denom2
+  inflation:
+    target_address: cosmos1ury8qn5w7m3xkl9pdd9ehazd2c9urx7qht2jly
+    value: "0.345000000000000000"`,
+		},
+		{
+			"selected denom - json output",
+			[]string{"denom3", fmt.Sprintf("--%s=1", flags.FlagHeight), fmt.Sprintf("--%s=json", tmcli.OutputFlag)},
+			`{"inflations":[{"denom":"denom3","inflation":{"target_address":"cosmos1ck73rpk6eqxtla4rv7rspsq7apl3740rgjfte4","value":"0.456000000000000000"}}]}`,
+		},
+		{
+			"selected denom - text output",
+			[]string{"denom3", fmt.Sprintf("--%s=1", flags.FlagHeight), fmt.Sprintf("--%s=text", tmcli.OutputFlag)},
+			`inflations:
+- denom: denom3
+  inflation:
+    target_address: cosmos1ck73rpk6eqxtla4rv7rspsq7apl3740rgjfte4
+    value: "0.456000000000000000"`,
+		},
+	}
+
+	for _, tc := range testCases {
+		tc := tc
+
+		s.Run(tc.name, func() {
+			cmd := cli.GetCmdQueryMunicipalInflation()
 			clientCtx := val.ClientCtx
 
 			out, err := clitestutil.ExecTestCLICmd(clientCtx, cmd, tc.args)
