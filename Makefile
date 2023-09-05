@@ -332,7 +332,7 @@ golangci_lint_cmd=$(DOCKER) run --rm -v $(CURDIR):/work -w /work $(containerGola
 
 lint: lint-go-diff
 	@#if docker ps -a --format '{{.Names}}' | grep -Eq "^${containerMarkdownLint}$$"; then docker start -a $(containerMarkdownLint); else docker run --name $(containerMarkdownLint) -i -v "$(CURDIR):/work" $(markdownLintImage); fi
-	docker run -i --rm -v "$(CURDIR):/work" $(containerMarkdownLintImage) .
+	docker run -i --rm -v "$(CURDIR):/work" $(containerMarkdownLintImage) -- .
 
 lint-fix:
 	@#if docker ps -a --format '{{.Names}}' | grep -Eq "^${containerMarkdownLintFix}$$"; then docker start -a $(containerMarkdownLintFix); else docker run --name $(containerMarkdownLintFix) -i -v "$(CURDIR):/work" $(markdownLintImage) . --fix; fi
