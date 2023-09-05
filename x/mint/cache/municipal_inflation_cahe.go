@@ -65,7 +65,7 @@ func (cache *MunicipalInflationCache) GetInflation(denom string) *MunicipalInfla
 
 	infl, exists := val.(*MunicipalInflationCacheInternal).inflations[denom]
 
-	if exists && infl != nil {
+	if exists {
 		return infl
 	}
 
