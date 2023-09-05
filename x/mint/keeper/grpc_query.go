@@ -35,8 +35,8 @@ func (k Keeper) MunicipalInflation(c context.Context, req *types.QueryMunicipalI
 		return &types.QueryMunicipalInflationResponse{Inflations: *cache.GMunicipalInflationCache.GetOriginal()}, nil
 	}
 
-	infl, exists := cache.GMunicipalInflationCache.GetInflation(denom)
-	if !exists {
+	infl := cache.GMunicipalInflationCache.GetInflation(denom)
+	if infl == nil {
 		return nil, fmt.Errorf("there is no municipal inflation defined for requested \"%s\" denomination", denom)
 	}
 

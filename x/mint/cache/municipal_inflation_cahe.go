@@ -57,14 +57,19 @@ func (cache *MunicipalInflationCache) RefreshIfNecessary(inflations *[]*types.Mu
 	}
 }
 
-func (cache *MunicipalInflationCache) GetInflation(denom string) (*MunicipalInflationCacheItem, bool) {
+func (cache *MunicipalInflationCache) GetInflation(denom string) *MunicipalInflationCacheItem {
 	val := cache.internal.Load()
 	if val == nil {
-		return nil, false
+		return nil
 	}
 
 	infl, exists := val.(*MunicipalInflationCacheInternal).inflations[denom]
-	return infl, exists
+
+	if exists && infl != nil {
+		return infl
+	}
+
+	return nil
 }
 
 func (cache *MunicipalInflationCache) GetOriginal() *[]*types.MunicipalInflationPair {

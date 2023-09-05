@@ -23,9 +23,9 @@ func HandleMunicipalInflation(minter *types.Minter, params *types.Params, ctx *s
 		// gather supply value & calculate number of new tokens created from relevant inflation
 		totalDenomSupply := k.BankKeeper.GetSupply(*ctx, pair.Denom)
 
-		cacheItem, exists := cache.GMunicipalInflationCache.GetInflation(pair.Denom)
+		cacheItem := cache.GMunicipalInflationCache.GetInflation(pair.Denom)
 
-		if !exists {
+		if cacheItem == nil {
 			panic(fmt.Errorf("numicipal inflation: missing cache item for the \"%s\" denomination", pair.Denom))
 		}
 
