@@ -48,8 +48,8 @@ require (
 	golang.org/x/crypto v0.0.0-20220525230936-793ad666bf5e
 	golang.org/x/exp v0.0.0-20220722155223-a9213eeb770e
 	google.golang.org/genproto v0.0.0-20220725144611-272f38e5d71b
-	google.golang.org/grpc v1.50.1
-	google.golang.org/protobuf v1.28.1
+	google.golang.org/grpc v1.48.0
+	google.golang.org/protobuf v1.28.0
 	gopkg.in/yaml.v2 v2.4.0
 )
 
@@ -81,6 +81,7 @@ require (
 	github.com/cespare/xxhash/v2 v2.1.2 // indirect
 	github.com/charithe/durationcheck v0.0.9 // indirect
 	github.com/chavacava/garif v0.0.0-20220316182200-5cad0b5181d4 // indirect
+	github.com/cosmos/ledger-go v0.9.2 // indirect
 	github.com/creachadair/taskgroup v0.3.2 // indirect
 	github.com/daixiang0/gci v0.6.2 // indirect
 	github.com/danieljoos/wincred v1.0.2 // indirect
@@ -227,7 +228,6 @@ require (
 	github.com/yagipy/maintidx v1.0.0 // indirect
 	github.com/yeya24/promlinter v0.2.0 // indirect
 	github.com/zondax/hid v0.9.1 // indirect
-	github.com/zondax/ledger-go v0.14.0 // indirect
 	gitlab.com/bosi/decorder v0.2.3 // indirect
 	go.etcd.io/bbolt v1.3.6 // indirect
 	go.uber.org/atomic v1.9.0 // indirect
@@ -258,8 +258,7 @@ replace (
 	github.com/confio/ics23/go => ./ics23
 
 	// This is to add support for Ledger Nano S-Plus:
-	//github.com/cosmos/ledger-go => github.com/cosmos/ledger-go v0.9.3
-	github.com/cosmos/ledger-cosmos-go => github.com/cosmos/ledger-cosmos-go v0.12.0
+	github.com/cosmos/ledger-go => github.com/cosmos/ledger-go v0.9.3
 
 	// Fix upstream GHSA-h395-qcrw-5vmq vulnerability.
 	// TODO Remove it: https://github.com/cosmos/cosmos-sdk/issues/10409
