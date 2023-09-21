@@ -81,7 +81,13 @@ require (
 	github.com/cespare/xxhash/v2 v2.1.2 // indirect
 	github.com/charithe/durationcheck v0.0.9 // indirect
 	github.com/chavacava/garif v0.0.0-20220316182200-5cad0b5181d4 // indirect
-	github.com/cosmos/ledger-go v0.9.2 // indirect
+	// This is to add support for Ledger Nano S-Plus.
+	// The change from v0.9.2 to 0.9.3 *must* be done here for the `//indirect`
+	// dependency, since the `replace ...` does *not* enforce the change.
+	// IMPORTANT: Please check changes in this version when modifying go.mod,
+	//            since thi is indirect dependency and so it can be overridden
+	//            by `go mod tidy`.
+	github.com/cosmos/ledger-go v0.9.3 // indirect
 	github.com/creachadair/taskgroup v0.3.2 // indirect
 	github.com/daixiang0/gci v0.6.2 // indirect
 	github.com/danieljoos/wincred v1.0.2 // indirect
@@ -256,9 +262,6 @@ replace (
 
 	// vendor ics23
 	github.com/confio/ics23/go => ./ics23
-
-	// This is to add support for Ledger Nano S-Plus:
-	github.com/cosmos/ledger-go => github.com/cosmos/ledger-go v0.9.3
 
 	// Fix upstream GHSA-h395-qcrw-5vmq vulnerability.
 	// TODO Remove it: https://github.com/cosmos/cosmos-sdk/issues/10409
