@@ -5,8 +5,6 @@ package server
 import (
 	"errors"
 	"fmt"
-	"time"
-
 	"github.com/spf13/cobra"
 	tmjson "github.com/tendermint/tendermint/libs/json"
 	tmproto "github.com/tendermint/tendermint/proto/tendermint/types"
@@ -24,7 +22,6 @@ const (
 	FlagHeight           = "height"
 	FlagForZeroHeight    = "for-zero-height"
 	FlagJailAllowedAddrs = "jail-allowed-addrs"
-	RoundingInterval     = 5 * time.Minute
 )
 
 // GetLatestBlockHeaderFromDB returns the latest block header from the blockstore database
@@ -102,7 +99,7 @@ func ExportCmd(appExporter types.AppExporter, defaultNodeHome string) *cobra.Com
 			if err != nil {
 				return err
 			}
-			doc.GenesisTime = latestBlockHeader.Time.Round(RoundingInterval)
+			doc.GenesisTime = latestBlockHeader.Time
 
 			doc.AppState = exported.AppState
 			doc.Validators = exported.Validators
