@@ -3,13 +3,16 @@ package server
 // DONTCOVER
 
 import (
+	"errors"
 	"fmt"
-	"os"
-
 	"github.com/spf13/cobra"
+	cfg "github.com/tendermint/tendermint/config"
 	tmjson "github.com/tendermint/tendermint/libs/json"
+	tmnode "github.com/tendermint/tendermint/node"
 	tmproto "github.com/tendermint/tendermint/proto/tendermint/types"
+	"github.com/tendermint/tendermint/store"
 	tmtypes "github.com/tendermint/tendermint/types"
+	"os"
 
 	"github.com/cosmos/cosmos-sdk/client/flags"
 	"github.com/cosmos/cosmos-sdk/server/types"
@@ -21,6 +24,28 @@ const (
 	FlagForZeroHeight    = "for-zero-height"
 	FlagJailAllowedAddrs = "jail-allowed-addrs"
 )
+
+// GetLatestBlockHeaderFromDB returns the latest block header from the blockstore database
+func GetLatestBlockHeaderFromDB() (*tmtypes.Header, error) {
+	// Load the blockstore
+	blockStoreDB, err := tmnode.DefaultDBProvider(&tmnode.DBContext{ID: "blockstore", Config: cfg.DefaultConfig()})
+	if err != nil {
+		return nil, err
+	}
+	defer blockStoreDB.Close()
+
+	blockStore := store.NewBlockStore(blockStoreDB)
+
+	// Get the latest block meta
+	latestHeight := blockStore.Height()
+	blockMeta := blockStore.LoadBlockMeta(latestHeight)
+
+	if blockMeta == nil {
+		return nil, errors.New("latest block metadata not found in blockstore")
+	}
+
+	return &blockMeta.Header, nil
+}
 
 // ExportCmd dumps app state to JSON.
 func ExportCmd(appExporter types.AppExporter, defaultNodeHome string) *cobra.Command {
@@ -76,6 +101,12 @@ func ExportCmd(appExporter types.AppExporter, defaultNodeHome string) *cobra.Com
 			if err != nil {
 				return err
 			}
+
+			latestBlockHeader, err := GetLatestBlockHeaderFromDB()
+			if err != nil {
+				return err
+			}
+			doc.GenesisTime = latestBlockHeader.Time
 
 			doc.AppState = exported.AppState
 			doc.Validators = exported.Validators
