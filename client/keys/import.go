@@ -102,7 +102,7 @@ At the moment, only the secp256k1 curve/algo is supported.`,
 			privKeyHexLC := strings.ToLower(privKeyHex)
 			if strings.HasPrefix(privKeyHexLC, "0x") {
 				privKeyHexLC = privKeyHexLC[2:]
-			} else if strings.HasPrefix(privKeyHexLC, "x") {
+			} else if strings.HasPrefix(privKeyHexLC, "x") { //nolint:gosimple,S1017 false positive, see https://github.com/dominikh/go-tools/issues/1447
 				privKeyHexLC = privKeyHexLC[1:]
 			}
 

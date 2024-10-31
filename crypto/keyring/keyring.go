@@ -329,9 +329,9 @@ func (ks keystore) ImportUnarmoredPrivKey(uid string, unarmoredPrivKeyRaw []byte
 	}
 
 	// privKey, err := legacy.PrivKeyFromBytes(privKeyRaw)
-	//if err != nil {
+	// if err != nil {
 	//	return errors.Wrap(err, "failed to create private key from provided hex value")
-	//}
+	// }
 
 	info, err := ks.writeLocalKey(uid, privKey, hd.PubKeyType(algo))
 	if err != nil {
