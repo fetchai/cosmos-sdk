@@ -112,8 +112,8 @@ type Importer interface {
 	// ImportPrivKey imports ASCII armored passphrase-encrypted private keys.
 	ImportPrivKey(uid, armor, passphrase string) error
 
-	// ImportUnarmoredPrivKey imports HEX encoded UNARMORED private keys.
-	ImportUnarmoredPrivKey(uid, unarmoredPrivKeyHex, algo string) error
+	// ImportUnarmoredPrivKey imports UNARMORED private key.
+	ImportUnarmoredPrivKey(uid string, unarmoredPrivKeyRaw []byte, algo string) (Info, error)
 
 	// ImportPubKey imports ASCII armored public keys.
 	ImportPubKey(uid string, armor string) error
@@ -308,20 +308,15 @@ func (ks keystore) ImportPrivKey(uid, armor, passphrase string) error {
 	return nil
 }
 
-func (ks keystore) ImportUnarmoredPrivKey(uid, unarmoredPrivKeyHex, algo string) error {
+func (ks keystore) ImportUnarmoredPrivKey(uid string, unarmoredPrivKeyRaw []byte, algo string) (Info, error) {
 	if _, err := ks.Key(uid); err == nil {
-		return fmt.Errorf("cannot overwrite key: %s", uid)
-	}
-
-	privKeyRaw, err := hex.DecodeString(unarmoredPrivKeyHex)
-	if err != nil {
-		return errors.Wrap(err, "failed to decode provided hex value of private key")
+		return nil, fmt.Errorf("cannot overwrite key: %s", uid)
 	}
 
 	var privKey types.PrivKey
 	switch hd.PubKeyType(algo) {
 	case hd.Secp256k1Type:
-		privKey = &secp256k1.PrivKey{Key: privKeyRaw}
+		privKey = &secp256k1.PrivKey{Key: unarmoredPrivKeyRaw}
 	case hd.Ed25519Type:
 		fallthrough
 	case hd.Sr25519Type:
@@ -329,7 +324,7 @@ func (ks keystore) ImportUnarmoredPrivKey(uid, unarmoredPrivKeyHex, algo string)
 	case hd.MultiType:
 		fallthrough
 	default:
-		return fmt.Errorf("only the \"%s\" algo is supported at the moment", hd.Secp256k1Type)
+		return nil, fmt.Errorf("only the \"%s\" algo is supported at the moment", hd.Secp256k1Type)
 	}
 
 	//privKey, err := legacy.PrivKeyFromBytes(privKeyRaw)
@@ -337,12 +332,12 @@ func (ks keystore) ImportUnarmoredPrivKey(uid, unarmoredPrivKeyHex, algo string)
 	//	return errors.Wrap(err, "failed to create private key from provided hex value")
 	//}
 
-	_, err = ks.writeLocalKey(uid, privKey, hd.PubKeyType(algo))
+	info, err := ks.writeLocalKey(uid, privKey, hd.PubKeyType(algo))
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	return nil
+	return info, nil
 }
 
 func (ks keystore) ImportPubKey(uid string, armor string) error {
