@@ -8,7 +8,9 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          repo-token: "${{ secrets.GITHUB_TOKEN }}"
       - name: Label PR
-        uses: actions/labeler@main
+        uses: actions/labeler@v5
         with:
           repo-token: "${{ secrets.GITHUB_TOKEN }}"
