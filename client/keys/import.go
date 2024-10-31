@@ -49,18 +49,40 @@ func ImportKeyCommand() *cobra.Command {
 func ImportUnarmoredKeyCommand() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "import-unarmored <name> [keyfile]",
-		Short: "Import unarmored private key into the local keybase",
-		Long: `Import hex encoded unarmored private key into the local keybase 
+		Short: "Imports unarmored private key into the local keybase",
+		Long: `Imports hex encoded raw unarmored private key into the local keybase 
 
-Key must be hex encoded, and can be passed in either via file, or via
-user password prompt. 
-If the 2nd positional argument [keyfile] has been provided, private key
-will be read from that file. The keyfile must contain hex encoded
-unarmored raw private key on the very 1st line, and that line must
-contain only the private key.
-Otherwise, if the [keyfile] is not provided, the private key will be
-requested via password prompt where it will be read from stdin. 
-At the moment, only the secp256k1 curve/algo is supported.`,
+[keyfile] - Path to the file containing unarmored hex encoded private key.
+            => *IF* this non-mandatory 2nd positional argument has been
+               *PROVIDED*, then private key will be read from that file.
+			
+            => *ELSE* If this positional argument has been *OMITTED*, then
+               user will be prompted on terminal to provide password in
+               the SECURE PROMPT = passed in characters of the key hex
+               value will *not* be displayed on the screen.            
+            
+            File format: The only condition for the file format is, that
+            the unarmored key must be on the first line (the file can also
+            contain further lines, though they are ignored).
+            
+            The 1st line must contain only hex encoded unarmored raw value,
+            serialised *exactly* as it is expected by given cryptographic
+            algorithm specified by the '--unarmored-key-algo <algo>' flag
+            (see the description of that flag).
+            Hex key value can be preceded & followed by any number of any
+            whitespace characters, they will be ignored.
+
+Key value:
+As mentioned above, key is expected to be hex encoded. Hex encoding can be
+lowercase, uppercase or mixed case, it does not matter, and it can (but
+does NOT need to) contain the '0x' or just 'x' prefix at the beginning of
+the hex encoded value.
+
+Output:
+The command will print key info after the import, the same way as the
+'keys add ...' command does. 
+This is quite useful, since user will immediately see the address (and pub
+key value) derived from the imported private key.`,
 		Args: cobra.RangeArgs(1, 2),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			clientCtx, err := client.GetClientQueryContext(cmd)
@@ -99,10 +121,12 @@ At the moment, only the secp256k1 curve/algo is supported.`,
 			algo, _ := cmd.Flags().GetString(flagUnarmoredKeyAlgo)
 
 			privKeyHexLC := strings.ToLower(privKeyHex)
-			if strings.HasPrefix(privKeyHexLC, "0x") {
-				privKeyHexLC = privKeyHexLC[2:]
-			} else if strings.HasPrefix(privKeyHexLC, "x") { //nolint:gosimple,S1017 false positive, see https://github.com/dominikh/go-tools/issues/1447
-				privKeyHexLC = privKeyHexLC[1:]
+			acceptedHexValPrefixes := []string{"0x", "x"}
+			for _, prefix := range acceptedHexValPrefixes {
+				if strings.HasPrefix(privKeyHexLC, prefix) {
+					privKeyHexLC = privKeyHexLC[len(prefix):]
+					break
+				}
 			}
 
 			privKeyRaw, err := hex.DecodeString(privKeyHexLC)
@@ -123,7 +147,14 @@ At the moment, only the secp256k1 curve/algo is supported.`,
 		},
 	}
 
-	cmd.Flags().String(flagUnarmoredKeyAlgo, string(hd.Secp256k1Type), fmt.Sprintf("defines cryptographic scheme algorithm of the private key (\"%s\", \"%s\"). At the moment *ONLY* the \"%s\" is supported. Defaults to \"%s\".", hd.Secp256k1Type, hd.Ed25519Type, hd.Secp256k1Type, hd.Secp256k1Type))
+	cmd.Flags().String(flagUnarmoredKeyAlgo, string(hd.Secp256k1Type), fmt.Sprintf(
+		`Defines cryptographic scheme algorithm of the provided unarmored private key.
+At the moment *ONLY* the "%s" and "%s" algorithms are supported.
+Expecdted serialisation format:
+* for "%s": 32 bytes raw private key (hex encoded)  
+* for "%s": 32 bytes raw public key immediatelly followed by 32 bytes
+                 private key = 64 bytes alltogether (hex encoded)
+`, hd.Secp256k1Type, hd.Ed25519Type, hd.Secp256k1Type, hd.Ed25519Type))
 
 	return cmd
 }

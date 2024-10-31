@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"encoding/hex"
 	"fmt"
+	"github.com/cosmos/cosmos-sdk/crypto/keys/ed25519"
 	"io"
 	"os"
 	"path/filepath"
@@ -319,13 +320,13 @@ func (ks keystore) ImportUnarmoredPrivKey(uid string, unarmoredPrivKeyRaw []byte
 	case hd.Secp256k1Type:
 		privKey = &secp256k1.PrivKey{Key: unarmoredPrivKeyRaw}
 	case hd.Ed25519Type:
-		fallthrough
+		privKey = &ed25519.PrivKey{Key: unarmoredPrivKeyRaw}
 	case hd.Sr25519Type:
 		fallthrough
 	case hd.MultiType:
 		fallthrough
 	default:
-		return nil, fmt.Errorf("only the \"%s\" algo is supported at the moment", hd.Secp256k1Type)
+		return nil, fmt.Errorf("only the \"%s\" and \"%s\" algos are supported at the moment", hd.Secp256k1Type, hd.Ed25519Type)
 	}
 
 	// privKey, err := legacy.PrivKeyFromBytes(privKeyRaw)
