@@ -4,12 +4,13 @@ import (
 	"bufio"
 	"encoding/hex"
 	"fmt"
-	"github.com/cosmos/cosmos-sdk/crypto/keys/secp256k1"
 	"io"
 	"os"
 	"path/filepath"
 	"sort"
 	"strings"
+
+	"github.com/cosmos/cosmos-sdk/crypto/keys/secp256k1"
 
 	"github.com/99designs/keyring"
 	bip39 "github.com/cosmos/go-bip39"
@@ -327,7 +328,7 @@ func (ks keystore) ImportUnarmoredPrivKey(uid string, unarmoredPrivKeyRaw []byte
 		return nil, fmt.Errorf("only the \"%s\" algo is supported at the moment", hd.Secp256k1Type)
 	}
 
-	//privKey, err := legacy.PrivKeyFromBytes(privKeyRaw)
+	// privKey, err := legacy.PrivKeyFromBytes(privKeyRaw)
 	//if err != nil {
 	//	return errors.Wrap(err, "failed to create private key from provided hex value")
 	//}

@@ -4,10 +4,11 @@ import (
 	"bufio"
 	"encoding/hex"
 	"fmt"
-	"github.com/cosmos/cosmos-sdk/crypto/hd"
-	"github.com/cosmos/cosmos-sdk/crypto/keyring"
 	"os"
 	"strings"
+
+	"github.com/cosmos/cosmos-sdk/crypto/hd"
+	"github.com/cosmos/cosmos-sdk/crypto/keyring"
 
 	"github.com/spf13/cobra"
 
@@ -113,7 +114,6 @@ At the moment, only the secp256k1 curve/algo is supported.`,
 			info, err := clientCtx.Keyring.ImportUnarmoredPrivKey(args[0], privKeyRaw, algo)
 			if err != nil {
 				return fmt.Errorf("importing unarmored private key: %w", err)
-
 			}
 
 			if err := printCreateUnarmored(cmd, info, clientCtx.OutputFormat); err != nil {
@@ -124,7 +124,7 @@ At the moment, only the secp256k1 curve/algo is supported.`,
 		},
 	}
 
-	cmd.Flags().String(flagUnarmoredKeyAlgo, string(hd.Secp256k1Type), fmt.Sprintf("defines cryptographic scheme algorithm of the private key (\"%s\", \"%s\"). At the moent *ONLY* the \"%s\" is supported. Defaults to \"%s\".", hd.Secp256k1Type, hd.Ed25519Type, hd.Secp256k1Type, hd.Secp256k1Type))
+	cmd.Flags().String(flagUnarmoredKeyAlgo, string(hd.Secp256k1Type), fmt.Sprintf("defines cryptographic scheme algorithm of the private key (\"%s\", \"%s\"). At the moment *ONLY* the \"%s\" is supported. Defaults to \"%s\".", hd.Secp256k1Type, hd.Ed25519Type, hd.Secp256k1Type, hd.Secp256k1Type))
 
 	return cmd
 }
