@@ -18,7 +18,7 @@ import (
 
 // ImportKeyCommand imports private keys from a keyfile.
 func ImportKeyCommand() *cobra.Command {
-	cmd := &cobra.Command{
+	return &cobra.Command{
 		Use:   "import <name> <keyfile>",
 		Short: "Import private keys into the local keybase",
 		Long:  "Import a ASCII armored private key into the local keybase.",
@@ -29,12 +29,13 @@ func ImportKeyCommand() *cobra.Command {
 				return err
 			}
 			buf := bufio.NewReader(clientCtx.Input)
-			passphrase, err := input.GetPassword("Enter passphrase to decrypt your key:", buf)
+
+			bz, err := os.ReadFile(args[1])
 			if err != nil {
 				return err
 			}
 
-			bz, err := os.ReadFile(args[1])
+			passphrase, err := input.GetPassword("Enter passphrase to decrypt your key:", buf)
 			if err != nil {
 				return err
 			}
@@ -42,8 +43,6 @@ func ImportKeyCommand() *cobra.Command {
 			return clientCtx.Keyring.ImportPrivKey(args[0], string(bz), passphrase)
 		},
 	}
-
-	return cmd
 }
 
 // ImportUnarmoredKeyCommand imports private keys from a keyfile.
