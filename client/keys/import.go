@@ -57,14 +57,14 @@ func ImportUnarmoredKeyCommand() *cobra.Command {
                *PROVIDED*, then private key will be read from that file.
 			
             => *ELSE* If this positional argument has been *OMITTED*, then
-               user will be prompted on terminal to provide password in
-               the SECURE PROMPT = passed in characters of the key hex
-               value will *not* be displayed on the screen.            
-            
+               user will be prompted on terminal to provide the private key
+               at SECURE PROMPT = passed in characters of the key hex value
+               will *not* be displayed on the terminal.
+
             File format: The only condition for the file format is, that
             the unarmored key must be on the first line (the file can also
             contain further lines, though they are ignored).
-            
+
             The 1st line must contain only hex encoded unarmored raw value,
             serialised *exactly* as it is expected by given cryptographic
             algorithm specified by the '--unarmored-key-algo <algo>' flag
@@ -150,7 +150,7 @@ key value) derived from the imported private key.`,
 	cmd.Flags().String(flagUnarmoredKeyAlgo, string(hd.Secp256k1Type), fmt.Sprintf(
 		`Defines cryptographic scheme algorithm of the provided unarmored private key.
 At the moment *ONLY* the "%s" and "%s" algorithms are supported.
-Expecdted serialisation format:
+Expected serialisation format of the raw unarmored key value:
 * for "%s": 32 bytes raw private key (hex encoded)  
 * for "%s": 32 bytes raw public key immediatelly followed by 32 bytes
                  private key = 64 bytes alltogether (hex encoded)
