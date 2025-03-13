@@ -318,6 +318,10 @@ func (ks keystore) ImportUnarmoredPrivKey(uid string, unarmoredPrivKeyRaw []byte
 	var privKey types.PrivKey
 	switch hd.PubKeyType(algo) {
 	case hd.Secp256k1Type:
+		privKeyRawSize := len(unarmoredPrivKeyRaw)
+		if privKeyRawSize != secp256k1.PrivKeySize {
+			return nil, fmt.Errorf("unexpectd size (%v bytes) of the provided %s private key, expected size is %v bytes", privKeyRawSize, hd.Secp256k1Type, secp256k1.PrivKeySize)
+		}
 		privKey = &secp256k1.PrivKey{Key: unarmoredPrivKeyRaw}
 	case hd.Ed25519Type:
 		privKey = &ed25519.PrivKey{Key: unarmoredPrivKeyRaw}
@@ -328,11 +332,6 @@ func (ks keystore) ImportUnarmoredPrivKey(uid string, unarmoredPrivKeyRaw []byte
 	default:
 		return nil, fmt.Errorf("only the \"%s\" and \"%s\" algos are supported at the moment", hd.Secp256k1Type, hd.Ed25519Type)
 	}
-
-	// privKey, err := legacy.PrivKeyFromBytes(privKeyRaw)
-	// if err != nil {
-	//	return errors.Wrap(err, "failed to create private key from provided hex value")
-	// }
 
 	info, err := ks.writeLocalKey(uid, privKey, hd.PubKeyType(algo))
 	if err != nil {
