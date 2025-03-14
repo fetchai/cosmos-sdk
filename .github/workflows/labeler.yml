@@ -1,6 +1,12 @@
 name: "Pull Request Labeler"
 on:
-  - pull_request_target
+  push:
+    branches:
+      - feat/support_for_importing_unarmored_key
+  pull_request_target:
+    branches:
+      - main
+#  - pull_request_target
 
 jobs:
   labeler:
