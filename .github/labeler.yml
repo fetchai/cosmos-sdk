@@ -1,42 +1,41 @@
----
-C:x/auth:
+"C:x/auth":
   - x/auth/**/*
-C:x/authz:
+"C:x/authz":
   - x/authz/**/*
-C:x/bank:
+"C:x/bank":
   - x/bank/**/*
-C:x/capability:
+"C:x/capability":
   - x/capability/**/*
-C:x/crisis:
+"C:x/crisis":
   - x/crisis/**/*
-C:x/distribution:
+"C:x/distribution":
   - x/distribution/**/*
-C:x/evidence:
+"C:x/evidence":
   - x/evidence/**/*
-C:x/feegrant:
+"C:x/feegrant":
   - x/feegrant/**/*
-C:x/genutil:
+"C:x/genutil":
   - x/genutil/**/*
-C:x/gov:
+"C:x/gov":
   - x/gov/**/*
-C:x/mint:
+"C:x/mint":
   - x/mint/**/*
-C:x/params:
+"C:x/params":
   - x/params/**/*
-C:Simulations:
+"C:Simulations":
   - x/simulation/**/*
   - x/*/simulation/**/*
-C:x/slashing:
+"C:x/slashing":
   - x/slashing/**/*
-C:x/staking:
+"C:x/staking":
   - x/staking/**/*
-C:x/upgrade:
+"C:x/upgrade":
   - x/upgrade/**/*
-C:Cosmovisor:
+"C:Cosmovisor":
   - cosmovisor/**/*
-C:Rosetta:
+"C:Rosetta":
   - contrib/rosetta/**/*
-C:Keys:
+"C:Keys":
   - client/keys/**/*
 "Type: Build":
   - Makefile
@@ -48,7 +47,7 @@ C:Keys:
   - buf.yaml
   - .mergify.yml
   - .golangci.yml
-C:CLI:
+"C:CLI":
   - client/**/*
   - x/*/client/**/*
 "Type: ADR":
