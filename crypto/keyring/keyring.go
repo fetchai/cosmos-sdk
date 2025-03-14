@@ -10,6 +10,10 @@ import (
 	"sort"
 	"strings"
 
+	"github.com/cosmos/cosmos-sdk/crypto/keys/ed25519"
+
+	"github.com/cosmos/cosmos-sdk/crypto/keys/secp256k1"
+
 	"github.com/99designs/keyring"
 	bip39 "github.com/cosmos/go-bip39"
 	"github.com/pkg/errors"
@@ -110,6 +114,9 @@ type Signer interface {
 type Importer interface {
 	// ImportPrivKey imports ASCII armored passphrase-encrypted private keys.
 	ImportPrivKey(uid, armor, passphrase string) error
+
+	// ImportUnarmoredPrivKey imports UNARMORED private key.
+	ImportUnarmoredPrivKey(uid string, unarmoredPrivKeyRaw []byte, algo string) (Info, error)
 
 	// ImportPubKey imports ASCII armored public keys.
 	ImportPubKey(uid string, armor string) error
@@ -302,6 +309,37 @@ func (ks keystore) ImportPrivKey(uid, armor, passphrase string) error {
 	}
 
 	return nil
+}
+
+func (ks keystore) ImportUnarmoredPrivKey(uid string, unarmoredPrivKeyRaw []byte, algo string) (Info, error) {
+	if _, err := ks.Key(uid); err == nil {
+		return nil, fmt.Errorf("cannot overwrite key: %s", uid)
+	}
+
+	var privKey types.PrivKey
+	switch hd.PubKeyType(algo) {
+	case hd.Secp256k1Type:
+		privKeyRawSize := len(unarmoredPrivKeyRaw)
+		if privKeyRawSize != secp256k1.PrivKeySize {
+			return nil, fmt.Errorf("unexpectd size (%v bytes) of the provided %s private key, expected size is %v bytes", privKeyRawSize, hd.Secp256k1Type, secp256k1.PrivKeySize)
+		}
+		privKey = &secp256k1.PrivKey{Key: unarmoredPrivKeyRaw}
+	case hd.Ed25519Type:
+		privKey = &ed25519.PrivKey{Key: unarmoredPrivKeyRaw}
+	case hd.Sr25519Type:
+		fallthrough
+	case hd.MultiType:
+		fallthrough
+	default:
+		return nil, fmt.Errorf("only the \"%s\" and \"%s\" algos are supported at the moment", hd.Secp256k1Type, hd.Ed25519Type)
+	}
+
+	info, err := ks.writeLocalKey(uid, privKey, hd.PubKeyType(algo))
+	if err != nil {
+		return nil, err
+	}
+
+	return info, nil
 }
 
 func (ks keystore) ImportPubKey(uid string, armor string) error {

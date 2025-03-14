@@ -1,6 +1,9 @@
 package types_test
 
 import (
+	"math/rand"
+	"testing"
+
 	"github.com/cosmos/cosmos-sdk/simapp"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	simtypes "github.com/cosmos/cosmos-sdk/types/simulation"
@@ -9,8 +12,6 @@ import (
 	"github.com/cosmos/cosmos-sdk/x/mint/types"
 	"github.com/stretchr/testify/require"
 	tmproto "github.com/tendermint/tendermint/proto/tendermint/types"
-	"math/rand"
-	"testing"
 )
 
 var (
@@ -218,7 +219,7 @@ func TestHandleMunicipalInflation(t *testing.T) {
 		{"denom5", sdk.NewDecWithPrec(100, 2), initSupplyAmount},
 	}
 
-	var testMunicipalInflations = make([]*types.MunicipalInflationPair, len(definedInfations))
+	testMunicipalInflations := make([]*types.MunicipalInflationPair, len(definedInfations))
 	for i, infl := range definedInfations {
 		testMunicipalInflations[i] = &types.MunicipalInflationPair{infl.denom, &types.MunicipalInflation{targetAccounts[i].Address.String(), infl.annualInflation}}
 	}

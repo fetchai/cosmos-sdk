@@ -42,6 +42,7 @@ The pass backend requires GnuPG: https://gnupg.org/
 		AddKeyCommand(),
 		ExportKeyCommand(),
 		ImportKeyCommand(),
+		ImportUnarmoredKeyCommand(),
 		ListKeysCmd(),
 		ShowKeysCmd(),
 		DeleteKeyCommand(),

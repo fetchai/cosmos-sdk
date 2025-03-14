@@ -12,8 +12,9 @@ import (
 )
 
 const (
-	flagUnarmoredHex = "unarmored-hex"
-	flagUnsafe       = "unsafe"
+	flagUnarmoredHex     = "unarmored-hex"
+	flagUnarmoredKeyAlgo = "unarmored-key-algo"
+	flagUnsafe           = "unsafe"
 )
 
 // ExportKeyCommand exports private keys from the key store.
