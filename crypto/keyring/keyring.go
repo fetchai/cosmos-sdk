@@ -4,12 +4,13 @@ import (
 	"bufio"
 	"encoding/hex"
 	"fmt"
-	"github.com/cosmos/cosmos-sdk/crypto/keys/ed25519"
 	"io"
 	"os"
 	"path/filepath"
 	"sort"
 	"strings"
+
+	"github.com/cosmos/cosmos-sdk/crypto/keys/ed25519"
 
 	"github.com/cosmos/cosmos-sdk/crypto/keys/secp256k1"
 

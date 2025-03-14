@@ -152,8 +152,8 @@ key value) derived from the imported private key.`,
 At the moment *ONLY* the "%s" and "%s" algorithms are supported.
 Expected serialisation format of the raw unarmored key value:
 * for "%s": 32 bytes raw private key (hex encoded)  
-* for "%s": 32 bytes raw public key immediatelly followed by 32 bytes
-                 private key = 64 bytes alltogether (hex encoded)
+* for "%s": 32 bytes raw public key immediately followed by 32 bytes
+                 private key = 64 bytes altogether (hex encoded)
 `, hd.Secp256k1Type, hd.Ed25519Type, hd.Secp256k1Type, hd.Ed25519Type))
 
 	return cmd

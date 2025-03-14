@@ -2,9 +2,10 @@ package simulation_test
 
 import (
 	"encoding/json"
-	sdk "github.com/cosmos/cosmos-sdk/types"
 	"math/rand"
 	"testing"
+
+	sdk "github.com/cosmos/cosmos-sdk/types"
 
 	"github.com/stretchr/testify/require"
 
