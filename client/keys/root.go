@@ -2,19 +2,18 @@ package keys
 
 import (
 	"github.com/spf13/cobra"
-	"github.com/tendermint/tendermint/libs/cli"
 
 	"github.com/cosmos/cosmos-sdk/client/flags"
 )
 
 // Commands registers a sub-tree of commands to interact with
 // local private key storage.
-func Commands(defaultNodeHome string) *cobra.Command {
+func Commands() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "keys",
 		Short: "Manage your application's keys",
 		Long: `Keyring management commands. These keys may be in any format supported by the
-Tendermint crypto library and can be used by light-clients, full nodes, or any other application
+CometBFT crypto library and can be used by light-clients, full nodes, or any other application
 that needs to sign with a private key.
 
 The keyring supports the following backends:
@@ -42,18 +41,18 @@ The pass backend requires GnuPG: https://gnupg.org/
 		AddKeyCommand(),
 		ExportKeyCommand(),
 		ImportKeyCommand(),
-		ImportUnarmoredKeyCommand(),
+		ImportKeyHexCommand(),
 		ListKeysCmd(),
+		ListKeyTypesCmd(),
 		ShowKeysCmd(),
 		DeleteKeyCommand(),
+		RenameKeyCommand(),
 		ParseKeyStringCommand(),
 		MigrateCommand(),
 	)
 
-	cmd.PersistentFlags().String(flags.FlagHome, defaultNodeHome, "The application home directory")
-	cmd.PersistentFlags().String(flags.FlagKeyringDir, "", "The client Keyring directory; if omitted, the default 'home' directory will be used")
-	cmd.PersistentFlags().String(flags.FlagKeyringBackend, flags.DefaultKeyringBackend, "Select keyring's backend (os|file|test)")
-	cmd.PersistentFlags().String(cli.OutputFlag, "text", "Output format (text|json)")
+	cmd.PersistentFlags().String(flags.FlagOutput, "text", "Output format (text|json)")
+	flags.AddKeyringFlags(cmd.PersistentFlags())
 
 	return cmd
 }

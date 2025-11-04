@@ -4,29 +4,36 @@ import (
 	"testing"
 	"time"
 
+	cmtproto "github.com/cometbft/cometbft/proto/tendermint/types"
 	"github.com/stretchr/testify/require"
-	tmproto "github.com/tendermint/tendermint/proto/tendermint/types"
 
-	"github.com/cosmos/cosmos-sdk/simapp"
+	storetypes "cosmossdk.io/store/types"
+	"cosmossdk.io/x/feegrant"
+	"cosmossdk.io/x/feegrant/module"
+
+	codecaddress "github.com/cosmos/cosmos-sdk/codec/address"
+	"github.com/cosmos/cosmos-sdk/testutil"
 	sdk "github.com/cosmos/cosmos-sdk/types"
-	"github.com/cosmos/cosmos-sdk/x/feegrant"
+	moduletestutil "github.com/cosmos/cosmos-sdk/types/module/testutil"
 )
 
 func TestGrant(t *testing.T) {
-	app := simapp.Setup(false)
-	addr, err := sdk.AccAddressFromBech32("cosmos1qk93t4j0yyzgqgt6k5qf8deh8fq6smpn3ntu3x")
+	addressCodec := codecaddress.NewBech32Codec("cosmos")
+	key := storetypes.NewKVStoreKey(feegrant.StoreKey)
+	testCtx := testutil.DefaultContextWithDB(t, key, storetypes.NewTransientStoreKey("transient_test"))
+	encCfg := moduletestutil.MakeTestEncodingConfig(module.AppModuleBasic{})
+
+	ctx := testCtx.Ctx.WithBlockHeader(cmtproto.Header{Time: time.Now()})
+
+	addr, err := addressCodec.StringToBytes("cosmos1qk93t4j0yyzgqgt6k5qf8deh8fq6smpn3ntu3x")
 	require.NoError(t, err)
-	addr2, err := sdk.AccAddressFromBech32("cosmos1p9qh4ldfd6n0qehujsal4k7g0e37kel90rc4ts")
+	addr2, err := addressCodec.StringToBytes("cosmos1p9qh4ldfd6n0qehujsal4k7g0e37kel90rc4ts")
 	require.NoError(t, err)
 	atom := sdk.NewCoins(sdk.NewInt64Coin("atom", 555))
-	ctx := app.BaseApp.NewContext(false, tmproto.Header{
-		Time: time.Now(),
-	})
 	now := ctx.BlockTime()
 	oneYear := now.AddDate(1, 0, 0)
 
 	zeroAtoms := sdk.NewCoins(sdk.NewInt64Coin("atom", 0))
-	cdc := app.AppCodec()
 
 	cases := map[string]struct {
 		granter sdk.AccAddress
@@ -73,7 +80,6 @@ func TestGrant(t *testing.T) {
 	}
 
 	for name, tc := range cases {
-		tc := tc
 		t.Run(name, func(t *testing.T) {
 			grant, err := feegrant.NewGrant(tc.granter, tc.grantee, &feegrant.BasicAllowance{
 				SpendLimit: tc.limit,
@@ -89,10 +95,10 @@ func TestGrant(t *testing.T) {
 			require.NoError(t, err)
 
 			// if it is valid, let's try to serialize, deserialize, and make sure it matches
-			bz, err := cdc.Marshal(&grant)
+			bz, err := encCfg.Codec.Marshal(&grant)
 			require.NoError(t, err)
 			var loaded feegrant.Grant
-			err = cdc.Unmarshal(bz, &loaded)
+			err = encCfg.Codec.Unmarshal(bz, &loaded)
 			require.NoError(t, err)
 
 			err = loaded.ValidateBasic()

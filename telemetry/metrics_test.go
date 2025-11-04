@@ -6,8 +6,7 @@ import (
 	"testing"
 	"time"
 
-	metrics "github.com/armon/go-metrics"
-	"github.com/prometheus/common/expfmt"
+	"github.com/hashicorp/go-metrics"
 	"github.com/stretchr/testify/require"
 )
 
@@ -19,6 +18,7 @@ func TestMetrics_Disabled(t *testing.T) {
 
 func TestMetrics_InMem(t *testing.T) {
 	m, err := New(Config{
+		MetricsSink:    MetricSinkInMem,
 		Enabled:        true,
 		EnableHostname: false,
 		ServiceName:    "test",
@@ -32,16 +32,17 @@ func TestMetrics_InMem(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, gr.ContentType, "application/json")
 
-	jsonMetrics := make(map[string]interface{})
+	jsonMetrics := make(map[string]any)
 	require.NoError(t, json.Unmarshal(gr.Metrics, &jsonMetrics))
 
-	counters := jsonMetrics["Counters"].([]interface{})
-	require.Equal(t, counters[0].(map[string]interface{})["Count"].(float64), 10.0)
-	require.Equal(t, counters[0].(map[string]interface{})["Name"].(string), "test.dummy_counter")
+	counters := jsonMetrics["Counters"].([]any)
+	require.Equal(t, counters[0].(map[string]any)["Count"].(float64), 10.0)
+	require.Equal(t, counters[0].(map[string]any)["Name"].(string), "test.dummy_counter")
 }
 
 func TestMetrics_Prom(t *testing.T) {
 	m, err := New(Config{
+		MetricsSink:             MetricSinkInMem,
 		Enabled:                 true,
 		EnableHostname:          false,
 		ServiceName:             "test",
@@ -56,7 +57,7 @@ func TestMetrics_Prom(t *testing.T) {
 
 	gr, err := m.Gather(FormatPrometheus)
 	require.NoError(t, err)
-	require.Equal(t, gr.ContentType, string(expfmt.FmtText))
+	require.Equal(t, gr.ContentType, string(ContentTypeText))
 
 	require.True(t, strings.Contains(string(gr.Metrics), "test_dummy_counter 30"))
 }

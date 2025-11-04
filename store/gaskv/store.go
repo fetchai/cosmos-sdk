@@ -2,10 +2,8 @@ package gaskv
 
 import (
 	"io"
-	"time"
 
-	"github.com/cosmos/cosmos-sdk/store/types"
-	"github.com/cosmos/cosmos-sdk/telemetry"
+	"cosmossdk.io/store/types"
 )
 
 var _ types.KVStore = &Store{}
@@ -46,7 +44,7 @@ func (gs *Store) Get(key []byte) (value []byte) {
 }
 
 // Implements KVStore.
-func (gs *Store) Set(key []byte, value []byte) {
+func (gs *Store) Set(key, value []byte) {
 	types.AssertValidKey(key)
 	types.AssertValidValue(value)
 	gs.gasMeter.ConsumeGas(gs.gasConfig.WriteCostFlat, types.GasWriteCostFlatDesc)
@@ -58,14 +56,12 @@ func (gs *Store) Set(key []byte, value []byte) {
 
 // Implements KVStore.
 func (gs *Store) Has(key []byte) bool {
-	defer telemetry.MeasureSince(time.Now(), "store", "gaskv", "has")
 	gs.gasMeter.ConsumeGas(gs.gasConfig.HasCost, types.GasHasDesc)
 	return gs.parent.Has(key)
 }
 
 // Implements KVStore.
 func (gs *Store) Delete(key []byte) {
-	defer telemetry.MeasureSince(time.Now(), "store", "gaskv", "delete")
 	// charge gas to prevent certain attack vectors even though space is being freed
 	gs.gasMeter.ConsumeGas(gs.gasConfig.DeleteCost, types.GasDeleteDesc)
 	gs.parent.Delete(key)
@@ -94,11 +90,6 @@ func (gs *Store) CacheWrap() types.CacheWrap {
 // CacheWrapWithTrace implements the KVStore interface.
 func (gs *Store) CacheWrapWithTrace(_ io.Writer, _ types.TraceContext) types.CacheWrap {
 	panic("cannot CacheWrapWithTrace a GasKVStore")
-}
-
-// CacheWrapWithListeners implements the CacheWrapper interface.
-func (gs *Store) CacheWrapWithListeners(_ types.StoreKey, _ []types.WriteListener) types.CacheWrap {
-	panic("cannot CacheWrapWithListeners a GasKVStore")
 }
 
 func (gs *Store) iterator(start, end []byte, ascending bool) types.Iterator {
@@ -130,7 +121,7 @@ func newGasIterator(gasMeter types.GasMeter, gasConfig types.GasConfig, parent t
 }
 
 // Implements Iterator.
-func (gi *gasIterator) Domain() (start []byte, end []byte) {
+func (gi *gasIterator) Domain() (start, end []byte) {
 	return gi.parent.Domain()
 }
 
@@ -181,6 +172,5 @@ func (gi *gasIterator) consumeSeekGas() {
 		gi.gasMeter.ConsumeGas(gi.gasConfig.ReadCostPerByte*types.Gas(len(key)), types.GasValuePerByteDesc)
 		gi.gasMeter.ConsumeGas(gi.gasConfig.ReadCostPerByte*types.Gas(len(value)), types.GasValuePerByteDesc)
 	}
-
 	gi.gasMeter.ConsumeGas(gi.gasConfig.IterNextCostFlat, types.GasIterNextCostFlatDesc)
 }

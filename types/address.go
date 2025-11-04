@@ -8,9 +8,12 @@ import (
 	"fmt"
 	"strings"
 	"sync"
+	"sync/atomic"
 
 	"github.com/hashicorp/golang-lru/simplelru"
-	yaml "gopkg.in/yaml.v2"
+	"sigs.k8s.io/yaml"
+
+	errorsmod "cosmossdk.io/errors"
 
 	cryptotypes "github.com/cosmos/cosmos-sdk/crypto/types"
 	"github.com/cosmos/cosmos-sdk/internal/conv"
@@ -83,10 +86,19 @@ var (
 	consAddrCache *simplelru.LRU
 	valAddrMu     sync.Mutex
 	valAddrCache  *simplelru.LRU
+
+	isCachingEnabled atomic.Bool
+)
+
+// sentinel errors
+var (
+	ErrEmptyHexAddress = errors.New("decoding address from hex string failed: empty address")
 )
 
 func init() {
 	var err error
+	SetAddrCacheEnabled(true)
+
 	// in total the cache size is 61k entries. Key is 32 bytes and value is around 50-70 bytes.
 	// That will make around 92 * 61k * 2 (LRU) bytes ~ 11 MB
 	if accAddrCache, err = simplelru.NewLRU(60000, nil); err != nil {
@@ -98,6 +110,16 @@ func init() {
 	if valAddrCache, err = simplelru.NewLRU(500, nil); err != nil {
 		panic(err)
 	}
+}
+
+// SetAddrCacheEnabled enables or disables accAddrCache, consAddrCache, and valAddrCache. By default, caches are enabled.
+func SetAddrCacheEnabled(enabled bool) {
+	isCachingEnabled.Store(enabled)
+}
+
+// IsAddrCacheEnabled returns if the address caches are enabled.
+func IsAddrCacheEnabled() bool {
+	return isCachingEnabled.Load()
 }
 
 // Address is a common interface for different types of addresses used by the SDK
@@ -112,17 +134,10 @@ type Address interface {
 }
 
 // Ensure that different address types implement the interface
-var _ Address = AccAddress{}
-
 var (
+	_ Address = AccAddress{}
 	_ Address = ValAddress{}
 	_ Address = ConsAddress{}
-)
-
-var (
-	_ yaml.Marshaler = AccAddress{}
-	_ yaml.Marshaler = ValAddress{}
-	_ yaml.Marshaler = ConsAddress{}
 )
 
 // ----------------------------------------------------------------------------
@@ -133,15 +148,21 @@ var (
 // When marshaled to a string or JSON, it uses Bech32.
 type AccAddress []byte
 
-// AccAddressFromHex creates an AccAddress from a hex string.
-func AccAddressFromHex(address string) (addr AccAddress, err error) {
+// AccAddressFromHexUnsafe creates an AccAddress from a HEX-encoded string.
+//
+// Note, this function is considered unsafe as it may produce an AccAddress from
+// otherwise invalid input, such as a transaction hash. Please use
+// AccAddressFromBech32.
+func AccAddressFromHexUnsafe(address string) (addr AccAddress, err error) {
 	bz, err := addressBytesFromHexString(address)
 	return AccAddress(bz), err
 }
 
 // VerifyAddressFormat verifies that the provided bytes form a valid address
 // according to the default address rules or a custom address verifier set by
-// GetConfig().SetAddressVerifier()
+// GetConfig().SetAddressVerifier().
+// TODO make an issue to get rid of global Config
+// ref: https://github.com/cosmos/cosmos-sdk/issues/9690
 func VerifyAddressFormat(bz []byte) error {
 	verifier := GetConfig().GetAddressVerifier()
 	if verifier != nil {
@@ -149,11 +170,11 @@ func VerifyAddressFormat(bz []byte) error {
 	}
 
 	if len(bz) == 0 {
-		return sdkerrors.Wrap(sdkerrors.ErrUnknownAddress, "addresses cannot be empty")
+		return errorsmod.Wrap(sdkerrors.ErrUnknownAddress, "addresses cannot be empty")
 	}
 
 	if len(bz) > address.MaxAddrLen {
-		return sdkerrors.Wrapf(sdkerrors.ErrUnknownAddress, "address max length is %d, got %d", address.MaxAddrLen, len(bz))
+		return errorsmod.Wrapf(sdkerrors.ErrUnknownAddress, "address max length is %d, got %d", address.MaxAddrLen, len(bz))
 	}
 
 	return nil
@@ -223,7 +244,7 @@ func (aa AccAddress) MarshalJSON() ([]byte, error) {
 }
 
 // MarshalYAML marshals to YAML using Bech32.
-func (aa AccAddress) MarshalYAML() (interface{}, error) {
+func (aa AccAddress) MarshalYAML() (any, error) {
 	return aa.String(), nil
 }
 
@@ -281,25 +302,29 @@ func (aa AccAddress) String() string {
 	}
 
 	key := conv.UnsafeBytesToStr(aa)
-	accAddrMu.Lock()
-	defer accAddrMu.Unlock()
-	addr, ok := accAddrCache.Get(key)
-	if ok {
-		return addr.(string)
+
+	if IsAddrCacheEnabled() {
+		accAddrMu.Lock()
+		defer accAddrMu.Unlock()
+
+		addr, ok := accAddrCache.Get(key)
+		if ok {
+			return addr.(string)
+		}
 	}
 	return cacheBech32Addr(GetConfig().GetBech32AccountAddrPrefix(), aa, accAddrCache, key)
 }
 
 // Format implements the fmt.Formatter interface.
-// nolint: errcheck
+
 func (aa AccAddress) Format(s fmt.State, verb rune) {
 	switch verb {
 	case 's':
-		s.Write([]byte(aa.String()))
+		_, _ = s.Write([]byte(aa.String()))
 	case 'p':
-		s.Write([]byte(fmt.Sprintf("%p", aa)))
+		_, _ = fmt.Fprintf(s, "%p", aa)
 	default:
-		s.Write([]byte(fmt.Sprintf("%X", []byte(aa))))
+		_, _ = fmt.Fprintf(s, "%X", []byte(aa))
 	}
 }
 
@@ -338,6 +363,16 @@ func ValAddressFromBech32(address string) (addr ValAddress, err error) {
 	return ValAddress(bz), nil
 }
 
+// MustValAddressFromBech32 calls ValAddressFromBech32 and panics on error.
+func MustValAddressFromBech32(address string) ValAddress {
+	addr, err := ValAddressFromBech32(address)
+	if err != nil {
+		panic(err)
+	}
+
+	return addr
+}
+
 // Returns boolean for whether two ValAddresses are Equal
 func (va ValAddress) Equals(va2 Address) bool {
 	if va.Empty() && va2.Empty() {
@@ -347,7 +382,7 @@ func (va ValAddress) Equals(va2 Address) bool {
 	return bytes.Equal(va.Bytes(), va2.Bytes())
 }
 
-// Returns boolean for whether an AccAddress is empty
+// Returns boolean for whether an ValAddress is empty
 func (va ValAddress) Empty() bool {
 	return len(va) == 0
 }
@@ -371,7 +406,7 @@ func (va ValAddress) MarshalJSON() ([]byte, error) {
 }
 
 // MarshalYAML marshals to YAML using Bech32.
-func (va ValAddress) MarshalYAML() (interface{}, error) {
+func (va ValAddress) MarshalYAML() (any, error) {
 	return va.String(), nil
 }
 
@@ -431,25 +466,29 @@ func (va ValAddress) String() string {
 	}
 
 	key := conv.UnsafeBytesToStr(va)
-	valAddrMu.Lock()
-	defer valAddrMu.Unlock()
-	addr, ok := valAddrCache.Get(key)
-	if ok {
-		return addr.(string)
+
+	if IsAddrCacheEnabled() {
+		valAddrMu.Lock()
+		defer valAddrMu.Unlock()
+
+		addr, ok := valAddrCache.Get(key)
+		if ok {
+			return addr.(string)
+		}
 	}
 	return cacheBech32Addr(GetConfig().GetBech32ValidatorAddrPrefix(), va, valAddrCache, key)
 }
 
 // Format implements the fmt.Formatter interface.
-// nolint: errcheck
+
 func (va ValAddress) Format(s fmt.State, verb rune) {
 	switch verb {
 	case 's':
-		s.Write([]byte(va.String()))
+		_, _ = s.Write([]byte(va.String()))
 	case 'p':
-		s.Write([]byte(fmt.Sprintf("%p", va)))
+		_, _ = fmt.Fprintf(s, "%p", va)
 	default:
-		s.Write([]byte(fmt.Sprintf("%X", []byte(va))))
+		_, _ = fmt.Fprintf(s, "%X", []byte(va))
 	}
 }
 
@@ -462,6 +501,7 @@ func (va ValAddress) Format(s fmt.State, verb rune) {
 type ConsAddress []byte
 
 // ConsAddressFromHex creates a ConsAddress from a hex string.
+// Deprecated: use ConsensusAddressCodec from Staking keeper
 func ConsAddressFromHex(address string) (addr ConsAddress, err error) {
 	bz, err := addressBytesFromHexString(address)
 	return ConsAddress(bz), err
@@ -526,7 +566,7 @@ func (ca ConsAddress) MarshalJSON() ([]byte, error) {
 }
 
 // MarshalYAML marshals to YAML using Bech32.
-func (ca ConsAddress) MarshalYAML() (interface{}, error) {
+func (ca ConsAddress) MarshalYAML() (any, error) {
 	return ca.String(), nil
 }
 
@@ -586,11 +626,15 @@ func (ca ConsAddress) String() string {
 	}
 
 	key := conv.UnsafeBytesToStr(ca)
-	consAddrMu.Lock()
-	defer consAddrMu.Unlock()
-	addr, ok := consAddrCache.Get(key)
-	if ok {
-		return addr.(string)
+
+	if IsAddrCacheEnabled() {
+		consAddrMu.Lock()
+		defer consAddrMu.Unlock()
+
+		addr, ok := consAddrCache.Get(key)
+		if ok {
+			return addr.(string)
+		}
 	}
 	return cacheBech32Addr(GetConfig().GetBech32ConsensusAddrPrefix(), ca, consAddrCache, key)
 }
@@ -620,15 +664,15 @@ func MustBech32ifyAddressBytes(prefix string, bs []byte) string {
 }
 
 // Format implements the fmt.Formatter interface.
-// nolint: errcheck
+
 func (ca ConsAddress) Format(s fmt.State, verb rune) {
 	switch verb {
 	case 's':
-		s.Write([]byte(ca.String()))
+		_, _ = s.Write([]byte(ca.String()))
 	case 'p':
-		s.Write([]byte(fmt.Sprintf("%p", ca)))
+		_, _ = fmt.Fprintf(s, "%p", ca)
 	default:
-		s.Write([]byte(fmt.Sprintf("%X", []byte(ca))))
+		_, _ = fmt.Fprintf(s, "%X", []byte(ca))
 	}
 }
 
@@ -658,7 +702,7 @@ func GetFromBech32(bech32str, prefix string) ([]byte, error) {
 
 func addressBytesFromHexString(address string) ([]byte, error) {
 	if len(address) == 0 {
-		return nil, errors.New("decoding Bech32 address failed: must provide an address")
+		return nil, ErrEmptyHexAddress
 	}
 
 	return hex.DecodeString(address)
@@ -670,6 +714,8 @@ func cacheBech32Addr(prefix string, addr []byte, cache *simplelru.LRU, cacheKey 
 	if err != nil {
 		panic(err)
 	}
-	cache.Add(cacheKey, bech32Addr)
+	if IsAddrCacheEnabled() {
+		cache.Add(cacheKey, bech32Addr)
+	}
 	return bech32Addr
 }

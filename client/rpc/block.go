@@ -2,78 +2,18 @@ package rpc
 
 import (
 	"context"
+	"encoding/hex"
 	"fmt"
-	"net/http"
-	"strconv"
+	"time"
 
-	"github.com/gorilla/mux"
-	"github.com/spf13/cobra"
+	cmt "github.com/cometbft/cometbft/proto/tendermint/types"
+	coretypes "github.com/cometbft/cometbft/rpc/core/types"
 
 	"github.com/cosmos/cosmos-sdk/client"
-	"github.com/cosmos/cosmos-sdk/client/flags"
-	"github.com/cosmos/cosmos-sdk/codec/legacy"
-	"github.com/cosmos/cosmos-sdk/types/rest"
+	sdk "github.com/cosmos/cosmos-sdk/types"
 )
 
-// BlockCommand returns the verified block data for a given heights
-func BlockCommand() *cobra.Command {
-	cmd := &cobra.Command{
-		Use:   "block [height]",
-		Short: "Get verified data for a the block at given height",
-		Args:  cobra.MaximumNArgs(1),
-		RunE: func(cmd *cobra.Command, args []string) error {
-			clientCtx, err := client.GetClientQueryContext(cmd)
-			if err != nil {
-				return err
-			}
-			var height *int64
-
-			// optional height
-			if len(args) > 0 {
-				h, err := strconv.Atoi(args[0])
-				if err != nil {
-					return err
-				}
-				if h > 0 {
-					tmp := int64(h)
-					height = &tmp
-				}
-			}
-
-			output, err := getBlock(clientCtx, height)
-			if err != nil {
-				return err
-			}
-
-			fmt.Println(string(output))
-			return nil
-		},
-	}
-
-	cmd.Flags().StringP(flags.FlagNode, "n", "tcp://localhost:26657", "Node to connect to")
-
-	return cmd
-}
-
-func getBlock(clientCtx client.Context, height *int64) ([]byte, error) {
-	// get the node
-	node, err := clientCtx.GetNode()
-	if err != nil {
-		return nil, err
-	}
-
-	// header -> BlockchainInfo
-	// header, tx -> Block
-	// results -> BlockResults
-	res, err := node.Block(context.Background(), height)
-	if err != nil {
-		return nil, err
-	}
-
-	return legacy.Cdc.MarshalJSON(res)
-}
-
-// get the current blockchain height
+// GetChainHeight returns the current blockchain height.
 func GetChainHeight(clientCtx client.Context) (int64, error) {
 	node, err := clientCtx.GetNode()
 	if err != nil {
@@ -89,46 +29,106 @@ func GetChainHeight(clientCtx client.Context) (int64, error) {
 	return height, nil
 }
 
-// REST handler to get a block
-func BlockRequestHandlerFn(clientCtx client.Context) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		vars := mux.Vars(r)
+// QueryBlocks performs a search for blocks based on BeginBlock and EndBlock
+// events via the CometBFT RPC. A custom query may be passed as described below:
+//
+// To tell which events you want, you need to provide a query. query is a
+// string, which has a form: "condition AND condition ..." (no OR at the
+// 	moment). condition has a form: "key operation operand". key is a string with
+// 	a restricted set of possible symbols ( \t\n\r\\()"'=>< are not allowed).
+// 	operation can be "=", "<", "<=", ">", ">=", "CONTAINS" AND "EXISTS". operand
+// 	can be a string (escaped with single quotes), number, date or time.
 
-		height, err := strconv.ParseInt(vars["height"], 10, 64)
-		if err != nil {
-			rest.WriteErrorResponse(w, http.StatusBadRequest,
-				"couldn't parse block height. Assumed format is '/block/{height}'.")
-			return
-		}
-
-		chainHeight, err := GetChainHeight(clientCtx)
-		if err != nil {
-			rest.WriteErrorResponse(w, http.StatusInternalServerError, "failed to parse chain height")
-			return
-		}
-
-		if height > chainHeight {
-			rest.WriteErrorResponse(w, http.StatusNotFound, "requested block height is bigger then the chain length")
-			return
-		}
-
-		output, err := getBlock(clientCtx, &height)
-		if rest.CheckInternalServerError(w, err) {
-			return
-		}
-
-		rest.PostProcessResponseBare(w, clientCtx, output)
+//	Examples:
+//		  tm.event = 'NewBlock'               # new blocks
+//		  tm.event = 'CompleteProposal'       # node got a complete proposal
+//		  tm.event = 'Tx' AND tx.hash = 'XYZ' # single transaction
+//		  tm.event = 'Tx' AND tx.height = 5   # all txs of the fifth block
+//		  tx.height = 5                       # all txs of the fifth block
+//
+// For more information, see the /subscribe CometBFT RPC endpoint documentation
+func QueryBlocks(clientCtx client.Context, page, limit int, query, orderBy string) (*sdk.SearchBlocksResult, error) {
+	node, err := clientCtx.GetNode()
+	if err != nil {
+		return nil, err
 	}
+
+	resBlocks, err := node.BlockSearch(context.Background(), query, &page, &limit, orderBy)
+	if err != nil {
+		return nil, err
+	}
+
+	blocks, err := formatBlockResults(resBlocks.Blocks)
+	if err != nil {
+		return nil, err
+	}
+
+	result := sdk.NewSearchBlocksResult(int64(resBlocks.TotalCount), int64(len(blocks)), int64(page), int64(limit), blocks)
+
+	return result, nil
 }
 
-// REST handler to get the latest block
-func LatestBlockRequestHandlerFn(clientCtx client.Context) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		output, err := getBlock(clientCtx, nil)
-		if rest.CheckInternalServerError(w, err) {
-			return
-		}
-
-		rest.PostProcessResponseBare(w, clientCtx, output)
+// get block by height
+func GetBlockByHeight(clientCtx client.Context, height *int64) (*cmt.Block, error) {
+	// get the node
+	node, err := clientCtx.GetNode()
+	if err != nil {
+		return nil, err
 	}
+
+	// header -> BlockchainInfo
+	// header, tx -> Block
+	// results -> BlockResults
+	resBlock, err := node.Block(context.Background(), height)
+	if err != nil {
+		return nil, err
+	}
+
+	out := sdk.NewResponseResultBlock(resBlock, resBlock.Block.Time.Format(time.RFC3339))
+	if out == nil {
+		return nil, fmt.Errorf("unable to create response block from comet result block: %v", resBlock)
+	}
+
+	return out, nil
+}
+
+func GetBlockByHash(clientCtx client.Context, hashHexString string) (*cmt.Block, error) {
+	hash, err := hex.DecodeString(hashHexString)
+	if err != nil {
+		return nil, err
+	}
+
+	// get the node
+	node, err := clientCtx.GetNode()
+	if err != nil {
+		return nil, err
+	}
+
+	resBlock, err := node.BlockByHash(context.Background(), hash)
+
+	if err != nil {
+		return nil, err
+	} else if resBlock.Block == nil {
+		return nil, fmt.Errorf("block not found with hash: %s", hashHexString)
+	}
+
+	out := sdk.NewResponseResultBlock(resBlock, resBlock.Block.Time.Format(time.RFC3339))
+	if out == nil {
+		return nil, fmt.Errorf("unable to create response block from comet result block: %v", resBlock)
+	}
+
+	return out, nil
+}
+
+// formatBlockResults parses the indexed blocks into a slice of BlockResponse objects.
+func formatBlockResults(resBlocks []*coretypes.ResultBlock) ([]*cmt.Block, error) {
+	out := make([]*cmt.Block, len(resBlocks))
+	for i := range resBlocks {
+		out[i] = sdk.NewResponseResultBlock(resBlocks[i], resBlocks[i].Block.Time.Format(time.RFC3339))
+		if out[i] == nil {
+			return nil, fmt.Errorf("unable to create response block from comet result block: %v", resBlocks[i])
+		}
+	}
+
+	return out, nil
 }

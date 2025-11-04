@@ -3,17 +3,30 @@ package gov
 import (
 	"fmt"
 
+	"cosmossdk.io/collections"
+
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/x/gov/keeper"
 	"github.com/cosmos/cosmos-sdk/x/gov/types"
+	v1 "github.com/cosmos/cosmos-sdk/x/gov/types/v1"
 )
 
 // InitGenesis - store genesis parameters
-func InitGenesis(ctx sdk.Context, ak types.AccountKeeper, bk types.BankKeeper, k keeper.Keeper, data *types.GenesisState) {
-	k.SetProposalID(ctx, data.StartingProposalId)
-	k.SetDepositParams(ctx, data.DepositParams)
-	k.SetVotingParams(ctx, data.VotingParams)
-	k.SetTallyParams(ctx, data.TallyParams)
+func InitGenesis(ctx sdk.Context, ak types.AccountKeeper, bk types.BankKeeper, k *keeper.Keeper, data *v1.GenesisState) {
+	err := k.ProposalID.Set(ctx, data.StartingProposalId)
+	if err != nil {
+		panic(err)
+	}
+
+	err = k.Params.Set(ctx, *data.Params)
+	if err != nil {
+		panic(err)
+	}
+
+	err = k.Constitution.Set(ctx, data.Constitution)
+	if err != nil {
+		panic(err)
+	}
 
 	// check if the deposits pool account exists
 	moduleAcc := k.GetGovernanceAccount(ctx)
@@ -23,22 +36,41 @@ func InitGenesis(ctx sdk.Context, ak types.AccountKeeper, bk types.BankKeeper, k
 
 	var totalDeposits sdk.Coins
 	for _, deposit := range data.Deposits {
-		k.SetDeposit(ctx, deposit)
+		err := k.SetDeposit(ctx, *deposit)
+		if err != nil {
+			panic(err)
+		}
 		totalDeposits = totalDeposits.Add(deposit.Amount...)
 	}
 
 	for _, vote := range data.Votes {
-		k.SetVote(ctx, vote)
+		addr, err := ak.AddressCodec().StringToBytes(vote.Voter)
+		if err != nil {
+			panic(err)
+		}
+		err = k.Votes.Set(ctx, collections.Join(vote.ProposalId, sdk.AccAddress(addr)), *vote)
+		if err != nil {
+			panic(err)
+		}
 	}
 
 	for _, proposal := range data.Proposals {
 		switch proposal.Status {
-		case types.StatusDepositPeriod:
-			k.InsertInactiveProposalQueue(ctx, proposal.ProposalId, proposal.DepositEndTime)
-		case types.StatusVotingPeriod:
-			k.InsertActiveProposalQueue(ctx, proposal.ProposalId, proposal.VotingEndTime)
+		case v1.StatusDepositPeriod:
+			err := k.InactiveProposalsQueue.Set(ctx, collections.Join(*proposal.DepositEndTime, proposal.Id), proposal.Id)
+			if err != nil {
+				panic(err)
+			}
+		case v1.StatusVotingPeriod:
+			err := k.ActiveProposalsQueue.Set(ctx, collections.Join(*proposal.VotingEndTime, proposal.Id), proposal.Id)
+			if err != nil {
+				panic(err)
+			}
 		}
-		k.SetProposal(ctx, proposal)
+		err := k.SetProposal(ctx, *proposal)
+		if err != nil {
+			panic(err)
+		}
 	}
 
 	// if account has zero balance it probably means it's not set, so we set it
@@ -48,36 +80,62 @@ func InitGenesis(ctx sdk.Context, ak types.AccountKeeper, bk types.BankKeeper, k
 	}
 
 	// check if total deposits equals balance, if it doesn't panic because there were export/import errors
-	if !balance.IsEqual(totalDeposits) {
+	if !balance.Equal(totalDeposits) {
 		panic(fmt.Sprintf("expected module account was %s but we got %s", balance.String(), totalDeposits.String()))
 	}
 }
 
 // ExportGenesis - output genesis parameters
-func ExportGenesis(ctx sdk.Context, k keeper.Keeper) *types.GenesisState {
-	startingProposalID, _ := k.GetProposalID(ctx)
-	depositParams := k.GetDepositParams(ctx)
-	votingParams := k.GetVotingParams(ctx)
-	tallyParams := k.GetTallyParams(ctx)
-	proposals := k.GetProposals(ctx)
-
-	var proposalsDeposits types.Deposits
-	var proposalsVotes types.Votes
-	for _, proposal := range proposals {
-		deposits := k.GetDeposits(ctx, proposal.ProposalId)
-		proposalsDeposits = append(proposalsDeposits, deposits...)
-
-		votes := k.GetVotes(ctx, proposal.ProposalId)
-		proposalsVotes = append(proposalsVotes, votes...)
+func ExportGenesis(ctx sdk.Context, k *keeper.Keeper) (*v1.GenesisState, error) {
+	startingProposalID, err := k.ProposalID.Peek(ctx)
+	if err != nil {
+		return nil, err
 	}
 
-	return &types.GenesisState{
+	var proposals v1.Proposals
+	err = k.Proposals.Walk(ctx, nil, func(_ uint64, value v1.Proposal) (stop bool, err error) {
+		proposals = append(proposals, &value)
+		return false, nil
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	constitution, err := k.Constitution.Get(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	params, err := k.Params.Get(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	var proposalsDeposits v1.Deposits
+	err = k.Deposits.Walk(ctx, nil, func(_ collections.Pair[uint64, sdk.AccAddress], value v1.Deposit) (stop bool, err error) {
+		proposalsDeposits = append(proposalsDeposits, &value)
+		return false, nil
+	})
+	if err != nil {
+		panic(err)
+	}
+
+	// export proposals votes
+	var proposalsVotes v1.Votes
+	err = k.Votes.Walk(ctx, nil, func(_ collections.Pair[uint64, sdk.AccAddress], value v1.Vote) (stop bool, err error) {
+		proposalsVotes = append(proposalsVotes, &value)
+		return false, nil
+	})
+	if err != nil {
+		panic(err)
+	}
+
+	return &v1.GenesisState{
 		StartingProposalId: startingProposalID,
 		Deposits:           proposalsDeposits,
 		Votes:              proposalsVotes,
 		Proposals:          proposals,
-		DepositParams:      depositParams,
-		VotingParams:       votingParams,
-		TallyParams:        tallyParams,
-	}
+		Params:             &params,
+		Constitution:       constitution,
+	}, nil
 }

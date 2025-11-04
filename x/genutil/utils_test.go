@@ -7,8 +7,10 @@ import (
 	"testing"
 	"time"
 
+	"github.com/cometbft/cometbft/config"
+	tmed25519 "github.com/cometbft/cometbft/crypto/ed25519"
+	"github.com/cometbft/cometbft/privval"
 	"github.com/stretchr/testify/require"
-	"github.com/tendermint/tendermint/config"
 )
 
 func TestExportGenesisFileWithTime(t *testing.T) {
@@ -49,7 +51,6 @@ func TestInitializeNodeValidatorFilesFromMnemonic(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
 			_, _, err := InitializeNodeValidatorFilesFromMnemonic(cfg, tt.mnemonic)
 
@@ -57,6 +58,13 @@ func TestInitializeNodeValidatorFilesFromMnemonic(t *testing.T) {
 				require.Error(t, err)
 			} else {
 				require.NoError(t, err)
+
+				if tt.mnemonic != "" {
+					actualPVFile := privval.LoadFilePV(cfg.PrivValidatorKeyFile(), cfg.PrivValidatorStateFile())
+					expectedPrivateKey := tmed25519.GenPrivKeyFromSecret([]byte(tt.mnemonic))
+					expectedFile := privval.NewFilePV(expectedPrivateKey, cfg.PrivValidatorKeyFile(), cfg.PrivValidatorStateFile())
+					require.Equal(t, expectedFile, actualPVFile)
+				}
 			}
 		})
 	}

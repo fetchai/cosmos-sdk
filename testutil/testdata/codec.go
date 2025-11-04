@@ -6,6 +6,7 @@ import (
 	"github.com/cosmos/cosmos-sdk/codec/types"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/types/msgservice"
+	tx "github.com/cosmos/cosmos-sdk/types/tx"
 )
 
 func NewTestInterfaceRegistry() types.InterfaceRegistry {
@@ -31,6 +32,10 @@ func RegisterInterfaces(registry types.InterfaceRegistry) {
 		(*HasHasAnimalI)(nil),
 		&HasHasAnimal{},
 	)
+	registry.RegisterImplementations(
+		(*tx.TxExtensionOptionI)(nil),
+		&Cat{},
+	)
 
 	msgservice.RegisterMsgServiceDesc(registry, &_Msg_serviceDesc)
 }
@@ -38,14 +43,14 @@ func RegisterInterfaces(registry types.InterfaceRegistry) {
 func NewTestAmino() *amino.Codec {
 	cdc := amino.NewCodec()
 	cdc.RegisterInterface((*Animal)(nil), nil)
-	cdc.RegisterConcrete(&Dog{}, "testdata/Dog", nil)
-	cdc.RegisterConcrete(&Cat{}, "testdata/Cat", nil)
+	cdc.RegisterConcrete(&Dog{}, "testpb/Dog", nil)
+	cdc.RegisterConcrete(&Cat{}, "testpb/Cat", nil)
 
 	cdc.RegisterInterface((*HasAnimalI)(nil), nil)
-	cdc.RegisterConcrete(&HasAnimal{}, "testdata/HasAnimal", nil)
+	cdc.RegisterConcrete(&HasAnimal{}, "testpb/HasAnimal", nil)
 
 	cdc.RegisterInterface((*HasHasAnimalI)(nil), nil)
-	cdc.RegisterConcrete(&HasHasAnimal{}, "testdata/HasHasAnimal", nil)
+	cdc.RegisterConcrete(&HasHasAnimal{}, "testpb/HasHasAnimal", nil)
 
 	return cdc
 }

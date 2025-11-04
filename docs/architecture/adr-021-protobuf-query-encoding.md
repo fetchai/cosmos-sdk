@@ -2,7 +2,7 @@
 
 ## Changelog
 
-- 2020 March 27: Initial Draft
+* 2020 March 27: Initial Draft
 
 ## Status
 
@@ -12,10 +12,10 @@ Accepted
 
 This ADR is a continuation of the motivation, design, and context established in
 [ADR 019](./adr-019-protobuf-state-encoding.md) and
-[ARD 020](./adr-019-protobuf-transaction-encoding.md), namely, we aim to design the
+[ADR 020](./adr-020-protobuf-transaction-encoding.md), namely, we aim to design the
 Protocol Buffer migration path for the client-side of the Cosmos SDK.
 
-This ADR continues from [ARD 020](./adr-020-protobuf-transaction-encoding.md)
+This ADR continues from [ADD 020](./adr-020-protobuf-transaction-encoding.md)
 to specify the encoding of queries.
 
 ## Decision
@@ -31,7 +31,7 @@ custom ABCI queries and even reuse a substantial amount of the GRPC infrastructu
 
 Each module with custom queries should define a service canonically named `Query`:
 
-```proto
+```protobuf
 // x/bank/types/types.proto
 
 service Query {
@@ -54,7 +54,7 @@ from also providing app-level queries that return use the app-level `oneof`s.
 
 A hypothetical example for the `gov` module would look something like:
 
-```proto
+```protobuf
 // x/gov/types/types.proto
 
 import "google/protobuf/any.proto";
@@ -71,7 +71,7 @@ message AnyProposal {
 
 ### Custom Query Implementation
 
-In order to implement the query service, we can reuse the existing [gogo protobuf](https://github.com/gogo/protobuf)
+In order to implement the query service, we can reuse the existing [gogo protobuf](https://github.com/cosmos/gogoproto)
 grpc plugin, which for a service named `Query` generates an interface named
 `QueryServer` as below:
 
@@ -87,7 +87,7 @@ The custom queries for our module are implemented by implementing this interface
 The first parameter in this generated interface is a generic `context.Context`,
 whereas querier methods generally need an instance of `sdk.Context` to read
 from the store. Since arbitrary values can be attached to `context.Context`
-using the `WithValue` and `Value` methods, the SDK should provide a function
+using the `WithValue` and `Value` methods, the Cosmos SDK should provide a function
 `sdk.UnwrapSDKContext` to retrieve the `sdk.Context` from the provided
 `context.Context`.
 
@@ -159,7 +159,7 @@ translates REST calls into GRPC calls using special annotations on service
 methods. Modules that want to expose REST queries should add `google.api.http`
 annotations to their `rpc` methods as in this example below.
 
-```proto
+```protobuf
 // x/bank/types/types.proto
 
 service Query {
@@ -186,7 +186,7 @@ approach, there will be no need to generate separate REST query handlers, just
 query servers as described above as grpc-gateway handles the translation of protobuf
 to REST as well as Swagger definitions.
 
-The SDK should provide CLI commands for apps to start GRPC gateway either in
+The Cosmos SDK should provide CLI commands for apps to start GRPC gateway either in
 a separate process or the same process as the ABCI app, as well as provide a
 command for generating grpc-gateway proxy `.proto` files and the `swagger.json`
 file.

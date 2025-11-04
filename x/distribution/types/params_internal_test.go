@@ -5,12 +5,12 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	sdk "github.com/cosmos/cosmos-sdk/types"
+	"cosmossdk.io/math"
 )
 
 func Test_validateAuxFuncs(t *testing.T) {
 	type args struct {
-		i interface{}
+		i any
 	}
 	tests := []struct {
 		name    string
@@ -18,17 +18,14 @@ func Test_validateAuxFuncs(t *testing.T) {
 		wantErr bool
 	}{
 		{"wrong type", args{10.5}, true},
-		{"empty sdk.Dec", args{sdk.Dec{}}, true},
-		{"negative", args{sdk.NewDec(-1)}, true},
-		{"one dec", args{sdk.NewDec(1)}, false},
-		{"two dec", args{sdk.NewDec(2)}, true},
+		{"empty math.LegacyDec", args{math.LegacyDec{}}, true},
+		{"negative", args{math.LegacyNewDec(-1)}, true},
+		{"one dec", args{math.LegacyNewDec(1)}, false},
+		{"two dec", args{math.LegacyNewDec(2)}, true},
 	}
 	for _, tt := range tests {
-		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
 			require.Equal(t, tt.wantErr, validateCommunityTax(tt.args.i) != nil)
-			require.Equal(t, tt.wantErr, validateBaseProposerReward(tt.args.i) != nil)
-			require.Equal(t, tt.wantErr, validateBonusProposerReward(tt.args.i) != nil)
 		})
 	}
 }

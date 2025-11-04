@@ -1,7 +1,9 @@
 package authz
 
 import (
-	"github.com/gogo/protobuf/proto"
+	context "context"
+
+	"github.com/cosmos/gogoproto/proto"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
 )
@@ -17,7 +19,7 @@ type Authorization interface {
 
 	// Accept determines whether this grant permits the provided sdk.Msg to be performed,
 	// and if so provides an upgraded authorization instance.
-	Accept(ctx sdk.Context, msg sdk.Msg) (AcceptResponse, error)
+	Accept(ctx context.Context, msg sdk.Msg) (AcceptResponse, error)
 
 	// ValidateBasic does a simple validation check that
 	// doesn't require access to any other information.

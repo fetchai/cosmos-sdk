@@ -1,7 +1,10 @@
 package keeper
 
 import (
+	"context"
 	"fmt"
+
+	"cosmossdk.io/collections"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/types/query"
@@ -9,23 +12,37 @@ import (
 )
 
 // InitGenesis initializes the bank module's state from a given genesis state.
-func (k BaseKeeper) InitGenesis(ctx sdk.Context, genState *types.GenesisState) {
-	k.SetParams(ctx, genState.Params)
-
-	totalSupply := sdk.Coins{}
-
-	genState.Balances = types.SanitizeGenesisBalances(genState.Balances)
-	for _, balance := range genState.Balances {
-		addr := balance.GetAddress()
-
-		if err := k.initBalances(ctx, addr, balance.Coins); err != nil {
-			panic(fmt.Errorf("error on setting balances %w", err))
-		}
-
-		totalSupply = totalSupply.Add(balance.Coins...)
+func (k BaseKeeper) InitGenesis(ctx context.Context, genState *types.GenesisState) {
+	if err := k.SetParams(ctx, genState.Params); err != nil {
+		panic(err)
 	}
 
-	if !genState.Supply.Empty() && !genState.Supply.IsEqual(totalSupply) {
+	for _, se := range genState.GetAllSendEnabled() {
+		k.SetSendEnabled(ctx, se.Denom, se.Enabled)
+	}
+	totalSupplyMap := sdk.NewMapCoins(sdk.Coins{})
+
+	genState.Balances = types.SanitizeGenesisBalances(genState.Balances)
+
+	for _, balance := range genState.Balances {
+		addr := balance.GetAddress()
+		bz, err := k.ak.AddressCodec().StringToBytes(addr)
+		if err != nil {
+			panic(err)
+		}
+
+		for _, coin := range balance.Coins {
+			err := k.Balances.Set(ctx, collections.Join(sdk.AccAddress(bz), coin.Denom), coin.Amount)
+			if err != nil {
+				panic(err)
+			}
+		}
+
+		totalSupplyMap.Add(balance.Coins...)
+	}
+	totalSupply := totalSupplyMap.ToCoins()
+
+	if !genState.Supply.Empty() && !genState.Supply.Equal(totalSupply) {
 		panic(fmt.Errorf("genesis supply is incorrect, expected %v, got %v", genState.Supply, totalSupply))
 	}
 
@@ -39,16 +56,18 @@ func (k BaseKeeper) InitGenesis(ctx sdk.Context, genState *types.GenesisState) {
 }
 
 // ExportGenesis returns the bank module's genesis state.
-func (k BaseKeeper) ExportGenesis(ctx sdk.Context) *types.GenesisState {
-	totalSupply, _, err := k.GetPaginatedTotalSupply(ctx, &query.PageRequest{Limit: query.MaxLimit})
+func (k BaseKeeper) ExportGenesis(ctx context.Context) *types.GenesisState {
+	totalSupply, _, err := k.GetPaginatedTotalSupply(ctx, &query.PageRequest{Limit: query.PaginationMaxLimit})
 	if err != nil {
-		panic(fmt.Errorf("unable to fetch total supply %v", err))
+		panic(fmt.Errorf("unable to fetch total supply %w", err))
 	}
 
-	return types.NewGenesisState(
+	rv := types.NewGenesisState(
 		k.GetParams(ctx),
 		k.GetAccountsBalances(ctx),
 		totalSupply,
 		k.GetAllDenomMetaData(ctx),
+		k.GetAllSendEnabledEntries(ctx),
 	)
+	return rv
 }

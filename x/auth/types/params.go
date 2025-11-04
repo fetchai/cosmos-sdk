@@ -2,10 +2,6 @@ package types
 
 import (
 	"fmt"
-
-	yaml "gopkg.in/yaml.v2"
-
-	paramtypes "github.com/cosmos/cosmos-sdk/x/params/types"
 )
 
 // Default parameter values
@@ -17,44 +13,14 @@ const (
 	DefaultSigVerifyCostSecp256k1 uint64 = 1000
 )
 
-// Parameter keys
-var (
-	KeyMaxMemoCharacters      = []byte("MaxMemoCharacters")
-	KeyTxSigLimit             = []byte("TxSigLimit")
-	KeyTxSizeCostPerByte      = []byte("TxSizeCostPerByte")
-	KeySigVerifyCostED25519   = []byte("SigVerifyCostED25519")
-	KeySigVerifyCostSecp256k1 = []byte("SigVerifyCostSecp256k1")
-)
-
-var _ paramtypes.ParamSet = &Params{}
-
 // NewParams creates a new Params object
-func NewParams(
-	maxMemoCharacters, txSigLimit, txSizeCostPerByte, sigVerifyCostED25519, sigVerifyCostSecp256k1 uint64,
-) Params {
+func NewParams(maxMemoCharacters, txSigLimit, txSizeCostPerByte, sigVerifyCostED25519, sigVerifyCostSecp256k1 uint64) Params {
 	return Params{
 		MaxMemoCharacters:      maxMemoCharacters,
 		TxSigLimit:             txSigLimit,
 		TxSizeCostPerByte:      txSizeCostPerByte,
 		SigVerifyCostED25519:   sigVerifyCostED25519,
 		SigVerifyCostSecp256k1: sigVerifyCostSecp256k1,
-	}
-}
-
-// ParamKeyTable for auth module
-func ParamKeyTable() paramtypes.KeyTable {
-	return paramtypes.NewKeyTable().RegisterParamSet(&Params{})
-}
-
-// ParamSetPairs implements the ParamSet interface and returns all the key/value pairs
-// pairs of auth module's parameters.
-func (p *Params) ParamSetPairs() paramtypes.ParamSetPairs {
-	return paramtypes.ParamSetPairs{
-		paramtypes.NewParamSetPair(KeyMaxMemoCharacters, &p.MaxMemoCharacters, validateMaxMemoCharacters),
-		paramtypes.NewParamSetPair(KeyTxSigLimit, &p.TxSigLimit, validateTxSigLimit),
-		paramtypes.NewParamSetPair(KeyTxSizeCostPerByte, &p.TxSizeCostPerByte, validateTxSizeCostPerByte),
-		paramtypes.NewParamSetPair(KeySigVerifyCostED25519, &p.SigVerifyCostED25519, validateSigVerifyCostED25519),
-		paramtypes.NewParamSetPair(KeySigVerifyCostSecp256k1, &p.SigVerifyCostSecp256k1, validateSigVerifyCostSecp256k1),
 	}
 }
 
@@ -81,13 +47,7 @@ func (p Params) SigVerifyCostSecp256r1() uint64 {
 	return p.SigVerifyCostSecp256k1 / 2
 }
 
-// String implements the stringer interface.
-func (p Params) String() string {
-	out, _ := yaml.Marshal(p)
-	return string(out)
-}
-
-func validateTxSigLimit(i interface{}) error {
+func validateTxSigLimit(i any) error {
 	v, ok := i.(uint64)
 	if !ok {
 		return fmt.Errorf("invalid parameter type: %T", i)
@@ -100,7 +60,7 @@ func validateTxSigLimit(i interface{}) error {
 	return nil
 }
 
-func validateSigVerifyCostED25519(i interface{}) error {
+func validateSigVerifyCostED25519(i any) error {
 	v, ok := i.(uint64)
 	if !ok {
 		return fmt.Errorf("invalid parameter type: %T", i)
@@ -113,7 +73,7 @@ func validateSigVerifyCostED25519(i interface{}) error {
 	return nil
 }
 
-func validateSigVerifyCostSecp256k1(i interface{}) error {
+func validateSigVerifyCostSecp256k1(i any) error {
 	v, ok := i.(uint64)
 	if !ok {
 		return fmt.Errorf("invalid parameter type: %T", i)
@@ -126,7 +86,7 @@ func validateSigVerifyCostSecp256k1(i interface{}) error {
 	return nil
 }
 
-func validateMaxMemoCharacters(i interface{}) error {
+func validateMaxMemoCharacters(i any) error {
 	v, ok := i.(uint64)
 	if !ok {
 		return fmt.Errorf("invalid parameter type: %T", i)
@@ -139,7 +99,7 @@ func validateMaxMemoCharacters(i interface{}) error {
 	return nil
 }
 
-func validateTxSizeCostPerByte(i interface{}) error {
+func validateTxSizeCostPerByte(i any) error {
 	v, ok := i.(uint64)
 	if !ok {
 		return fmt.Errorf("invalid parameter type: %T", i)

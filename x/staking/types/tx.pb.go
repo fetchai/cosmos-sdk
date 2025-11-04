@@ -5,15 +5,17 @@ package types
 
 import (
 	context "context"
+	cosmossdk_io_math "cosmossdk.io/math"
 	fmt "fmt"
-	types "github.com/cosmos/cosmos-sdk/codec/types"
-	github_com_cosmos_cosmos_sdk_types "github.com/cosmos/cosmos-sdk/types"
-	types1 "github.com/cosmos/cosmos-sdk/types"
-	_ "github.com/gogo/protobuf/gogoproto"
-	grpc1 "github.com/gogo/protobuf/grpc"
-	proto "github.com/gogo/protobuf/proto"
-	github_com_gogo_protobuf_types "github.com/gogo/protobuf/types"
-	_ "github.com/regen-network/cosmos-proto"
+	_ "github.com/cosmos/cosmos-proto"
+	types "github.com/cosmos/cosmos-sdk/types"
+	_ "github.com/cosmos/cosmos-sdk/types/msgservice"
+	_ "github.com/cosmos/cosmos-sdk/types/tx/amino"
+	_ "github.com/cosmos/gogoproto/gogoproto"
+	grpc1 "github.com/cosmos/gogoproto/grpc"
+	proto "github.com/cosmos/gogoproto/proto"
+	github_com_cosmos_gogoproto_types "github.com/cosmos/gogoproto/types"
+	any "github.com/cosmos/gogoproto/types/any"
 	grpc "google.golang.org/grpc"
 	codes "google.golang.org/grpc/codes"
 	status "google.golang.org/grpc/status"
@@ -38,13 +40,16 @@ const _ = proto.GoGoProtoPackageIsVersion3 // please upgrade the proto package
 
 // MsgCreateValidator defines a SDK message for creating a new validator.
 type MsgCreateValidator struct {
-	Description       Description                            `protobuf:"bytes,1,opt,name=description,proto3" json:"description"`
-	Commission        CommissionRates                        `protobuf:"bytes,2,opt,name=commission,proto3" json:"commission"`
-	MinSelfDelegation github_com_cosmos_cosmos_sdk_types.Int `protobuf:"bytes,3,opt,name=min_self_delegation,json=minSelfDelegation,proto3,customtype=github.com/cosmos/cosmos-sdk/types.Int" json:"min_self_delegation" yaml:"min_self_delegation"`
-	DelegatorAddress  string                                 `protobuf:"bytes,4,opt,name=delegator_address,json=delegatorAddress,proto3" json:"delegator_address,omitempty" yaml:"delegator_address"`
-	ValidatorAddress  string                                 `protobuf:"bytes,5,opt,name=validator_address,json=validatorAddress,proto3" json:"validator_address,omitempty" yaml:"validator_address"`
-	Pubkey            *types.Any                             `protobuf:"bytes,6,opt,name=pubkey,proto3" json:"pubkey,omitempty"`
-	Value             types1.Coin                            `protobuf:"bytes,7,opt,name=value,proto3" json:"value"`
+	Description       Description           `protobuf:"bytes,1,opt,name=description,proto3" json:"description"`
+	Commission        CommissionRates       `protobuf:"bytes,2,opt,name=commission,proto3" json:"commission"`
+	MinSelfDelegation cosmossdk_io_math.Int `protobuf:"bytes,3,opt,name=min_self_delegation,json=minSelfDelegation,proto3,customtype=cosmossdk.io/math.Int" json:"min_self_delegation"`
+	// Deprecated: Use of Delegator Address in MsgCreateValidator is deprecated.
+	// The validator address bytes and delegator address bytes refer to the same account while creating validator (defer
+	// only in bech32 notation).
+	DelegatorAddress string     `protobuf:"bytes,4,opt,name=delegator_address,json=delegatorAddress,proto3" json:"delegator_address,omitempty"` // Deprecated: Do not use.
+	ValidatorAddress string     `protobuf:"bytes,5,opt,name=validator_address,json=validatorAddress,proto3" json:"validator_address,omitempty"`
+	Pubkey           *any.Any   `protobuf:"bytes,6,opt,name=pubkey,proto3" json:"pubkey,omitempty"`
+	Value            types.Coin `protobuf:"bytes,7,opt,name=value,proto3" json:"value"`
 }
 
 func (m *MsgCreateValidator) Reset()         { *m = MsgCreateValidator{} }
@@ -120,13 +125,13 @@ var xxx_messageInfo_MsgCreateValidatorResponse proto.InternalMessageInfo
 // MsgEditValidator defines a SDK message for editing an existing validator.
 type MsgEditValidator struct {
 	Description      Description `protobuf:"bytes,1,opt,name=description,proto3" json:"description"`
-	ValidatorAddress string      `protobuf:"bytes,2,opt,name=validator_address,json=validatorAddress,proto3" json:"validator_address,omitempty" yaml:"address"`
+	ValidatorAddress string      `protobuf:"bytes,2,opt,name=validator_address,json=validatorAddress,proto3" json:"validator_address,omitempty"`
 	// We pass a reference to the new commission rate and min self delegation as
 	// it's not mandatory to update. If not updated, the deserialized rate will be
 	// zero with no way to distinguish if an update was intended.
 	// REF: #2373
-	CommissionRate    *github_com_cosmos_cosmos_sdk_types.Dec `protobuf:"bytes,3,opt,name=commission_rate,json=commissionRate,proto3,customtype=github.com/cosmos/cosmos-sdk/types.Dec" json:"commission_rate,omitempty" yaml:"commission_rate"`
-	MinSelfDelegation *github_com_cosmos_cosmos_sdk_types.Int `protobuf:"bytes,4,opt,name=min_self_delegation,json=minSelfDelegation,proto3,customtype=github.com/cosmos/cosmos-sdk/types.Int" json:"min_self_delegation,omitempty" yaml:"min_self_delegation"`
+	CommissionRate    *cosmossdk_io_math.LegacyDec `protobuf:"bytes,3,opt,name=commission_rate,json=commissionRate,proto3,customtype=cosmossdk.io/math.LegacyDec" json:"commission_rate,omitempty"`
+	MinSelfDelegation *cosmossdk_io_math.Int       `protobuf:"bytes,4,opt,name=min_self_delegation,json=minSelfDelegation,proto3,customtype=cosmossdk.io/math.Int" json:"min_self_delegation,omitempty"`
 }
 
 func (m *MsgEditValidator) Reset()         { *m = MsgEditValidator{} }
@@ -202,9 +207,9 @@ var xxx_messageInfo_MsgEditValidatorResponse proto.InternalMessageInfo
 // MsgDelegate defines a SDK message for performing a delegation of coins
 // from a delegator to a validator.
 type MsgDelegate struct {
-	DelegatorAddress string      `protobuf:"bytes,1,opt,name=delegator_address,json=delegatorAddress,proto3" json:"delegator_address,omitempty" yaml:"delegator_address"`
-	ValidatorAddress string      `protobuf:"bytes,2,opt,name=validator_address,json=validatorAddress,proto3" json:"validator_address,omitempty" yaml:"validator_address"`
-	Amount           types1.Coin `protobuf:"bytes,3,opt,name=amount,proto3" json:"amount"`
+	DelegatorAddress string     `protobuf:"bytes,1,opt,name=delegator_address,json=delegatorAddress,proto3" json:"delegator_address,omitempty"`
+	ValidatorAddress string     `protobuf:"bytes,2,opt,name=validator_address,json=validatorAddress,proto3" json:"validator_address,omitempty"`
+	Amount           types.Coin `protobuf:"bytes,3,opt,name=amount,proto3" json:"amount"`
 }
 
 func (m *MsgDelegate) Reset()         { *m = MsgDelegate{} }
@@ -239,27 +244,6 @@ func (m *MsgDelegate) XXX_DiscardUnknown() {
 }
 
 var xxx_messageInfo_MsgDelegate proto.InternalMessageInfo
-
-func (m *MsgDelegate) GetDelegatorAddress() string {
-	if m != nil {
-		return m.DelegatorAddress
-	}
-	return ""
-}
-
-func (m *MsgDelegate) GetValidatorAddress() string {
-	if m != nil {
-		return m.ValidatorAddress
-	}
-	return ""
-}
-
-func (m *MsgDelegate) GetAmount() types1.Coin {
-	if m != nil {
-		return m.Amount
-	}
-	return types1.Coin{}
-}
 
 // MsgDelegateResponse defines the Msg/Delegate response type.
 type MsgDelegateResponse struct {
@@ -301,10 +285,10 @@ var xxx_messageInfo_MsgDelegateResponse proto.InternalMessageInfo
 // MsgBeginRedelegate defines a SDK message for performing a redelegation
 // of coins from a delegator and source validator to a destination validator.
 type MsgBeginRedelegate struct {
-	DelegatorAddress    string      `protobuf:"bytes,1,opt,name=delegator_address,json=delegatorAddress,proto3" json:"delegator_address,omitempty" yaml:"delegator_address"`
-	ValidatorSrcAddress string      `protobuf:"bytes,2,opt,name=validator_src_address,json=validatorSrcAddress,proto3" json:"validator_src_address,omitempty" yaml:"validator_src_address"`
-	ValidatorDstAddress string      `protobuf:"bytes,3,opt,name=validator_dst_address,json=validatorDstAddress,proto3" json:"validator_dst_address,omitempty" yaml:"validator_dst_address"`
-	Amount              types1.Coin `protobuf:"bytes,4,opt,name=amount,proto3" json:"amount"`
+	DelegatorAddress    string     `protobuf:"bytes,1,opt,name=delegator_address,json=delegatorAddress,proto3" json:"delegator_address,omitempty"`
+	ValidatorSrcAddress string     `protobuf:"bytes,2,opt,name=validator_src_address,json=validatorSrcAddress,proto3" json:"validator_src_address,omitempty"`
+	ValidatorDstAddress string     `protobuf:"bytes,3,opt,name=validator_dst_address,json=validatorDstAddress,proto3" json:"validator_dst_address,omitempty"`
+	Amount              types.Coin `protobuf:"bytes,4,opt,name=amount,proto3" json:"amount"`
 }
 
 func (m *MsgBeginRedelegate) Reset()         { *m = MsgBeginRedelegate{} }
@@ -339,34 +323,6 @@ func (m *MsgBeginRedelegate) XXX_DiscardUnknown() {
 }
 
 var xxx_messageInfo_MsgBeginRedelegate proto.InternalMessageInfo
-
-func (m *MsgBeginRedelegate) GetDelegatorAddress() string {
-	if m != nil {
-		return m.DelegatorAddress
-	}
-	return ""
-}
-
-func (m *MsgBeginRedelegate) GetValidatorSrcAddress() string {
-	if m != nil {
-		return m.ValidatorSrcAddress
-	}
-	return ""
-}
-
-func (m *MsgBeginRedelegate) GetValidatorDstAddress() string {
-	if m != nil {
-		return m.ValidatorDstAddress
-	}
-	return ""
-}
-
-func (m *MsgBeginRedelegate) GetAmount() types1.Coin {
-	if m != nil {
-		return m.Amount
-	}
-	return types1.Coin{}
-}
 
 // MsgBeginRedelegateResponse defines the Msg/BeginRedelegate response type.
 type MsgBeginRedelegateResponse struct {
@@ -416,9 +372,9 @@ func (m *MsgBeginRedelegateResponse) GetCompletionTime() time.Time {
 // MsgUndelegate defines a SDK message for performing an undelegation from a
 // delegate and a validator.
 type MsgUndelegate struct {
-	DelegatorAddress string      `protobuf:"bytes,1,opt,name=delegator_address,json=delegatorAddress,proto3" json:"delegator_address,omitempty" yaml:"delegator_address"`
-	ValidatorAddress string      `protobuf:"bytes,2,opt,name=validator_address,json=validatorAddress,proto3" json:"validator_address,omitempty" yaml:"validator_address"`
-	Amount           types1.Coin `protobuf:"bytes,3,opt,name=amount,proto3" json:"amount"`
+	DelegatorAddress string     `protobuf:"bytes,1,opt,name=delegator_address,json=delegatorAddress,proto3" json:"delegator_address,omitempty"`
+	ValidatorAddress string     `protobuf:"bytes,2,opt,name=validator_address,json=validatorAddress,proto3" json:"validator_address,omitempty"`
+	Amount           types.Coin `protobuf:"bytes,3,opt,name=amount,proto3" json:"amount"`
 }
 
 func (m *MsgUndelegate) Reset()         { *m = MsgUndelegate{} }
@@ -454,30 +410,11 @@ func (m *MsgUndelegate) XXX_DiscardUnknown() {
 
 var xxx_messageInfo_MsgUndelegate proto.InternalMessageInfo
 
-func (m *MsgUndelegate) GetDelegatorAddress() string {
-	if m != nil {
-		return m.DelegatorAddress
-	}
-	return ""
-}
-
-func (m *MsgUndelegate) GetValidatorAddress() string {
-	if m != nil {
-		return m.ValidatorAddress
-	}
-	return ""
-}
-
-func (m *MsgUndelegate) GetAmount() types1.Coin {
-	if m != nil {
-		return m.Amount
-	}
-	return types1.Coin{}
-}
-
 // MsgUndelegateResponse defines the Msg/Undelegate response type.
 type MsgUndelegateResponse struct {
 	CompletionTime time.Time `protobuf:"bytes,1,opt,name=completion_time,json=completionTime,proto3,stdtime" json:"completion_time"`
+	// amount returns the amount of undelegated coins
+	Amount types.Coin `protobuf:"bytes,2,opt,name=amount,proto3" json:"amount"`
 }
 
 func (m *MsgUndelegateResponse) Reset()         { *m = MsgUndelegateResponse{} }
@@ -520,6 +457,188 @@ func (m *MsgUndelegateResponse) GetCompletionTime() time.Time {
 	return time.Time{}
 }
 
+func (m *MsgUndelegateResponse) GetAmount() types.Coin {
+	if m != nil {
+		return m.Amount
+	}
+	return types.Coin{}
+}
+
+// MsgCancelUnbondingDelegation defines the SDK message for performing a cancel unbonding delegation for delegator
+type MsgCancelUnbondingDelegation struct {
+	DelegatorAddress string `protobuf:"bytes,1,opt,name=delegator_address,json=delegatorAddress,proto3" json:"delegator_address,omitempty"`
+	ValidatorAddress string `protobuf:"bytes,2,opt,name=validator_address,json=validatorAddress,proto3" json:"validator_address,omitempty"`
+	// amount is always less than or equal to unbonding delegation entry balance
+	Amount types.Coin `protobuf:"bytes,3,opt,name=amount,proto3" json:"amount"`
+	// creation_height is the height which the unbonding took place.
+	CreationHeight int64 `protobuf:"varint,4,opt,name=creation_height,json=creationHeight,proto3" json:"creation_height,omitempty"`
+}
+
+func (m *MsgCancelUnbondingDelegation) Reset()         { *m = MsgCancelUnbondingDelegation{} }
+func (m *MsgCancelUnbondingDelegation) String() string { return proto.CompactTextString(m) }
+func (*MsgCancelUnbondingDelegation) ProtoMessage()    {}
+func (*MsgCancelUnbondingDelegation) Descriptor() ([]byte, []int) {
+	return fileDescriptor_0926ef28816b35ab, []int{10}
+}
+func (m *MsgCancelUnbondingDelegation) XXX_Unmarshal(b []byte) error {
+	return m.Unmarshal(b)
+}
+func (m *MsgCancelUnbondingDelegation) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	if deterministic {
+		return xxx_messageInfo_MsgCancelUnbondingDelegation.Marshal(b, m, deterministic)
+	} else {
+		b = b[:cap(b)]
+		n, err := m.MarshalToSizedBuffer(b)
+		if err != nil {
+			return nil, err
+		}
+		return b[:n], nil
+	}
+}
+func (m *MsgCancelUnbondingDelegation) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_MsgCancelUnbondingDelegation.Merge(m, src)
+}
+func (m *MsgCancelUnbondingDelegation) XXX_Size() int {
+	return m.Size()
+}
+func (m *MsgCancelUnbondingDelegation) XXX_DiscardUnknown() {
+	xxx_messageInfo_MsgCancelUnbondingDelegation.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_MsgCancelUnbondingDelegation proto.InternalMessageInfo
+
+// MsgCancelUnbondingDelegationResponse
+type MsgCancelUnbondingDelegationResponse struct {
+}
+
+func (m *MsgCancelUnbondingDelegationResponse) Reset()         { *m = MsgCancelUnbondingDelegationResponse{} }
+func (m *MsgCancelUnbondingDelegationResponse) String() string { return proto.CompactTextString(m) }
+func (*MsgCancelUnbondingDelegationResponse) ProtoMessage()    {}
+func (*MsgCancelUnbondingDelegationResponse) Descriptor() ([]byte, []int) {
+	return fileDescriptor_0926ef28816b35ab, []int{11}
+}
+func (m *MsgCancelUnbondingDelegationResponse) XXX_Unmarshal(b []byte) error {
+	return m.Unmarshal(b)
+}
+func (m *MsgCancelUnbondingDelegationResponse) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	if deterministic {
+		return xxx_messageInfo_MsgCancelUnbondingDelegationResponse.Marshal(b, m, deterministic)
+	} else {
+		b = b[:cap(b)]
+		n, err := m.MarshalToSizedBuffer(b)
+		if err != nil {
+			return nil, err
+		}
+		return b[:n], nil
+	}
+}
+func (m *MsgCancelUnbondingDelegationResponse) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_MsgCancelUnbondingDelegationResponse.Merge(m, src)
+}
+func (m *MsgCancelUnbondingDelegationResponse) XXX_Size() int {
+	return m.Size()
+}
+func (m *MsgCancelUnbondingDelegationResponse) XXX_DiscardUnknown() {
+	xxx_messageInfo_MsgCancelUnbondingDelegationResponse.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_MsgCancelUnbondingDelegationResponse proto.InternalMessageInfo
+
+// MsgUpdateParams is the Msg/UpdateParams request type.
+type MsgUpdateParams struct {
+	// authority is the address that controls the module (defaults to x/gov unless overwritten).
+	Authority string `protobuf:"bytes,1,opt,name=authority,proto3" json:"authority,omitempty"`
+	// params defines the x/staking parameters to update.
+	//
+	// NOTE: All parameters must be supplied.
+	Params Params `protobuf:"bytes,2,opt,name=params,proto3" json:"params"`
+}
+
+func (m *MsgUpdateParams) Reset()         { *m = MsgUpdateParams{} }
+func (m *MsgUpdateParams) String() string { return proto.CompactTextString(m) }
+func (*MsgUpdateParams) ProtoMessage()    {}
+func (*MsgUpdateParams) Descriptor() ([]byte, []int) {
+	return fileDescriptor_0926ef28816b35ab, []int{12}
+}
+func (m *MsgUpdateParams) XXX_Unmarshal(b []byte) error {
+	return m.Unmarshal(b)
+}
+func (m *MsgUpdateParams) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	if deterministic {
+		return xxx_messageInfo_MsgUpdateParams.Marshal(b, m, deterministic)
+	} else {
+		b = b[:cap(b)]
+		n, err := m.MarshalToSizedBuffer(b)
+		if err != nil {
+			return nil, err
+		}
+		return b[:n], nil
+	}
+}
+func (m *MsgUpdateParams) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_MsgUpdateParams.Merge(m, src)
+}
+func (m *MsgUpdateParams) XXX_Size() int {
+	return m.Size()
+}
+func (m *MsgUpdateParams) XXX_DiscardUnknown() {
+	xxx_messageInfo_MsgUpdateParams.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_MsgUpdateParams proto.InternalMessageInfo
+
+func (m *MsgUpdateParams) GetAuthority() string {
+	if m != nil {
+		return m.Authority
+	}
+	return ""
+}
+
+func (m *MsgUpdateParams) GetParams() Params {
+	if m != nil {
+		return m.Params
+	}
+	return Params{}
+}
+
+// MsgUpdateParamsResponse defines the response structure for executing a
+// MsgUpdateParams message.
+type MsgUpdateParamsResponse struct {
+}
+
+func (m *MsgUpdateParamsResponse) Reset()         { *m = MsgUpdateParamsResponse{} }
+func (m *MsgUpdateParamsResponse) String() string { return proto.CompactTextString(m) }
+func (*MsgUpdateParamsResponse) ProtoMessage()    {}
+func (*MsgUpdateParamsResponse) Descriptor() ([]byte, []int) {
+	return fileDescriptor_0926ef28816b35ab, []int{13}
+}
+func (m *MsgUpdateParamsResponse) XXX_Unmarshal(b []byte) error {
+	return m.Unmarshal(b)
+}
+func (m *MsgUpdateParamsResponse) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	if deterministic {
+		return xxx_messageInfo_MsgUpdateParamsResponse.Marshal(b, m, deterministic)
+	} else {
+		b = b[:cap(b)]
+		n, err := m.MarshalToSizedBuffer(b)
+		if err != nil {
+			return nil, err
+		}
+		return b[:n], nil
+	}
+}
+func (m *MsgUpdateParamsResponse) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_MsgUpdateParamsResponse.Merge(m, src)
+}
+func (m *MsgUpdateParamsResponse) XXX_Size() int {
+	return m.Size()
+}
+func (m *MsgUpdateParamsResponse) XXX_DiscardUnknown() {
+	xxx_messageInfo_MsgUpdateParamsResponse.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_MsgUpdateParamsResponse proto.InternalMessageInfo
+
 func init() {
 	proto.RegisterType((*MsgCreateValidator)(nil), "cosmos.staking.v1beta1.MsgCreateValidator")
 	proto.RegisterType((*MsgCreateValidatorResponse)(nil), "cosmos.staking.v1beta1.MsgCreateValidatorResponse")
@@ -531,66 +650,91 @@ func init() {
 	proto.RegisterType((*MsgBeginRedelegateResponse)(nil), "cosmos.staking.v1beta1.MsgBeginRedelegateResponse")
 	proto.RegisterType((*MsgUndelegate)(nil), "cosmos.staking.v1beta1.MsgUndelegate")
 	proto.RegisterType((*MsgUndelegateResponse)(nil), "cosmos.staking.v1beta1.MsgUndelegateResponse")
+	proto.RegisterType((*MsgCancelUnbondingDelegation)(nil), "cosmos.staking.v1beta1.MsgCancelUnbondingDelegation")
+	proto.RegisterType((*MsgCancelUnbondingDelegationResponse)(nil), "cosmos.staking.v1beta1.MsgCancelUnbondingDelegationResponse")
+	proto.RegisterType((*MsgUpdateParams)(nil), "cosmos.staking.v1beta1.MsgUpdateParams")
+	proto.RegisterType((*MsgUpdateParamsResponse)(nil), "cosmos.staking.v1beta1.MsgUpdateParamsResponse")
 }
 
 func init() { proto.RegisterFile("cosmos/staking/v1beta1/tx.proto", fileDescriptor_0926ef28816b35ab) }
 
 var fileDescriptor_0926ef28816b35ab = []byte{
-	// 861 bytes of a gzipped FileDescriptorProto
-	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0xdc, 0x56, 0x4d, 0x6b, 0xe3, 0x46,
-	0x18, 0xb6, 0x6c, 0xc7, 0x4d, 0x27, 0xe4, 0x4b, 0xf9, 0xc0, 0x11, 0xc1, 0x0a, 0x4a, 0x3f, 0x42,
-	0xdb, 0xc8, 0x4d, 0x4a, 0x29, 0xe4, 0x52, 0xe2, 0xb8, 0xa1, 0x21, 0x35, 0x14, 0x25, 0xed, 0xa1,
-	0x14, 0x8c, 0x3e, 0xc6, 0xaa, 0xb0, 0xa4, 0x51, 0x34, 0xe3, 0x10, 0x43, 0x7f, 0x40, 0x8f, 0x81,
-	0xde, 0x7a, 0xca, 0x8f, 0xe8, 0x8f, 0x08, 0x81, 0x85, 0x1c, 0x97, 0x3d, 0x78, 0x17, 0x67, 0x0f,
-	0x7b, 0xf6, 0x2f, 0x58, 0x34, 0x1a, 0xc9, 0xb2, 0xfc, 0x81, 0x09, 0xeb, 0xcb, 0x9e, 0x6c, 0x66,
-	0x9e, 0x79, 0xde, 0x79, 0x9f, 0xf7, 0x99, 0xf7, 0x15, 0x10, 0x75, 0x84, 0x1d, 0x84, 0xcb, 0x98,
-	0xa8, 0x4d, 0xcb, 0x35, 0xcb, 0xd7, 0x07, 0x1a, 0x24, 0xea, 0x41, 0x99, 0xdc, 0xc8, 0x9e, 0x8f,
-	0x08, 0xe2, 0x37, 0x43, 0x80, 0xcc, 0x00, 0x32, 0x03, 0x08, 0x5b, 0x26, 0x42, 0xa6, 0x0d, 0xcb,
-	0x14, 0xa5, 0xb5, 0x1a, 0x65, 0xd5, 0x6d, 0x87, 0x47, 0x04, 0x31, 0xbd, 0x45, 0x2c, 0x07, 0x62,
-	0xa2, 0x3a, 0x1e, 0x03, 0xac, 0x9b, 0xc8, 0x44, 0xf4, 0x6f, 0x39, 0xf8, 0xc7, 0x56, 0xb7, 0xc2,
-	0x48, 0xf5, 0x70, 0x83, 0x85, 0x0d, 0xb7, 0x4a, 0xec, 0x96, 0x9a, 0x8a, 0x61, 0x7c, 0x45, 0x1d,
-	0x59, 0x2e, 0xdb, 0xff, 0x6c, 0x4c, 0x16, 0xd1, 0xa5, 0x29, 0x4a, 0x7a, 0x91, 0x07, 0x7c, 0x0d,
-	0x9b, 0x27, 0x3e, 0x54, 0x09, 0xfc, 0x5d, 0xb5, 0x2d, 0x43, 0x25, 0xc8, 0xe7, 0xcf, 0xc1, 0x82,
-	0x01, 0xb1, 0xee, 0x5b, 0x1e, 0xb1, 0x90, 0x5b, 0xe4, 0x76, 0xb8, 0xbd, 0x85, 0xc3, 0x5d, 0x79,
-	0x74, 0xde, 0x72, 0xb5, 0x0f, 0xad, 0xe4, 0xef, 0x3b, 0x62, 0x46, 0x49, 0x9e, 0xe6, 0x6b, 0x00,
-	0xe8, 0xc8, 0x71, 0x2c, 0x8c, 0x03, 0xae, 0x2c, 0xe5, 0xfa, 0x72, 0x1c, 0xd7, 0x49, 0x8c, 0x54,
-	0x54, 0x02, 0x31, 0xe3, 0x4b, 0x10, 0xf0, 0x7f, 0x83, 0x35, 0xc7, 0x72, 0xeb, 0x18, 0xda, 0x8d,
-	0xba, 0x01, 0x6d, 0x68, 0xaa, 0xf4, 0x8e, 0xb9, 0x1d, 0x6e, 0xef, 0xd3, 0xca, 0x2f, 0x01, 0xfc,
-	0x55, 0x47, 0xfc, 0xc2, 0xb4, 0xc8, 0x5f, 0x2d, 0x4d, 0xd6, 0x91, 0xc3, 0x64, 0x63, 0x3f, 0xfb,
-	0xd8, 0x68, 0x96, 0x49, 0xdb, 0x83, 0x58, 0x3e, 0x73, 0x49, 0xaf, 0x23, 0x0a, 0x6d, 0xd5, 0xb1,
-	0x8f, 0xa4, 0x11, 0x94, 0x92, 0xb2, 0xea, 0x58, 0xee, 0x05, 0xb4, 0x1b, 0xd5, 0x78, 0x8d, 0x3f,
-	0x03, 0xab, 0x0c, 0x81, 0xfc, 0xba, 0x6a, 0x18, 0x3e, 0xc4, 0xb8, 0x98, 0xa7, 0xb1, 0xb7, 0x7b,
-	0x1d, 0xb1, 0x18, 0xb2, 0x0d, 0x41, 0x24, 0x65, 0x25, 0x5e, 0x3b, 0x0e, 0x97, 0x02, 0xaa, 0xeb,
-	0x48, 0xf1, 0x98, 0x6a, 0x2e, 0x4d, 0x35, 0x04, 0x91, 0x94, 0x95, 0x78, 0x2d, 0xa2, 0x3a, 0x05,
-	0x05, 0xaf, 0xa5, 0x35, 0x61, 0xbb, 0x58, 0xa0, 0xf2, 0xae, 0xcb, 0xa1, 0xdf, 0xe4, 0xc8, 0x6f,
-	0xf2, 0xb1, 0xdb, 0xae, 0x14, 0x1f, 0xfe, 0xdf, 0x5f, 0x67, 0xba, 0xeb, 0x7e, 0xdb, 0x23, 0x48,
-	0xfe, 0xb5, 0xa5, 0x9d, 0xc3, 0xb6, 0xc2, 0x4e, 0xf3, 0xdf, 0x83, 0xb9, 0x6b, 0xd5, 0x6e, 0xc1,
-	0xe2, 0x27, 0x94, 0x66, 0x2b, 0xaa, 0x52, 0x60, 0xb2, 0x44, 0x89, 0xac, 0xa8, 0xce, 0x21, 0xfa,
-	0x68, 0xfe, 0x9f, 0x3b, 0x31, 0xf3, 0xee, 0x4e, 0xcc, 0x48, 0xdb, 0x40, 0x18, 0xb6, 0x93, 0x02,
-	0xb1, 0x87, 0x5c, 0x0c, 0xa5, 0x7f, 0x73, 0x60, 0xa5, 0x86, 0xcd, 0x9f, 0x0c, 0x8b, 0xcc, 0xc8,
-	0x6b, 0x3f, 0x8e, 0xd2, 0x34, 0x4b, 0x35, 0xe5, 0x7b, 0x1d, 0x71, 0x29, 0xd4, 0x74, 0x82, 0x92,
-	0x0e, 0x58, 0xee, 0x7b, 0xad, 0xee, 0xab, 0x04, 0x32, 0x67, 0x55, 0xa7, 0x74, 0x55, 0x15, 0xea,
-	0xbd, 0x8e, 0xb8, 0x19, 0x06, 0x4a, 0x51, 0x49, 0xca, 0x92, 0x3e, 0xe0, 0x6f, 0xfe, 0x66, 0xb4,
-	0x99, 0x43, 0x43, 0xfd, 0x3c, 0x43, 0x23, 0x27, 0x6a, 0x26, 0x80, 0x62, 0xba, 0x28, 0x71, 0xc5,
-	0xba, 0x1c, 0x58, 0xa8, 0x61, 0x93, 0x9d, 0x83, 0xa3, 0xed, 0xcf, 0x7d, 0x38, 0xfb, 0x67, 0x9f,
-	0x65, 0xff, 0x1f, 0x40, 0x41, 0x75, 0x50, 0xcb, 0x25, 0xb4, 0x56, 0x53, 0xf8, 0x96, 0xc1, 0x8f,
-	0xf2, 0x54, 0x80, 0x0d, 0xb0, 0x96, 0xc8, 0x31, 0xce, 0xfd, 0x21, 0x4b, 0x7b, 0x63, 0x05, 0x9a,
-	0x96, 0xab, 0x40, 0x63, 0x06, 0x12, 0x5c, 0x82, 0x8d, 0x7e, 0x7e, 0xd8, 0xd7, 0x53, 0x32, 0xec,
-	0xf4, 0x3a, 0xe2, 0x76, 0x5a, 0x86, 0x04, 0x4c, 0x52, 0xd6, 0xe2, 0xf5, 0x0b, 0x5f, 0x1f, 0xc9,
-	0x6a, 0x60, 0x12, 0xb3, 0xe6, 0xc6, 0xb3, 0x26, 0x60, 0x49, 0xd6, 0x2a, 0x26, 0xc3, 0x1a, 0xe7,
-	0x9f, 0xa3, 0x71, 0x93, 0x36, 0x86, 0x94, 0x96, 0x91, 0xd4, 0x7c, 0x8d, 0xbe, 0x3a, 0xcf, 0x86,
-	0x81, 0x35, 0xeb, 0xc1, 0x6c, 0x64, 0x7d, 0x40, 0x18, 0x6a, 0x64, 0x97, 0xd1, 0xe0, 0xac, 0xcc,
-	0x07, 0x61, 0x6e, 0x5f, 0x8b, 0x1c, 0x7d, 0x55, 0xec, 0x70, 0xb0, 0x2d, 0xbd, 0xe5, 0xc0, 0x62,
-	0x0d, 0x9b, 0xbf, 0xb9, 0xc6, 0x47, 0xed, 0xdb, 0x06, 0xd8, 0x18, 0xc8, 0x72, 0x46, 0x72, 0x1e,
-	0xfe, 0x97, 0x07, 0xb9, 0x1a, 0x36, 0xf9, 0x2b, 0xb0, 0x9c, 0xfe, 0x50, 0xf8, 0x6a, 0x5c, 0x9f,
-	0x1e, 0x9e, 0x02, 0xc2, 0xe1, 0xf4, 0xd8, 0x38, 0x93, 0x26, 0x58, 0x1c, 0x9c, 0x16, 0x7b, 0x13,
-	0x48, 0x06, 0x90, 0xc2, 0xb7, 0xd3, 0x22, 0xe3, 0x60, 0x7f, 0x82, 0xf9, 0xb8, 0xd1, 0xed, 0x4e,
-	0x38, 0x1d, 0x81, 0x84, 0xaf, 0xa7, 0x00, 0xc5, 0xec, 0x57, 0x60, 0x39, 0xdd, 0x4a, 0x26, 0xa9,
-	0x97, 0xc2, 0x4e, 0x54, 0x6f, 0xdc, 0xb3, 0xd2, 0x00, 0x48, 0xbc, 0x81, 0xcf, 0x27, 0x30, 0xf4,
-	0x61, 0xc2, 0xfe, 0x54, 0xb0, 0x28, 0x46, 0xe5, 0xf4, 0xbe, 0x5b, 0xe2, 0x1e, 0xbb, 0x25, 0xee,
-	0x4d, 0xb7, 0xc4, 0xdd, 0x3e, 0x95, 0x32, 0x8f, 0x4f, 0xa5, 0xcc, 0xcb, 0xa7, 0x52, 0xe6, 0x8f,
-	0x6f, 0x26, 0x8e, 0xae, 0x9b, 0xf8, 0xcb, 0x94, 0x0e, 0x31, 0xad, 0x40, 0x2d, 0xf9, 0xdd, 0xfb,
-	0x00, 0x00, 0x00, 0xff, 0xff, 0x99, 0xdc, 0x0e, 0x15, 0x7e, 0x0b, 0x00, 0x00,
+	// 1187 bytes of a gzipped FileDescriptorProto
+	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0xdc, 0x58, 0xcf, 0x6f, 0xdc, 0x44,
+	0x14, 0x5e, 0xef, 0x26, 0x0b, 0x99, 0x90, 0x6c, 0xe2, 0x24, 0xed, 0xc6, 0x0d, 0xbb, 0xc1, 0x0d,
+	0x4a, 0x14, 0x58, 0x3b, 0x0d, 0xa5, 0x11, 0xdb, 0x0a, 0x35, 0xdb, 0xb4, 0x50, 0x20, 0x10, 0x39,
+	0xa4, 0x48, 0x08, 0xb4, 0xcc, 0xda, 0x13, 0xc7, 0xca, 0xda, 0xe3, 0x7a, 0x66, 0xa3, 0xee, 0x01,
+	0x09, 0x71, 0x02, 0x4e, 0xfd, 0x07, 0x90, 0x8a, 0x04, 0x12, 0xc7, 0x1c, 0x72, 0xe4, 0x4e, 0xd5,
+	0x53, 0x95, 0x53, 0xd5, 0x43, 0x40, 0xc9, 0x21, 0xfc, 0x0f, 0xbd, 0x20, 0xdb, 0x63, 0xef, 0xda,
+	0xfb, 0xb3, 0x81, 0x5e, 0x7a, 0x49, 0x36, 0x33, 0xdf, 0x7c, 0x6f, 0xde, 0xf7, 0xbd, 0x37, 0x33,
+	0x1b, 0x90, 0x57, 0x31, 0x31, 0x31, 0x91, 0x09, 0x85, 0xbb, 0x86, 0xa5, 0xcb, 0x7b, 0x97, 0x2a,
+	0x88, 0xc2, 0x4b, 0x32, 0xbd, 0x27, 0xd9, 0x0e, 0xa6, 0x98, 0x3f, 0xe7, 0x03, 0x24, 0x06, 0x90,
+	0x18, 0x40, 0x98, 0xd6, 0x31, 0xd6, 0xab, 0x48, 0xf6, 0x50, 0x95, 0xda, 0xb6, 0x0c, 0xad, 0xba,
+	0xbf, 0x44, 0xc8, 0xc7, 0xa7, 0xa8, 0x61, 0x22, 0x42, 0xa1, 0x69, 0x33, 0xc0, 0xa4, 0x8e, 0x75,
+	0xec, 0x7d, 0x94, 0xdd, 0x4f, 0x6c, 0x74, 0xda, 0x8f, 0x54, 0xf6, 0x27, 0x58, 0x58, 0x7f, 0x2a,
+	0xc7, 0x76, 0x59, 0x81, 0x04, 0x85, 0x5b, 0x54, 0xb1, 0x61, 0xb1, 0xf9, 0xb9, 0x0e, 0x59, 0x04,
+	0x9b, 0xf6, 0x51, 0xe7, 0x19, 0xca, 0x24, 0x2e, 0xc2, 0xfd, 0xc5, 0x26, 0xc6, 0xa1, 0x69, 0x58,
+	0x58, 0xf6, 0x7e, 0xfa, 0x43, 0xe2, 0xb3, 0x01, 0xc0, 0xaf, 0x13, 0xfd, 0x86, 0x83, 0x20, 0x45,
+	0x77, 0x60, 0xd5, 0xd0, 0x20, 0xc5, 0x0e, 0xbf, 0x01, 0x86, 0x35, 0x44, 0x54, 0xc7, 0xb0, 0xa9,
+	0x81, 0xad, 0x2c, 0x37, 0xcb, 0x2d, 0x0c, 0x2f, 0x5f, 0x94, 0xda, 0x6b, 0x24, 0xad, 0x35, 0xa0,
+	0xa5, 0xa1, 0x87, 0x47, 0xf9, 0xc4, 0xef, 0xa7, 0xfb, 0x8b, 0x9c, 0xd2, 0x4c, 0xc1, 0x2b, 0x00,
+	0xa8, 0xd8, 0x34, 0x0d, 0x42, 0x5c, 0xc2, 0xa4, 0x47, 0x38, 0xdf, 0x89, 0xf0, 0x46, 0x88, 0x54,
+	0x20, 0x45, 0xa4, 0x99, 0xb4, 0x89, 0x85, 0xff, 0x06, 0x4c, 0x98, 0x86, 0x55, 0x26, 0xa8, 0xba,
+	0x5d, 0xd6, 0x50, 0x15, 0xe9, 0xd0, 0xdb, 0x6d, 0x6a, 0x96, 0x5b, 0x18, 0x2a, 0x2d, 0xb9, 0x6b,
+	0x9e, 0x1e, 0xe5, 0xa7, 0xfc, 0x18, 0x44, 0xdb, 0x95, 0x0c, 0x2c, 0x9b, 0x90, 0xee, 0x48, 0xb7,
+	0x2d, 0x7a, 0x78, 0x50, 0x00, 0x2c, 0xf8, 0x6d, 0x8b, 0xfa, 0xd4, 0xe3, 0xa6, 0x61, 0x6d, 0xa2,
+	0xea, 0xf6, 0x5a, 0x48, 0xc5, 0x7f, 0x00, 0xc6, 0x19, 0x31, 0x76, 0xca, 0x50, 0xd3, 0x1c, 0x44,
+	0x48, 0x76, 0xc0, 0xe3, 0x17, 0x0e, 0x0f, 0x0a, 0x93, 0x8c, 0x62, 0xd5, 0x9f, 0xd9, 0xa4, 0x8e,
+	0x61, 0xe9, 0x59, 0x4e, 0x19, 0x0b, 0x17, 0xb1, 0x19, 0xfe, 0x53, 0x30, 0xbe, 0x17, 0xa8, 0x1b,
+	0x12, 0x0d, 0x7a, 0x44, 0x6f, 0x1c, 0x1e, 0x14, 0x5e, 0x67, 0x44, 0xa1, 0x03, 0x11, 0x46, 0x65,
+	0x6c, 0x2f, 0x36, 0xce, 0xdf, 0x02, 0x69, 0xbb, 0x56, 0xd9, 0x45, 0xf5, 0x6c, 0xda, 0x93, 0x72,
+	0x52, 0xf2, 0x8b, 0x51, 0x0a, 0x8a, 0x51, 0x5a, 0xb5, 0xea, 0xa5, 0xec, 0xa3, 0xc6, 0x1e, 0x55,
+	0xa7, 0x6e, 0x53, 0x2c, 0x6d, 0xd4, 0x2a, 0x1f, 0xa3, 0xba, 0xc2, 0x56, 0xf3, 0x45, 0x30, 0xb8,
+	0x07, 0xab, 0x35, 0x94, 0x7d, 0xc5, 0xa3, 0x99, 0x0e, 0x1c, 0x71, 0x2b, 0xb0, 0xc9, 0x0e, 0x23,
+	0x62, 0xac, 0xbf, 0xa4, 0x78, 0xfd, 0x87, 0x07, 0xf9, 0xc4, 0x3f, 0x0f, 0xf2, 0x89, 0xef, 0x4f,
+	0xf7, 0x17, 0x5b, 0xd3, 0xfb, 0xe9, 0x74, 0x7f, 0x91, 0xe5, 0x55, 0x20, 0xda, 0xae, 0xdc, 0x5a,
+	0x66, 0xe2, 0x0c, 0x10, 0x5a, 0x47, 0x15, 0x44, 0x6c, 0x6c, 0x11, 0x24, 0xfe, 0x96, 0x02, 0x63,
+	0xeb, 0x44, 0xbf, 0xa9, 0x19, 0xf4, 0x45, 0x56, 0x66, 0x5b, 0x6b, 0x92, 0x67, 0xb7, 0xe6, 0x0e,
+	0xc8, 0x34, 0x6a, 0xb4, 0xec, 0x40, 0x8a, 0x58, 0x45, 0x16, 0x9e, 0x1e, 0xe5, 0x2f, 0xb4, 0x56,
+	0xe3, 0x27, 0x48, 0x87, 0x6a, 0x7d, 0x0d, 0xa9, 0x4d, 0x35, 0xb9, 0x86, 0x54, 0x65, 0x54, 0x8d,
+	0x74, 0x01, 0xff, 0x45, 0xfb, 0x6a, 0xf7, 0xab, 0x71, 0xbe, 0xcf, 0x4a, 0x6f, 0x53, 0xe4, 0xc5,
+	0xf7, 0x7b, 0xfb, 0x78, 0x21, 0xea, 0x63, 0xc4, 0x12, 0x51, 0x00, 0xd9, 0xf8, 0x58, 0xe8, 0xe1,
+	0xcf, 0x49, 0x30, 0xbc, 0x4e, 0x74, 0x16, 0x0d, 0xf1, 0x37, 0xdb, 0x35, 0x14, 0xe7, 0xa5, 0x90,
+	0xed, 0xd4, 0x50, 0xfd, 0xb6, 0xd3, 0x7f, 0xf0, 0xec, 0x1a, 0x48, 0x43, 0x13, 0xd7, 0x2c, 0xea,
+	0x59, 0xd5, 0x6f, 0x1f, 0xb0, 0x35, 0xc5, 0xf7, 0x22, 0x02, 0xb6, 0xe4, 0xe7, 0x0a, 0x78, 0x2e,
+	0x2a, 0x60, 0xa0, 0x87, 0x38, 0x05, 0x26, 0x9a, 0xfe, 0x0c, 0x65, 0xfb, 0x31, 0xe5, 0x1d, 0xcb,
+	0x25, 0xa4, 0x1b, 0x96, 0x82, 0xb4, 0xff, 0x59, 0xbd, 0x2d, 0x30, 0xd5, 0x50, 0x8f, 0x38, 0xea,
+	0xf3, 0x2b, 0x38, 0x11, 0xae, 0xdf, 0x74, 0xd4, 0xb6, 0xb4, 0x1a, 0xa1, 0x21, 0x6d, 0xea, 0xf9,
+	0x69, 0xd7, 0x08, 0x6d, 0xf5, 0x66, 0xe0, 0x0c, 0xde, 0x5c, 0xef, 0xed, 0x4d, 0xec, 0x90, 0x8a,
+	0x89, 0x2e, 0xda, 0xde, 0x21, 0x15, 0x1b, 0x0d, 0x9c, 0xe2, 0x15, 0xaf, 0xdb, 0xed, 0x2a, 0x72,
+	0x5b, 0xa9, 0xec, 0xbe, 0x00, 0xd8, 0x99, 0x24, 0xb4, 0x9c, 0xc8, 0x9f, 0x07, 0xcf, 0x83, 0xd2,
+	0x88, 0xbb, 0xcf, 0xfb, 0x7f, 0xe5, 0x39, 0x7f, 0xaf, 0xa3, 0x0d, 0x06, 0x17, 0x23, 0xfe, 0x92,
+	0x04, 0x23, 0xeb, 0x44, 0xdf, 0xb2, 0xb4, 0x97, 0xba, 0x6d, 0xae, 0xf6, 0xb6, 0x26, 0x1b, 0xb5,
+	0xa6, 0xa1, 0x88, 0xf8, 0x07, 0x07, 0xa6, 0x22, 0x23, 0x2f, 0xd2, 0x11, 0xfe, 0xb3, 0x30, 0xd1,
+	0x64, 0xaf, 0x44, 0x67, 0xbc, 0x77, 0xc7, 0x41, 0x21, 0xd3, 0xd8, 0xfa, 0xec, 0x92, 0xf4, 0xee,
+	0x52, 0x24, 0x77, 0xf1, 0x59, 0x12, 0xcc, 0xb8, 0x57, 0x1f, 0xb4, 0x54, 0x54, 0xdd, 0xb2, 0x2a,
+	0xd8, 0xd2, 0x0c, 0x4b, 0x6f, 0x7a, 0x79, 0xbc, 0x8c, 0x8e, 0xf3, 0xf3, 0x20, 0xa3, 0xba, 0x97,
+	0xbd, 0x6b, 0xcc, 0x0e, 0x32, 0xf4, 0x1d, 0xbf, 0xa7, 0x53, 0xca, 0x68, 0x30, 0xfc, 0xa1, 0x37,
+	0x5a, 0xfc, 0x3a, 0x28, 0x8d, 0xc3, 0xb8, 0x90, 0x97, 0xaf, 0x74, 0xae, 0x96, 0xf9, 0xd8, 0x6b,
+	0xa3, 0x93, 0xb8, 0xe2, 0x55, 0x30, 0xd7, 0x6d, 0x3e, 0x28, 0xa5, 0xe2, 0x44, 0x9b, 0xf0, 0xe2,
+	0x13, 0x0e, 0x64, 0xdc, 0xca, 0xb3, 0x35, 0x48, 0xd1, 0x06, 0x74, 0xa0, 0x49, 0xf8, 0x2b, 0x60,
+	0x08, 0xd6, 0xe8, 0x0e, 0x76, 0x0c, 0x5a, 0xef, 0xe9, 0x52, 0x03, 0xca, 0xaf, 0x82, 0xb4, 0xed,
+	0x31, 0xb0, 0xba, 0xca, 0x75, 0x7a, 0xc8, 0xf8, 0x71, 0x22, 0x9a, 0xfa, 0x0b, 0x8b, 0x1f, 0xb5,
+	0xee, 0x71, 0xc5, 0x95, 0xa8, 0x11, 0xc5, 0x95, 0x66, 0xae, 0x49, 0x9a, 0x7b, 0xe1, 0xf7, 0x87,
+	0x58, 0x1a, 0xa2, 0x04, 0xce, 0xc7, 0x86, 0xba, 0x49, 0xb1, 0xb2, 0xfc, 0x67, 0x1a, 0xa4, 0xd6,
+	0x89, 0xce, 0xdf, 0x05, 0x99, 0xf8, 0x37, 0x88, 0xc5, 0x4e, 0x99, 0xb4, 0x3e, 0xf8, 0x84, 0xe5,
+	0xfe, 0xb1, 0x61, 0x97, 0xef, 0x82, 0x91, 0xe8, 0xc3, 0x70, 0xa1, 0x0b, 0x49, 0x04, 0x29, 0x2c,
+	0xf5, 0x8b, 0x0c, 0x83, 0x7d, 0x05, 0x5e, 0x0d, 0x5f, 0x30, 0x17, 0xbb, 0xac, 0x0e, 0x40, 0xc2,
+	0x5b, 0x7d, 0x80, 0x42, 0xf6, 0xbb, 0x20, 0x13, 0xbf, 0xe8, 0xbb, 0xa9, 0x17, 0xc3, 0x76, 0x55,
+	0xaf, 0xd3, 0xad, 0x55, 0x01, 0xa0, 0xe9, 0x76, 0x79, 0xb3, 0x0b, 0x43, 0x03, 0x26, 0x14, 0xfa,
+	0x82, 0x85, 0x31, 0x7e, 0xe5, 0xc0, 0x74, 0xe7, 0xf3, 0xed, 0x72, 0x37, 0xcf, 0x3b, 0xad, 0x12,
+	0xae, 0x9d, 0x65, 0x55, 0xf8, 0xaa, 0x9a, 0x78, 0xd4, 0xda, 0xce, 0xfc, 0xb7, 0xe0, 0xb5, 0x48,
+	0x2b, 0xcf, 0x77, 0xcb, 0xb2, 0x09, 0x28, 0xc8, 0x7d, 0x02, 0xbb, 0x85, 0x5f, 0x11, 0x06, 0xbf,
+	0x73, 0xbb, 0xb9, 0x74, 0xeb, 0xe1, 0x71, 0x8e, 0x7b, 0x7c, 0x9c, 0xe3, 0xfe, 0x3e, 0xce, 0x71,
+	0xf7, 0x4f, 0x72, 0x89, 0xc7, 0x27, 0xb9, 0xc4, 0x93, 0x93, 0x5c, 0xe2, 0xcb, 0xb7, 0x75, 0x83,
+	0xee, 0xd4, 0x2a, 0x92, 0x8a, 0x4d, 0xf6, 0xcf, 0x02, 0xb9, 0x6d, 0x2f, 0xd3, 0xba, 0x8d, 0x48,
+	0x25, 0xed, 0xdd, 0x6d, 0xef, 0xfc, 0x1b, 0x00, 0x00, 0xff, 0xff, 0xf8, 0x25, 0x35, 0x94, 0xf0,
+	0x10, 0x00, 0x00,
 }
 
 // Reference imports to suppress errors if they are not otherwise used.
@@ -618,6 +762,12 @@ type MsgClient interface {
 	// Undelegate defines a method for performing an undelegation from a
 	// delegate and a validator.
 	Undelegate(ctx context.Context, in *MsgUndelegate, opts ...grpc.CallOption) (*MsgUndelegateResponse, error)
+	// CancelUnbondingDelegation defines a method for performing canceling the unbonding delegation
+	// and delegate back to previous validator.
+	CancelUnbondingDelegation(ctx context.Context, in *MsgCancelUnbondingDelegation, opts ...grpc.CallOption) (*MsgCancelUnbondingDelegationResponse, error)
+	// UpdateParams defines an operation for updating the x/staking module
+	// parameters.
+	UpdateParams(ctx context.Context, in *MsgUpdateParams, opts ...grpc.CallOption) (*MsgUpdateParamsResponse, error)
 }
 
 type msgClient struct {
@@ -673,6 +823,24 @@ func (c *msgClient) Undelegate(ctx context.Context, in *MsgUndelegate, opts ...g
 	return out, nil
 }
 
+func (c *msgClient) CancelUnbondingDelegation(ctx context.Context, in *MsgCancelUnbondingDelegation, opts ...grpc.CallOption) (*MsgCancelUnbondingDelegationResponse, error) {
+	out := new(MsgCancelUnbondingDelegationResponse)
+	err := c.cc.Invoke(ctx, "/cosmos.staking.v1beta1.Msg/CancelUnbondingDelegation", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *msgClient) UpdateParams(ctx context.Context, in *MsgUpdateParams, opts ...grpc.CallOption) (*MsgUpdateParamsResponse, error) {
+	out := new(MsgUpdateParamsResponse)
+	err := c.cc.Invoke(ctx, "/cosmos.staking.v1beta1.Msg/UpdateParams", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // MsgServer is the server API for Msg service.
 type MsgServer interface {
 	// CreateValidator defines a method for creating a new validator.
@@ -688,6 +856,12 @@ type MsgServer interface {
 	// Undelegate defines a method for performing an undelegation from a
 	// delegate and a validator.
 	Undelegate(context.Context, *MsgUndelegate) (*MsgUndelegateResponse, error)
+	// CancelUnbondingDelegation defines a method for performing canceling the unbonding delegation
+	// and delegate back to previous validator.
+	CancelUnbondingDelegation(context.Context, *MsgCancelUnbondingDelegation) (*MsgCancelUnbondingDelegationResponse, error)
+	// UpdateParams defines an operation for updating the x/staking module
+	// parameters.
+	UpdateParams(context.Context, *MsgUpdateParams) (*MsgUpdateParamsResponse, error)
 }
 
 // UnimplementedMsgServer can be embedded to have forward compatible implementations.
@@ -708,6 +882,12 @@ func (*UnimplementedMsgServer) BeginRedelegate(ctx context.Context, req *MsgBegi
 }
 func (*UnimplementedMsgServer) Undelegate(ctx context.Context, req *MsgUndelegate) (*MsgUndelegateResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Undelegate not implemented")
+}
+func (*UnimplementedMsgServer) CancelUnbondingDelegation(ctx context.Context, req *MsgCancelUnbondingDelegation) (*MsgCancelUnbondingDelegationResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method CancelUnbondingDelegation not implemented")
+}
+func (*UnimplementedMsgServer) UpdateParams(ctx context.Context, req *MsgUpdateParams) (*MsgUpdateParamsResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method UpdateParams not implemented")
 }
 
 func RegisterMsgServer(s grpc1.Server, srv MsgServer) {
@@ -804,6 +984,43 @@ func _Msg_Undelegate_Handler(srv interface{}, ctx context.Context, dec func(inte
 	return interceptor(ctx, in, info, handler)
 }
 
+func _Msg_CancelUnbondingDelegation_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(MsgCancelUnbondingDelegation)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(MsgServer).CancelUnbondingDelegation(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/cosmos.staking.v1beta1.Msg/CancelUnbondingDelegation",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(MsgServer).CancelUnbondingDelegation(ctx, req.(*MsgCancelUnbondingDelegation))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _Msg_UpdateParams_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(MsgUpdateParams)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(MsgServer).UpdateParams(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/cosmos.staking.v1beta1.Msg/UpdateParams",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(MsgServer).UpdateParams(ctx, req.(*MsgUpdateParams))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+var Msg_serviceDesc = _Msg_serviceDesc
 var _Msg_serviceDesc = grpc.ServiceDesc{
 	ServiceName: "cosmos.staking.v1beta1.Msg",
 	HandlerType: (*MsgServer)(nil),
@@ -827,6 +1044,14 @@ var _Msg_serviceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "Undelegate",
 			Handler:    _Msg_Undelegate_Handler,
+		},
+		{
+			MethodName: "CancelUnbondingDelegation",
+			Handler:    _Msg_CancelUnbondingDelegation_Handler,
+		},
+		{
+			MethodName: "UpdateParams",
+			Handler:    _Msg_UpdateParams_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},
@@ -1176,7 +1401,7 @@ func (m *MsgBeginRedelegateResponse) MarshalToSizedBuffer(dAtA []byte) (int, err
 	_ = i
 	var l int
 	_ = l
-	n8, err8 := github_com_gogo_protobuf_types.StdTimeMarshalTo(m.CompletionTime, dAtA[i-github_com_gogo_protobuf_types.SizeOfStdTime(m.CompletionTime):])
+	n8, err8 := github_com_cosmos_gogoproto_types.StdTimeMarshalTo(m.CompletionTime, dAtA[i-github_com_cosmos_gogoproto_types.SizeOfStdTime(m.CompletionTime):])
 	if err8 != nil {
 		return 0, err8
 	}
@@ -1254,14 +1479,162 @@ func (m *MsgUndelegateResponse) MarshalToSizedBuffer(dAtA []byte) (int, error) {
 	_ = i
 	var l int
 	_ = l
-	n10, err10 := github_com_gogo_protobuf_types.StdTimeMarshalTo(m.CompletionTime, dAtA[i-github_com_gogo_protobuf_types.SizeOfStdTime(m.CompletionTime):])
-	if err10 != nil {
-		return 0, err10
+	{
+		size, err := m.Amount.MarshalToSizedBuffer(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = encodeVarintTx(dAtA, i, uint64(size))
 	}
-	i -= n10
-	i = encodeVarintTx(dAtA, i, uint64(n10))
+	i--
+	dAtA[i] = 0x12
+	n11, err11 := github_com_cosmos_gogoproto_types.StdTimeMarshalTo(m.CompletionTime, dAtA[i-github_com_cosmos_gogoproto_types.SizeOfStdTime(m.CompletionTime):])
+	if err11 != nil {
+		return 0, err11
+	}
+	i -= n11
+	i = encodeVarintTx(dAtA, i, uint64(n11))
 	i--
 	dAtA[i] = 0xa
+	return len(dAtA) - i, nil
+}
+
+func (m *MsgCancelUnbondingDelegation) Marshal() (dAtA []byte, err error) {
+	size := m.Size()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBuffer(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *MsgCancelUnbondingDelegation) MarshalTo(dAtA []byte) (int, error) {
+	size := m.Size()
+	return m.MarshalToSizedBuffer(dAtA[:size])
+}
+
+func (m *MsgCancelUnbondingDelegation) MarshalToSizedBuffer(dAtA []byte) (int, error) {
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.CreationHeight != 0 {
+		i = encodeVarintTx(dAtA, i, uint64(m.CreationHeight))
+		i--
+		dAtA[i] = 0x20
+	}
+	{
+		size, err := m.Amount.MarshalToSizedBuffer(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = encodeVarintTx(dAtA, i, uint64(size))
+	}
+	i--
+	dAtA[i] = 0x1a
+	if len(m.ValidatorAddress) > 0 {
+		i -= len(m.ValidatorAddress)
+		copy(dAtA[i:], m.ValidatorAddress)
+		i = encodeVarintTx(dAtA, i, uint64(len(m.ValidatorAddress)))
+		i--
+		dAtA[i] = 0x12
+	}
+	if len(m.DelegatorAddress) > 0 {
+		i -= len(m.DelegatorAddress)
+		copy(dAtA[i:], m.DelegatorAddress)
+		i = encodeVarintTx(dAtA, i, uint64(len(m.DelegatorAddress)))
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *MsgCancelUnbondingDelegationResponse) Marshal() (dAtA []byte, err error) {
+	size := m.Size()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBuffer(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *MsgCancelUnbondingDelegationResponse) MarshalTo(dAtA []byte) (int, error) {
+	size := m.Size()
+	return m.MarshalToSizedBuffer(dAtA[:size])
+}
+
+func (m *MsgCancelUnbondingDelegationResponse) MarshalToSizedBuffer(dAtA []byte) (int, error) {
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	return len(dAtA) - i, nil
+}
+
+func (m *MsgUpdateParams) Marshal() (dAtA []byte, err error) {
+	size := m.Size()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBuffer(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *MsgUpdateParams) MarshalTo(dAtA []byte) (int, error) {
+	size := m.Size()
+	return m.MarshalToSizedBuffer(dAtA[:size])
+}
+
+func (m *MsgUpdateParams) MarshalToSizedBuffer(dAtA []byte) (int, error) {
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	{
+		size, err := m.Params.MarshalToSizedBuffer(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = encodeVarintTx(dAtA, i, uint64(size))
+	}
+	i--
+	dAtA[i] = 0x12
+	if len(m.Authority) > 0 {
+		i -= len(m.Authority)
+		copy(dAtA[i:], m.Authority)
+		i = encodeVarintTx(dAtA, i, uint64(len(m.Authority)))
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *MsgUpdateParamsResponse) Marshal() (dAtA []byte, err error) {
+	size := m.Size()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBuffer(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *MsgUpdateParamsResponse) MarshalTo(dAtA []byte) (int, error) {
+	size := m.Size()
+	return m.MarshalToSizedBuffer(dAtA[:size])
+}
+
+func (m *MsgUpdateParamsResponse) MarshalToSizedBuffer(dAtA []byte) (int, error) {
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
 	return len(dAtA) - i, nil
 }
 
@@ -1403,7 +1776,7 @@ func (m *MsgBeginRedelegateResponse) Size() (n int) {
 	}
 	var l int
 	_ = l
-	l = github_com_gogo_protobuf_types.SizeOfStdTime(m.CompletionTime)
+	l = github_com_cosmos_gogoproto_types.SizeOfStdTime(m.CompletionTime)
 	n += 1 + l + sovTx(uint64(l))
 	return n
 }
@@ -1433,8 +1806,65 @@ func (m *MsgUndelegateResponse) Size() (n int) {
 	}
 	var l int
 	_ = l
-	l = github_com_gogo_protobuf_types.SizeOfStdTime(m.CompletionTime)
+	l = github_com_cosmos_gogoproto_types.SizeOfStdTime(m.CompletionTime)
 	n += 1 + l + sovTx(uint64(l))
+	l = m.Amount.Size()
+	n += 1 + l + sovTx(uint64(l))
+	return n
+}
+
+func (m *MsgCancelUnbondingDelegation) Size() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	l = len(m.DelegatorAddress)
+	if l > 0 {
+		n += 1 + l + sovTx(uint64(l))
+	}
+	l = len(m.ValidatorAddress)
+	if l > 0 {
+		n += 1 + l + sovTx(uint64(l))
+	}
+	l = m.Amount.Size()
+	n += 1 + l + sovTx(uint64(l))
+	if m.CreationHeight != 0 {
+		n += 1 + sovTx(uint64(m.CreationHeight))
+	}
+	return n
+}
+
+func (m *MsgCancelUnbondingDelegationResponse) Size() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	return n
+}
+
+func (m *MsgUpdateParams) Size() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	l = len(m.Authority)
+	if l > 0 {
+		n += 1 + l + sovTx(uint64(l))
+	}
+	l = m.Params.Size()
+	n += 1 + l + sovTx(uint64(l))
+	return n
+}
+
+func (m *MsgUpdateParamsResponse) Size() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
 	return n
 }
 
@@ -1667,7 +2097,7 @@ func (m *MsgCreateValidator) Unmarshal(dAtA []byte) error {
 				return io.ErrUnexpectedEOF
 			}
 			if m.Pubkey == nil {
-				m.Pubkey = &types.Any{}
+				m.Pubkey = &any.Any{}
 			}
 			if err := m.Pubkey.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
 				return err
@@ -1901,7 +2331,7 @@ func (m *MsgEditValidator) Unmarshal(dAtA []byte) error {
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
-			var v github_com_cosmos_cosmos_sdk_types.Dec
+			var v cosmossdk_io_math.LegacyDec
 			m.CommissionRate = &v
 			if err := m.CommissionRate.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
 				return err
@@ -1937,7 +2367,7 @@ func (m *MsgEditValidator) Unmarshal(dAtA []byte) error {
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
-			var v github_com_cosmos_cosmos_sdk_types.Int
+			var v cosmossdk_io_math.Int
 			m.MinSelfDelegation = &v
 			if err := m.MinSelfDelegation.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
 				return err
@@ -2448,7 +2878,7 @@ func (m *MsgBeginRedelegateResponse) Unmarshal(dAtA []byte) error {
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
-			if err := github_com_gogo_protobuf_types.StdTimeUnmarshal(&m.CompletionTime, dAtA[iNdEx:postIndex]); err != nil {
+			if err := github_com_cosmos_gogoproto_types.StdTimeUnmarshal(&m.CompletionTime, dAtA[iNdEx:postIndex]); err != nil {
 				return err
 			}
 			iNdEx = postIndex
@@ -2678,10 +3108,424 @@ func (m *MsgUndelegateResponse) Unmarshal(dAtA []byte) error {
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
-			if err := github_com_gogo_protobuf_types.StdTimeUnmarshal(&m.CompletionTime, dAtA[iNdEx:postIndex]); err != nil {
+			if err := github_com_cosmos_gogoproto_types.StdTimeUnmarshal(&m.CompletionTime, dAtA[iNdEx:postIndex]); err != nil {
 				return err
 			}
 			iNdEx = postIndex
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Amount", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowTx
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				msglen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return ErrInvalidLengthTx
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return ErrInvalidLengthTx
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if err := m.Amount.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := skipTx(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return ErrInvalidLengthTx
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+func (m *MsgCancelUnbondingDelegation) Unmarshal(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if shift >= 64 {
+				return ErrIntOverflowTx
+			}
+			if iNdEx >= l {
+				return io.ErrUnexpectedEOF
+			}
+			b := dAtA[iNdEx]
+			iNdEx++
+			wire |= uint64(b&0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: MsgCancelUnbondingDelegation: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: MsgCancelUnbondingDelegation: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field DelegatorAddress", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowTx
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return ErrInvalidLengthTx
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return ErrInvalidLengthTx
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.DelegatorAddress = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field ValidatorAddress", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowTx
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return ErrInvalidLengthTx
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return ErrInvalidLengthTx
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.ValidatorAddress = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 3:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Amount", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowTx
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				msglen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return ErrInvalidLengthTx
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return ErrInvalidLengthTx
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if err := m.Amount.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 4:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field CreationHeight", wireType)
+			}
+			m.CreationHeight = 0
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowTx
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				m.CreationHeight |= int64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+		default:
+			iNdEx = preIndex
+			skippy, err := skipTx(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return ErrInvalidLengthTx
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+func (m *MsgCancelUnbondingDelegationResponse) Unmarshal(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if shift >= 64 {
+				return ErrIntOverflowTx
+			}
+			if iNdEx >= l {
+				return io.ErrUnexpectedEOF
+			}
+			b := dAtA[iNdEx]
+			iNdEx++
+			wire |= uint64(b&0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: MsgCancelUnbondingDelegationResponse: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: MsgCancelUnbondingDelegationResponse: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		default:
+			iNdEx = preIndex
+			skippy, err := skipTx(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return ErrInvalidLengthTx
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+func (m *MsgUpdateParams) Unmarshal(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if shift >= 64 {
+				return ErrIntOverflowTx
+			}
+			if iNdEx >= l {
+				return io.ErrUnexpectedEOF
+			}
+			b := dAtA[iNdEx]
+			iNdEx++
+			wire |= uint64(b&0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: MsgUpdateParams: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: MsgUpdateParams: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Authority", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowTx
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return ErrInvalidLengthTx
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return ErrInvalidLengthTx
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.Authority = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Params", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowTx
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				msglen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return ErrInvalidLengthTx
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return ErrInvalidLengthTx
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if err := m.Params.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := skipTx(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return ErrInvalidLengthTx
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+func (m *MsgUpdateParamsResponse) Unmarshal(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if shift >= 64 {
+				return ErrIntOverflowTx
+			}
+			if iNdEx >= l {
+				return io.ErrUnexpectedEOF
+			}
+			b := dAtA[iNdEx]
+			iNdEx++
+			wire |= uint64(b&0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: MsgUpdateParamsResponse: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: MsgUpdateParamsResponse: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
 		default:
 			iNdEx = preIndex
 			skippy, err := skipTx(dAtA[iNdEx:])

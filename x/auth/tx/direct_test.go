@@ -1,10 +1,12 @@
 package tx
 
 import (
+	"context"
 	"fmt"
 	"testing"
 
 	"github.com/stretchr/testify/require"
+	protov2 "google.golang.org/protobuf/proto"
 
 	"github.com/cosmos/cosmos-sdk/codec"
 	codectypes "github.com/cosmos/cosmos-sdk/codec/types"
@@ -64,17 +66,21 @@ func TestDirectModeHandler(t *testing.T) {
 	require.NoError(t, err)
 
 	t.Log("verify modes and default-mode")
-	modeHandler := txConfig.SignModeHandler()
-	require.Equal(t, modeHandler.DefaultMode(), signingtypes.SignMode_SIGN_MODE_DIRECT)
-	require.Len(t, modeHandler.Modes(), 1)
+	defaultSignMode, err := signing.APISignModeToInternal(txConfig.SignModeHandler().DefaultMode())
+	require.NoError(t, err)
+	require.Equal(t, defaultSignMode, signingtypes.SignMode_SIGN_MODE_DIRECT)
+	require.Len(t, txConfig.SignModeHandler().SupportedModes(), 1)
 
 	signingData := signing.SignerData{
+		Address:       addr.String(),
 		ChainID:       "test-chain",
 		AccountNumber: 1,
+		PubKey:        pubkey,
 	}
 
-	signBytes, err := modeHandler.GetSignBytes(signingtypes.SignMode_SIGN_MODE_DIRECT, signingData, txBuilder.GetTx())
-
+	signBytes, err := signing.GetSignBytesAdapter(
+		context.Background(), txConfig.SignModeHandler(), defaultSignMode, signingData,
+		txBuilder.GetTx())
 	require.NoError(t, err)
 	require.NotNil(t, signBytes)
 
@@ -118,7 +124,9 @@ func TestDirectModeHandler(t *testing.T) {
 	require.NoError(t, err)
 	err = txBuilder.SetSignatures(sig)
 	require.NoError(t, err)
-	signBytes, err = modeHandler.GetSignBytes(signingtypes.SignMode_SIGN_MODE_DIRECT, signingData, txBuilder.GetTx())
+	signBytes, err = signing.GetSignBytesAdapter(
+		context.Background(), txConfig.SignModeHandler(), defaultSignMode, signingData,
+		txBuilder.GetTx())
 	require.NoError(t, err)
 	require.Equal(t, expectedSignBytes, signBytes)
 
@@ -149,8 +157,9 @@ func TestDirectModeHandler_nonDIRECT_MODE(t *testing.T) {
 
 type nonProtoTx int
 
-func (npt *nonProtoTx) GetMsgs() []sdk.Msg   { return nil }
-func (npt *nonProtoTx) ValidateBasic() error { return nil }
+func (npt *nonProtoTx) GetMsgs() []sdk.Msg                    { return nil }
+func (npt *nonProtoTx) GetMsgsV2() ([]protov2.Message, error) { return nil, nil }
+func (npt *nonProtoTx) ValidateBasic() error                  { return nil }
 
 var _ sdk.Tx = (*nonProtoTx)(nil)
 

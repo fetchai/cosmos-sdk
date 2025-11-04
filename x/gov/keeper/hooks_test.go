@@ -1,17 +1,19 @@
 package keeper_test
 
 import (
+	"context"
 	"testing"
 	"time"
 
 	"github.com/stretchr/testify/require"
-	tmproto "github.com/tendermint/tendermint/proto/tendermint/types"
 
-	"github.com/cosmos/cosmos-sdk/simapp"
+	"github.com/cosmos/cosmos-sdk/codec/address"
+	simtestutil "github.com/cosmos/cosmos-sdk/testutil/sims"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/x/gov"
 	"github.com/cosmos/cosmos-sdk/x/gov/keeper"
 	"github.com/cosmos/cosmos-sdk/x/gov/types"
+	v1 "github.com/cosmos/cosmos-sdk/x/gov/types/v1"
 )
 
 var _ types.GovHooks = &MockGovHooksReceiver{}
@@ -25,37 +27,43 @@ type MockGovHooksReceiver struct {
 	AfterProposalVotingPeriodEndedValid bool
 }
 
-func (h *MockGovHooksReceiver) AfterProposalSubmission(ctx sdk.Context, proposalID uint64) {
+func (h *MockGovHooksReceiver) AfterProposalSubmission(ctx context.Context, proposalID uint64) error {
 	h.AfterProposalSubmissionValid = true
+	return nil
 }
 
-func (h *MockGovHooksReceiver) AfterProposalDeposit(ctx sdk.Context, proposalID uint64, depositorAddr sdk.AccAddress) {
+func (h *MockGovHooksReceiver) AfterProposalDeposit(ctx context.Context, proposalID uint64, depositorAddr sdk.AccAddress) error {
 	h.AfterProposalDepositValid = true
+	return nil
 }
 
-func (h *MockGovHooksReceiver) AfterProposalVote(ctx sdk.Context, proposalID uint64, voterAddr sdk.AccAddress) {
+func (h *MockGovHooksReceiver) AfterProposalVote(ctx context.Context, proposalID uint64, voterAddr sdk.AccAddress) error {
 	h.AfterProposalVoteValid = true
+	return nil
 }
 
-func (h *MockGovHooksReceiver) AfterProposalFailedMinDeposit(ctx sdk.Context, proposalID uint64) {
+func (h *MockGovHooksReceiver) AfterProposalFailedMinDeposit(ctx context.Context, proposalID uint64) error {
 	h.AfterProposalFailedMinDepositValid = true
+	return nil
 }
 
-func (h *MockGovHooksReceiver) AfterProposalVotingPeriodEnded(ctx sdk.Context, proposalID uint64) {
+func (h *MockGovHooksReceiver) AfterProposalVotingPeriodEnded(ctx context.Context, proposalID uint64) error {
 	h.AfterProposalVotingPeriodEndedValid = true
+	return nil
 }
 
 func TestHooks(t *testing.T) {
-	app := simapp.Setup(false)
-	ctx := app.BaseApp.NewContext(false, tmproto.Header{})
+	minDeposit := v1.DefaultParams().MinDeposit
+	govKeeper, authKeeper, bankKeeper, stakingKeeper, _, _, ctx := setupGovKeeper(t)
+	addrs := simtestutil.AddTestAddrs(bankKeeper, stakingKeeper, ctx, 1, minDeposit[0].Amount)
 
-	minDeposit := app.GovKeeper.GetDepositParams(ctx).MinDeposit
-	addrs := simapp.AddTestAddrs(app, ctx, 1, minDeposit[0].Amount)
+	authKeeper.EXPECT().AddressCodec().Return(address.NewBech32Codec("cosmos")).AnyTimes()
+	stakingKeeper.EXPECT().ValidatorAddressCodec().Return(address.NewBech32Codec("cosmosvaloper")).AnyTimes()
 
 	govHooksReceiver := MockGovHooksReceiver{}
 
 	keeper.UnsafeSetHooks(
-		&app.GovKeeper, types.NewMultiGovHooks(&govHooksReceiver),
+		govKeeper, types.NewMultiGovHooks(&govHooksReceiver),
 	)
 
 	require.False(t, govHooksReceiver.AfterProposalSubmissionValid)
@@ -65,32 +73,33 @@ func TestHooks(t *testing.T) {
 	require.False(t, govHooksReceiver.AfterProposalVotingPeriodEndedValid)
 
 	tp := TestProposal
-	_, err := app.GovKeeper.SubmitProposal(ctx, tp)
+	_, err := govKeeper.SubmitProposal(ctx, tp, "", "test", "summary", sdk.AccAddress("cosmos1ghekyjucln7y67ntx7cf27m9dpuxxemn4c8g4r"), false)
 	require.NoError(t, err)
 	require.True(t, govHooksReceiver.AfterProposalSubmissionValid)
 
+	params, _ := govKeeper.Params.Get(ctx)
 	newHeader := ctx.BlockHeader()
-	newHeader.Time = ctx.BlockHeader().Time.Add(app.GovKeeper.GetDepositParams(ctx).MaxDepositPeriod).Add(time.Duration(1) * time.Second)
+	newHeader.Time = ctx.BlockHeader().Time.Add(*params.MaxDepositPeriod).Add(time.Duration(1) * time.Second)
 	ctx = ctx.WithBlockHeader(newHeader)
-	gov.EndBlocker(ctx, app.GovKeeper)
+	require.NoError(t, gov.EndBlocker(ctx, govKeeper))
 
 	require.True(t, govHooksReceiver.AfterProposalFailedMinDepositValid)
 
-	p2, err := app.GovKeeper.SubmitProposal(ctx, tp)
+	p2, err := govKeeper.SubmitProposal(ctx, tp, "", "test", "summary", sdk.AccAddress("cosmos1ghekyjucln7y67ntx7cf27m9dpuxxemn4c8g4r"), false)
 	require.NoError(t, err)
 
-	activated, err := app.GovKeeper.AddDeposit(ctx, p2.ProposalId, addrs[0], minDeposit)
+	activated, err := govKeeper.AddDeposit(ctx, p2.Id, addrs[0], minDeposit)
 	require.True(t, activated)
 	require.NoError(t, err)
 	require.True(t, govHooksReceiver.AfterProposalDepositValid)
 
-	err = app.GovKeeper.AddVote(ctx, p2.ProposalId, addrs[0], types.NewNonSplitVoteOption(types.OptionYes))
+	err = govKeeper.AddVote(ctx, p2.Id, addrs[0], v1.NewNonSplitVoteOption(v1.OptionYes), "")
 	require.NoError(t, err)
 	require.True(t, govHooksReceiver.AfterProposalVoteValid)
 
 	newHeader = ctx.BlockHeader()
-	newHeader.Time = ctx.BlockHeader().Time.Add(app.GovKeeper.GetVotingParams(ctx).VotingPeriod).Add(time.Duration(1) * time.Second)
+	newHeader.Time = ctx.BlockHeader().Time.Add(*params.VotingPeriod).Add(time.Duration(1) * time.Second)
 	ctx = ctx.WithBlockHeader(newHeader)
-	gov.EndBlocker(ctx, app.GovKeeper)
+	require.NoError(t, gov.EndBlocker(ctx, govKeeper))
 	require.True(t, govHooksReceiver.AfterProposalVotingPeriodEndedValid)
 }

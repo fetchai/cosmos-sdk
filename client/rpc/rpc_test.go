@@ -1,17 +1,22 @@
 package rpc_test
 
 import (
+	"context"
 	"fmt"
+	"strconv"
 	"testing"
 
+	abci "github.com/cometbft/cometbft/abci/types"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
-	ctypes "github.com/tendermint/tendermint/rpc/core/types"
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/metadata"
 
-	"github.com/cosmos/cosmos-sdk/client/rpc"
-	"github.com/cosmos/cosmos-sdk/codec/legacy"
-	clitestutil "github.com/cosmos/cosmos-sdk/testutil/cli"
 	"github.com/cosmos/cosmos-sdk/testutil/network"
-	"github.com/cosmos/cosmos-sdk/types/rest"
+	"github.com/cosmos/cosmos-sdk/testutil/testdata"
+	"github.com/cosmos/cosmos-sdk/types/address"
+	grpctypes "github.com/cosmos/cosmos-sdk/types/grpc"
+	banktypes "github.com/cosmos/cosmos-sdk/x/bank/types"
 )
 
 type IntegrationTestSuite struct {
@@ -23,8 +28,12 @@ type IntegrationTestSuite struct {
 func (s *IntegrationTestSuite) SetupSuite() {
 	s.T().Log("setting up integration test suite")
 
-	s.network = network.New(s.T(), network.DefaultConfig())
-	s.Require().NotNil(s.network)
+	cfg, err := network.DefaultConfigWithAppConfig(network.MinimumAppConfig())
+
+	s.NoError(err)
+
+	s.network, err = network.New(s.T(), s.T().TempDir(), cfg)
+	s.Require().NoError(err)
 
 	s.Require().NoError(s.network.WaitForNextBlock())
 }
@@ -34,26 +43,83 @@ func (s *IntegrationTestSuite) TearDownSuite() {
 	s.network.Cleanup()
 }
 
-func (s *IntegrationTestSuite) TestStatusCommand() {
-	val0 := s.network.Validators[0]
-	cmd := rpc.StatusCommand()
+func (s *IntegrationTestSuite) TestCLIQueryConn() {
+	s.T().Skip("data race in comet is causing this to fail")
+	var header metadata.MD
 
-	out, err := clitestutil.ExecTestCLICmd(val0.ClientCtx, cmd, []string{})
+	testClient := testdata.NewQueryClient(s.network.Validators[0].ClientCtx)
+	res, err := testClient.Echo(context.Background(), &testdata.EchoRequest{Message: "hello"}, grpc.Header(&header))
+	s.NoError(err)
+
+	blockHeight := header.Get(grpctypes.GRPCBlockHeightHeader)
+	height, err := strconv.Atoi(blockHeight[0])
 	s.Require().NoError(err)
+	s.Require().GreaterOrEqual(height, 1) // at least the 1st block
 
-	// Make sure the output has the validator moniker.
-	s.Require().Contains(out.String(), fmt.Sprintf("\"moniker\":\"%s\"", val0.Moniker))
+	s.Equal("hello", res.Message)
 }
 
-func (s *IntegrationTestSuite) TestLatestBlocks() {
-	val0 := s.network.Validators[0]
+func (s *IntegrationTestSuite) TestQueryABCIHeight() {
+	testCases := []struct {
+		name                string
+		reqHeight           int64
+		ctxHeight           int64
+		awaitMinChainHeight int64
+		assertFn            func(t *testing.T, latestHeightAtQuery int64, resp abci.ResponseQuery)
+	}{
+		{
+			name:                "request height set",
+			reqHeight:           2, // no proof when < 2
+			ctxHeight:           1,
+			awaitMinChainHeight: 3, // wait +1 block to be on the safe side
+			assertFn: func(t *testing.T, _ int64, resp abci.ResponseQuery) {
+				t.Helper()
+				assert.Equal(t, int64(2), resp.Height)
+			},
+		},
+		{
+			name:                "fallback to context height when request height is not set",
+			reqHeight:           0,
+			ctxHeight:           3,
+			awaitMinChainHeight: 4, // wait +1 block to be on the safe side
+			assertFn: func(t *testing.T, _ int64, resp abci.ResponseQuery) {
+				t.Helper()
+				assert.Equal(t, int64(3), resp.Height)
+			},
+		},
+		{
+			name:                "with empty values, use latest height",
+			reqHeight:           0,
+			ctxHeight:           0,
+			awaitMinChainHeight: 2, // no proof when < 2
+			assertFn: func(t *testing.T, latestHeightAtQuery int64, resp abci.ResponseQuery) {
+				t.Helper()
+				anyOf := []int64{latestHeightAtQuery, latestHeightAtQuery - 1}
+				assert.Contains(t, anyOf, resp.Height)
+			},
+		},
+	}
+	for _, tc := range testCases {
+		s.Run(tc.name, func() {
+			currentHeight, err := s.network.WaitForHeight(tc.awaitMinChainHeight)
+			s.Require().NoError(err)
 
-	res, err := rest.GetRequest(fmt.Sprintf("%s/blocks/latest", val0.APIAddress))
-	s.Require().NoError(err)
+			val := s.network.Validators[0]
+			clientCtx := val.ClientCtx
+			clientCtx = clientCtx.WithHeight(tc.ctxHeight)
 
-	var result ctypes.ResultBlock
-	err = legacy.Cdc.UnmarshalJSON(res, &result)
-	s.Require().NoError(err)
+			req := abci.RequestQuery{
+				Path:   fmt.Sprintf("store/%s/key", banktypes.StoreKey),
+				Height: tc.reqHeight,
+				Data:   address.MustLengthPrefix(val.Address),
+				Prove:  true,
+			}
+
+			res, err := clientCtx.QueryABCI(req)
+			s.Require().NoError(err)
+			tc.assertFn(s.T(), currentHeight, res)
+		})
+	}
 }
 
 func TestIntegrationTestSuite(t *testing.T) {

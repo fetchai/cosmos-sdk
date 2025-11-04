@@ -1,7 +1,7 @@
 package types
 
 import (
-	sdk "github.com/cosmos/cosmos-sdk/types"
+	"cosmossdk.io/collections"
 )
 
 const (
@@ -13,20 +13,25 @@ const (
 
 	// FeeCollectorName the root string for the fee collector account address
 	FeeCollectorName = "fee_collector"
-
-	// QuerierRoute is the querier route for auth
-	QuerierRoute = ModuleName
 )
 
 var (
+	// ParamsKey is the prefix for params key
+	ParamsKey = collections.NewPrefix(0)
+
 	// AddressStoreKeyPrefix prefix for account-by-address store
-	AddressStoreKeyPrefix = []byte{0x01}
+	AddressStoreKeyPrefix = collections.NewPrefix(1)
 
-	// param key for global account number
-	GlobalAccountNumberKey = []byte("globalAccountNumber")
+	// GlobalAccountNumberKey identifies the prefix where the monotonically increasing
+	// account number is stored.
+	GlobalAccountNumberKey = collections.NewPrefix(2)
+
+	// AccountNumberStoreKeyPrefix prefix for account-by-id store
+	AccountNumberStoreKeyPrefix = collections.NewPrefix("accountNumber")
+
+	// UnorderedNoncesKey prefix for the unordered sequence storage.
+	UnorderedNoncesKey = collections.NewPrefix(90)
+
+	// legacy param key for global account number
+	LegacyGlobalAccountNumberKey = []byte("globalAccountNumber")
 )
-
-// AddressStoreKey turn an address to key used to get it from the account store
-func AddressStoreKey(addr sdk.AccAddress) []byte {
-	return append(AddressStoreKeyPrefix, addr.Bytes()...)
-}

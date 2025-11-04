@@ -2,8 +2,8 @@
 
 ## Changelog
 
-- 2020/08/18: Initial Draft
-- 2021/05/05: Removed height based expiration support and simplified naming.
+* 2020/08/18: Initial Draft
+* 2021/05/05: Removed height based expiration support and simplified naming.
 
 ## Status
 
@@ -59,7 +59,7 @@ type FeeAllowanceI {
 
 Two basic fee allowance types, `BasicAllowance` and `PeriodicAllowance` are defined to support known use cases:
 
-```proto
+```protobuf
 // BasicAllowance implements FeeAllowanceI with a one-time grant of tokens
 // that optionally expires. The delegatee can use up to SpendLimit to cover fees.
 message BasicAllowance {
@@ -98,7 +98,7 @@ message PeriodicAllowance {
 
 Allowances can be granted and revoked using `MsgGrantAllowance` and `MsgRevokeAllowance`:
 
-```proto
+```protobuf
 // MsgGrantAllowance adds permission for Grantee to spend up to Allowance
 // of fees from the account of Granter.
 message MsgGrantAllowance {
@@ -116,7 +116,7 @@ message MsgGrantAllowance {
 
 In order to use allowances in transactions, we add a new field `granter` to the transaction `Fee` type:
 
-```proto
+```protobuf
 package cosmos.tx.v1beta1;
 
 message Fee {
@@ -137,17 +137,17 @@ set and correctly deduct fees based on fee allowances.
 
 ### Positive
 
-- improved UX for use cases where it is cumbersome to maintain an account balance just for fees
+* improved UX for use cases where it is cumbersome to maintain an account balance just for fees
 
 ### Negative
 
 ### Neutral
 
-- a new field must be added to the transaction `Fee` message and a new `AnteDecorator` must be
+* a new field must be added to the transaction `Fee` message and a new `AnteDecorator` must be
 created to use it
 
 ## References
 
-- Blog article describing initial work: https://medium.com/regen-network/hacking-the-cosmos-cosmwasm-and-key-management-a08b9f561d1b
-- Initial public specification: https://gist.github.com/aaronc/b60628017352df5983791cad30babe56
-- Original subkeys proposal from B-harvest which influenced this design: https://github.com/cosmos/cosmos-sdk/issues/4480
+* Blog article describing initial work: https://medium.com/regen-network/hacking-the-cosmos-cosmwasm-and-key-management-a08b9f561d1b
+* Initial public specification: https://gist.github.com/aaronc/b60628017352df5983791cad30babe56
+* Original subkeys proposal from B-harvest which influenced this design: https://github.com/cosmos/cosmos-sdk/issues/4480

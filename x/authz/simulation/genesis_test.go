@@ -7,26 +7,31 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	"github.com/cosmos/cosmos-sdk/simapp"
+	sdkmath "cosmossdk.io/math"
+
 	"github.com/cosmos/cosmos-sdk/types/module"
+	moduletestutil "github.com/cosmos/cosmos-sdk/types/module/testutil"
 	simtypes "github.com/cosmos/cosmos-sdk/types/simulation"
 	"github.com/cosmos/cosmos-sdk/x/authz"
+	authzmodule "github.com/cosmos/cosmos-sdk/x/authz/module"
 	"github.com/cosmos/cosmos-sdk/x/authz/simulation"
+	banktypes "github.com/cosmos/cosmos-sdk/x/bank/types"
 )
 
 func TestRandomizedGenState(t *testing.T) {
-	app := simapp.Setup(false)
+	encCfg := moduletestutil.MakeTestEncodingConfig(authzmodule.AppModuleBasic{})
+	banktypes.RegisterInterfaces(encCfg.InterfaceRegistry)
 
 	s := rand.NewSource(1)
 	r := rand.New(s)
 
 	simState := module.SimulationState{
 		AppParams:    make(simtypes.AppParams),
-		Cdc:          app.AppCodec(),
+		Cdc:          encCfg.Codec,
 		Rand:         r,
 		NumBonded:    3,
 		Accounts:     simtypes.RandomAccounts(r, 3),
-		InitialStake: 1000,
+		InitialStake: sdkmath.NewInt(1000),
 		GenState:     make(map[string]json.RawMessage),
 	}
 

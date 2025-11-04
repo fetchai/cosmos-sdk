@@ -6,10 +6,11 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	"cosmossdk.io/x/upgrade/types"
+
 	"github.com/cosmos/cosmos-sdk/codec"
 	codectypes "github.com/cosmos/cosmos-sdk/codec/types"
-	gov "github.com/cosmos/cosmos-sdk/x/gov/types"
-	"github.com/cosmos/cosmos-sdk/x/upgrade/types"
+	gov "github.com/cosmos/cosmos-sdk/x/gov/types/v1beta1"
 )
 
 type ProposalWrapper struct {
@@ -33,14 +34,14 @@ func TestContentAccessors(t *testing.T) {
 			title: "Title",
 			desc:  "desc",
 			typ:   "SoftwareUpgrade",
-			str:   "Software Upgrade Proposal:\n  Title:       Title\n  Description: desc\n",
+			str:   "title:\"Title\" description:\"desc\" plan:<name:\"due_height\" time:<seconds:-62135596800 > height:99999999999 info:\"https://foo.bar\" > ",
 		},
 		"cancel": {
 			p:     types.NewCancelSoftwareUpgradeProposal("Cancel", "bad idea"),
 			title: "Cancel",
 			desc:  "bad idea",
 			typ:   "CancelSoftwareUpgrade",
-			str:   "Cancel Software Upgrade Proposal:\n  Title:       Cancel\n  Description: bad idea\n",
+			str:   "title:\"Cancel\" description:\"bad idea\" ",
 		},
 	}
 
@@ -49,7 +50,6 @@ func TestContentAccessors(t *testing.T) {
 	types.RegisterLegacyAminoCodec(cdc)
 
 	for name, tc := range cases {
-		tc := tc // copy to local variable for scopelint
 		t.Run(name, func(t *testing.T) {
 			assert.Equal(t, tc.title, tc.p.GetTitle())
 			assert.Equal(t, tc.desc, tc.p.GetDescription())
@@ -72,7 +72,6 @@ func TestContentAccessors(t *testing.T) {
 			assert.Equal(t, "upgrade", unwrap.Prop.ProposalRoute())
 			assert.Equal(t, tc.str, unwrap.Prop.String())
 		})
-
 	}
 }
 

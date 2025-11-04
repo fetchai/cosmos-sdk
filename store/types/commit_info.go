@@ -1,13 +1,11 @@
 package types
 
 import (
-	fmt "fmt"
+	"crypto/sha256"
 
-	ics23 "github.com/confio/ics23/go"
-	tmcrypto "github.com/tendermint/tendermint/proto/tendermint/crypto"
+	cmtprotocrypto "github.com/cometbft/cometbft/proto/tendermint/crypto"
 
-	sdkmaps "github.com/cosmos/cosmos-sdk/store/internal/maps"
-	sdkproofs "github.com/cosmos/cosmos-sdk/store/internal/proofs"
+	"cosmossdk.io/store/internal/maps"
 )
 
 // GetHash returns the GetHash from the CommitID.
@@ -34,35 +32,26 @@ func (ci CommitInfo) toMap() map[string][]byte {
 func (ci CommitInfo) Hash() []byte {
 	// we need a special case for empty set, as SimpleProofsFromMap requires at least one entry
 	if len(ci.StoreInfos) == 0 {
-		return nil
+		emptyHash := sha256.Sum256([]byte{})
+		return emptyHash[:]
 	}
 
-	rootHash, _, _ := sdkmaps.ProofsFromMap(ci.toMap())
+	rootHash, _, _ := maps.ProofsFromMap(ci.toMap())
+
+	if len(rootHash) == 0 {
+		emptyHash := sha256.Sum256([]byte{})
+		return emptyHash[:]
+	}
+
 	return rootHash
 }
 
-func (ci CommitInfo) ProofOp(storeName string) tmcrypto.ProofOp {
-	cmap := ci.toMap()
-	_, proofs, _ := sdkmaps.ProofsFromMap(cmap)
-
-	proof := proofs[storeName]
-	if proof == nil {
-		panic(fmt.Sprintf("ProofOp for %s but not registered store name", storeName))
-	}
-
-	// convert merkle.SimpleProof to CommitmentProof
-	existProof, err := sdkproofs.ConvertExistenceProof(proof, []byte(storeName), cmap[storeName])
+func (ci CommitInfo) ProofOp(storeName string) cmtprotocrypto.ProofOp {
+	ret, err := ProofOpFromMap(ci.toMap(), storeName)
 	if err != nil {
-		panic(fmt.Errorf("could not convert simple proof to existence proof: %w", err))
+		panic(err)
 	}
-
-	commitmentProof := &ics23.CommitmentProof{
-		Proof: &ics23.CommitmentProof_Exist{
-			Exist: existProof,
-		},
-	}
-
-	return NewSimpleMerkleCommitmentOp([]byte(storeName), commitmentProof).ProofOp()
+	return ret
 }
 
 func (ci CommitInfo) CommitID() CommitID {

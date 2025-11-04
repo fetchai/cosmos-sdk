@@ -6,13 +6,15 @@ import (
 	"reflect"
 	"strconv"
 
-	gogogrpc "github.com/gogo/protobuf/grpc"
-	abci "github.com/tendermint/tendermint/abci/types"
+	abci "github.com/cometbft/cometbft/abci/types"
+	gogogrpc "github.com/cosmos/gogoproto/grpc"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/encoding"
-	"google.golang.org/grpc/encoding/proto"
 	"google.golang.org/grpc/metadata"
 
+	errorsmod "cosmossdk.io/errors"
+
+	"github.com/cosmos/cosmos-sdk/codec"
 	"github.com/cosmos/cosmos-sdk/codec/types"
 	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
 	grpctypes "github.com/cosmos/cosmos-sdk/types/grpc"
@@ -21,24 +23,28 @@ import (
 
 var _ gogogrpc.ClientConn = Context{}
 
-var protoCodec = encoding.GetCodec(proto.Name)
+// fallBackCodec is used by Context in case Codec is not set.
+// it can process every gRPC type, except the ones which contain
+// interfaces in their types.
+var fallBackCodec = codec.NewProtoCodec(types.NewInterfaceRegistry())
 
 // Invoke implements the grpc ClientConn.Invoke method
-func (ctx Context) Invoke(grpcCtx gocontext.Context, method string, req, reply interface{}, opts ...grpc.CallOption) (err error) {
+func (ctx Context) Invoke(grpcCtx gocontext.Context, method string, req, reply any, opts ...grpc.CallOption) (err error) {
 	// Two things can happen here:
-	// 1. either we're broadcasting a Tx, in which call we call Tendermint's broadcast endpoint directly,
-	// 2. or we are querying for state, in which case we call ABCI's Query.
+	// 1. either we're broadcasting a Tx, in which call we call CometBFT's broadcast endpoint directly,
+	// 2-1. or we are querying for state, in which case we call grpc if grpc client set.
+	// 2-2. or we are querying for state, in which case we call ABCI's Query if grpc client not set.
 
 	// In both cases, we don't allow empty request args (it will panic unexpectedly).
 	if reflect.ValueOf(req).IsNil() {
-		return sdkerrors.Wrap(sdkerrors.ErrInvalidRequest, "request cannot be nil")
+		return errorsmod.Wrap(sdkerrors.ErrInvalidRequest, "request cannot be nil")
 	}
 
 	// Case 1. Broadcasting a Tx.
 	if reqProto, ok := req.(*tx.BroadcastTxRequest); ok {
 		res, ok := reply.(*tx.BroadcastTxResponse)
 		if !ok {
-			return sdkerrors.Wrapf(sdkerrors.ErrInvalidRequest, "expected %T, got %T", (*tx.BroadcastTxResponse)(nil), req)
+			return errorsmod.Wrapf(sdkerrors.ErrInvalidRequest, "expected %T, got %T", (*tx.BroadcastTxResponse)(nil), req)
 		}
 
 		broadcastRes, err := TxServiceBroadcast(grpcCtx, ctx, reqProto)
@@ -50,8 +56,13 @@ func (ctx Context) Invoke(grpcCtx gocontext.Context, method string, req, reply i
 		return err
 	}
 
-	// Case 2. Querying state.
-	reqBz, err := protoCodec.Marshal(req)
+	if ctx.GRPCClient != nil {
+		// Case 2-1. Invoke grpc.
+		return ctx.GRPCClient.Invoke(grpcCtx, method, req, reply, opts...)
+	}
+
+	// Case 2-2. Querying state via abci query.
+	reqBz, err := ctx.gRPCCodec().Marshal(req)
 	if err != nil {
 		return err
 	}
@@ -64,7 +75,7 @@ func (ctx Context) Invoke(grpcCtx gocontext.Context, method string, req, reply i
 			return err
 		}
 		if height < 0 {
-			return sdkerrors.Wrapf(
+			return errorsmod.Wrapf(
 				sdkerrors.ErrInvalidRequest,
 				"client.Context.Invoke: height (%d) from %q must be >= 0", height, grpctypes.GRPCBlockHeightHeader)
 		}
@@ -83,7 +94,7 @@ func (ctx Context) Invoke(grpcCtx gocontext.Context, method string, req, reply i
 		return err
 	}
 
-	err = protoCodec.Unmarshal(res.Value, reply)
+	err = ctx.gRPCCodec().Unmarshal(res.Value, reply)
 	if err != nil {
 		return err
 	}
@@ -113,4 +124,19 @@ func (ctx Context) Invoke(grpcCtx gocontext.Context, method string, req, reply i
 // NewStream implements the grpc ClientConn.NewStream method
 func (Context) NewStream(gocontext.Context, *grpc.StreamDesc, string, ...grpc.CallOption) (grpc.ClientStream, error) {
 	return nil, fmt.Errorf("streaming rpc not supported")
+}
+
+// gRPCCodec checks if Context's Codec is codec.GRPCCodecProvider
+// otherwise it returns fallBackCodec.
+func (ctx Context) gRPCCodec() encoding.Codec {
+	if ctx.Codec == nil {
+		return fallBackCodec.GRPCCodec()
+	}
+
+	pc, ok := ctx.Codec.(codec.GRPCCodecProvider)
+	if !ok {
+		return fallBackCodec.GRPCCodec()
+	}
+
+	return pc.GRPCCodec()
 }

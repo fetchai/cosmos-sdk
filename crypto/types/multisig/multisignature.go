@@ -1,6 +1,7 @@
 package multisig
 
 import (
+	"errors"
 	"fmt"
 	"strings"
 
@@ -26,7 +27,7 @@ func NewMultisig(n int) *signing.MultiSignatureData {
 
 // GetIndex returns the index of pk in keys. Returns -1 if not found
 func getIndex(pk types.PubKey, keys []types.PubKey) int {
-	for i := 0; i < len(keys); i++ {
+	for i := range keys {
 		if pk.Equals(keys[i]) {
 			return i
 		}
@@ -63,13 +64,19 @@ func AddSignatureFromPubKey(mSig *signing.MultiSignatureData, sig signing.Signat
 	if mSig == nil {
 		return fmt.Errorf("value of mSig is nil %v", mSig)
 	}
+
 	if sig == nil {
 		return fmt.Errorf("value of sig is nil %v", sig)
 	}
 
-	if pubkey == nil || keys == nil {
-		return fmt.Errorf("pubkey or keys can't be nil %v %v", pubkey, keys)
+	if pubkey == nil {
+		return fmt.Errorf("pubkey can't be nil %v", pubkey)
 	}
+
+	if len(keys) == 0 {
+		return errors.New("keys can't be empty")
+	}
+
 	index := getIndex(pubkey, keys)
 	if index == -1 {
 		keysStr := make([]string, len(keys))

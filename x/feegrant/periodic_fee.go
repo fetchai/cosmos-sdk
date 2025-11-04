@@ -1,7 +1,10 @@
 package feegrant
 
 import (
+	"context"
 	"time"
+
+	errorsmod "cosmossdk.io/errors"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
@@ -19,26 +22,26 @@ var _ FeeAllowanceI = (*PeriodicAllowance)(nil)
 //
 // If remove is true (regardless of the error), the FeeAllowance will be deleted from storage
 // (eg. when it is used up). (See call to RevokeAllowance in Keeper.UseGrantedFees)
-func (a *PeriodicAllowance) Accept(ctx sdk.Context, fee sdk.Coins, _ []sdk.Msg) (bool, error) {
-	blockTime := ctx.BlockTime()
+func (a *PeriodicAllowance) Accept(ctx context.Context, fee sdk.Coins, _ []sdk.Msg) (bool, error) {
+	blockTime := sdk.UnwrapSDKContext(ctx).BlockTime()
 
 	if a.Basic.Expiration != nil && blockTime.After(*a.Basic.Expiration) {
-		return true, sdkerrors.Wrap(ErrFeeLimitExpired, "absolute limit")
+		return true, errorsmod.Wrap(ErrFeeLimitExpired, "absolute limit")
 	}
 
 	a.tryResetPeriod(blockTime)
 
 	// deduct from both the current period and the max amount
 	var isNeg bool
-	a.PeriodCanSpend, isNeg = a.PeriodCanSpend.SafeSub(fee)
+	a.PeriodCanSpend, isNeg = a.PeriodCanSpend.SafeSub(fee...)
 	if isNeg {
-		return false, sdkerrors.Wrap(ErrFeeLimitExceeded, "period limit")
+		return false, errorsmod.Wrap(ErrFeeLimitExceeded, "period limit")
 	}
 
 	if a.Basic.SpendLimit != nil {
-		a.Basic.SpendLimit, isNeg = a.Basic.SpendLimit.SafeSub(fee)
+		a.Basic.SpendLimit, isNeg = a.Basic.SpendLimit.SafeSub(fee...)
 		if isNeg {
-			return false, sdkerrors.Wrap(ErrFeeLimitExceeded, "absolute limit")
+			return false, errorsmod.Wrap(ErrFeeLimitExceeded, "absolute limit")
 		}
 
 		return a.Basic.SpendLimit.IsZero(), nil
@@ -59,7 +62,7 @@ func (a *PeriodicAllowance) tryResetPeriod(blockTime time.Time) {
 	}
 
 	// set PeriodCanSpend to the lesser of Basic.SpendLimit and PeriodSpendLimit
-	if _, isNeg := a.Basic.SpendLimit.SafeSub(a.PeriodSpendLimit); isNeg && !a.Basic.SpendLimit.Empty() {
+	if _, isNeg := a.Basic.SpendLimit.SafeSub(a.PeriodSpendLimit...); isNeg && !a.Basic.SpendLimit.Empty() {
 		a.PeriodCanSpend = a.Basic.SpendLimit
 	} else {
 		a.PeriodCanSpend = a.PeriodSpendLimit
@@ -80,28 +83,33 @@ func (a PeriodicAllowance) ValidateBasic() error {
 	}
 
 	if !a.PeriodSpendLimit.IsValid() {
-		return sdkerrors.Wrapf(sdkerrors.ErrInvalidCoins, "spend amount is invalid: %s", a.PeriodSpendLimit)
+		return errorsmod.Wrapf(sdkerrors.ErrInvalidCoins, "spend amount is invalid: %s", a.PeriodSpendLimit)
 	}
 	if !a.PeriodSpendLimit.IsAllPositive() {
-		return sdkerrors.Wrap(sdkerrors.ErrInvalidCoins, "spend limit must be positive")
+		return errorsmod.Wrap(sdkerrors.ErrInvalidCoins, "spend limit must be positive")
 	}
 	if !a.PeriodCanSpend.IsValid() {
-		return sdkerrors.Wrapf(sdkerrors.ErrInvalidCoins, "can spend amount is invalid: %s", a.PeriodCanSpend)
+		return errorsmod.Wrapf(sdkerrors.ErrInvalidCoins, "can spend amount is invalid: %s", a.PeriodCanSpend)
 	}
-	// We allow 0 for CanSpend
+	// We allow 0 for `PeriodCanSpend`
 	if a.PeriodCanSpend.IsAnyNegative() {
-		return sdkerrors.Wrap(sdkerrors.ErrInvalidCoins, "can spend must not be negative")
+		return errorsmod.Wrap(sdkerrors.ErrInvalidCoins, "can spend must not be negative")
 	}
 
 	// ensure PeriodSpendLimit can be subtracted from total (same coin types)
 	if a.Basic.SpendLimit != nil && !a.PeriodSpendLimit.DenomsSubsetOf(a.Basic.SpendLimit) {
-		return sdkerrors.Wrap(sdkerrors.ErrInvalidCoins, "period spend limit has different currency than basic spend limit")
+		return errorsmod.Wrap(sdkerrors.ErrInvalidCoins, "period spend limit has different currency than basic spend limit")
 	}
 
 	// check times
 	if a.Period.Seconds() < 0 {
-		return sdkerrors.Wrap(ErrInvalidDuration, "negative clock step")
+		return errorsmod.Wrap(ErrInvalidDuration, "negative clock step")
 	}
 
 	return nil
+}
+
+// ExpiresAt returns the expiry time of the PeriodicAllowance.
+func (a PeriodicAllowance) ExpiresAt() (*time.Time, error) {
+	return a.Basic.ExpiresAt()
 }

@@ -1,79 +1,144 @@
+version: "2"
 run:
-  tests: false
-  # timeout for analysis, e.g. 30s, 5m, default is 1m
-  timeout: 5m
-
+  build-tags:
+    - e2e
+    - ledger
+    - test_ledger_mock
+    - sims
+  tests: true
+  allow-parallel-runners: true
 linters:
-  disable-all: true
+  default: none
   enable:
-#    - depguard
+    - copyloopvar
     - dogsled
-    - exportloopref
+    - errcheck
+    - errorlint
     - goconst
     - gocritic
-    - gofumpt
     - gosec
-    - gosimple
     - govet
     - ineffassign
     - misspell
     - nakedret
     - nolintlint
+    - revive
     - staticcheck
-    - stylecheck
-    - typecheck
+    - thelper
     - unconvert
     - unused
-
+  settings:
+    dogsled:
+      max-blank-identifiers: 6
+    gocritic:
+      disabled-checks:
+        - regexpMust
+        - appendAssign
+        - ifElseChain
+    gosec:
+      excludes:
+        - G101
+        - G107
+        - G404
+      confidence: medium
+    misspell:
+      locale: US
+    nolintlint:
+      require-explanation: true
+      require-specific: false
+      allow-unused: false
+    revive:
+      rules:
+        - name: redefines-builtin-id
+          disabled: true
+    staticcheck:
+      checks:
+        - all
+    unused:
+      local-variables-are-used: false
+  exclusions:
+    generated: lax
+    presets:
+      - comments
+      - common-false-positives
+      - legacy
+      - std-error-handling
+    rules:
+      - linters:
+          - staticcheck
+        text: 'ST1003:'
+      - linters:
+          - staticcheck
+        text: 'ST1016:'
+      - linters:
+          - staticcheck
+        path: migrations
+        text: 'SA1019:'
+      - linters:
+          - staticcheck
+        text: 'SA1019: codec.NewAminoCodec is deprecated'
+      - linters:
+          - staticcheck
+        text: 'SA1019: legacybech32.MustMarshalPubKey'
+      - linters:
+          - staticcheck
+        text: 'SA1019: legacybech32.MarshalPubKey'
+      - linters:
+          - staticcheck
+        text: 'SA1019: legacybech32.UnmarshalPubKey'
+      - linters:
+          - staticcheck
+        text: 'SA1019: params.SendEnabled is deprecated'
+      - linters:
+          - gosec
+        text: 'G115: integer overflow conversion'
+      - linters:
+          - nolintlint
+        text: leading space
+    paths:
+      - server/grpc/gogoreflection/fix_registration.go
+      - fix_registration.go
+      - .*\.pb\.go$
+      - .*\.pb\.gw\.go$
+      - .*\.pulsar\.go$
+      - crypto/keys/secp256k1/internal/*
+      - types/coin_regex.go
+      - testutil/testdata
+      - x/params
+      - x/crisis
+      - third_party$
+      - builtin$
+      - examples$
 issues:
-  exclude:
-    - "directive `//nolint" # check up on this one here
-    - "directive `// nolint" # check up on this one here
-  exclude-rules:
-    - text: "Use of weak random number generator"
-      linters:
-        - gosec
-    - text: "should be written without leading space as"
-      linters:
-        - nolintlint
-
   max-issues-per-linter: 10000
   max-same-issues: 10000
-
-linters-settings:
-  nakedret:
-    max-func-lines: 500
-  stylecheck:
-    checks:
-      - all
-      - '-ST1016'
-      - '-ST1003'
-  staticcheck:
-    checks:
-      - all
-      - '-SA1019'
-  gocritic:
-    disabled-checks:
-      - ifElseChain
-      - regexpMust
-  gosec:
-    excludes:
-      - G306
-      - G101
-  dogsled:
-    max-blank-identifiers: 3
-  maligned:
-    # print struct with more effective memory layout or not, false by default
-    suggest-new: true
-  nolintlint:
-    allow-unused: false
-    allow-no-explanation:
-      - errcheck
-      - misspell
-      - unparam
-      - staticcheck
-      - gocritic
-      - gosec
-      - interfacer
-    require-explanation: false
-    require-specific: false
+formatters:
+  enable:
+    - gci
+    - gofumpt
+  settings:
+    gci:
+      sections:
+        - standard
+        - default
+        - prefix(cosmossdk.io)
+        - prefix(github.com/cosmos/cosmos-sdk)
+      custom-order: true
+    gofumpt:
+      extra-rules: true
+  exclusions:
+    generated: lax
+    paths:
+      - server/grpc/gogoreflection/fix_registration.go
+      - fix_registration.go
+      - .*\.pb\.go$
+      - .*\.pb\.gw\.go$
+      - .*\.pulsar\.go$
+      - crypto/keys/secp256k1/internal/*
+      - types/coin_regex.go
+      - testutil/testdata
+      - x/params
+      - x/crisis
+      - third_party$
+      - builtin$
+      - examples$

@@ -1,0 +1,54 @@
+name: Build SimApp
+on:
+  pull_request:
+  merge_group:
+  push:
+    branches:
+      - main
+      - release/**
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}-build
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: depot-ubuntu-22.04-4
+    strategy:
+      matrix:
+        go-arch: ["amd64", "arm64"] # drop 32 bit support for now (and maybe forever)
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: "1.23"
+          check-latest: true
+      - name: install aarch64-gcc
+        if: matrix.go-arch == 'arm64'
+        run: sudo apt-get install gcc-aarch64-linux-gnu binutils-aarch64-linux-gnu
+        ###################
+        #### Build App ####
+        ###################
+      - name: Build
+        run: GOARCH=${{ matrix.go-arch }} make build
+      - name: Build with legacy app.go
+        run: GOARCH=${{ matrix.go-arch }} COSMOS_BUILD_OPTIONS="legacy" make build
+      # TODO re-add with comet v1
+      #- name: Build with BLS12381
+      #  if: matrix.go-arch == 'amd64'
+      #  run: GOARCH=${{ matrix.go-arch }} COSMOS_BUILD_OPTIONS="bls12381" make build
+      - name: Build with Secp_cgo
+        if: matrix.go-arch == 'amd64'
+        run: GOARCH=${{ matrix.go-arch }} COSMOS_BUILD_OPTIONS="secp" make build
+      - name: Build with legacy app.go and Secp_cgo
+        if: matrix.go-arch == 'amd64'
+        run: GOARCH=${{ matrix.go-arch }} COSMOS_BUILD_OPTIONS="legacy,secp" make build
+        ###################
+        ## Build Tooling ##
+        ###################
+      - name: Build Cosmovisor
+        run: GOARCH=${{ matrix.go-arch }} make cosmovisor
+      - name: Build Confix
+        run: GOARCH=${{ matrix.go-arch }} make confix
