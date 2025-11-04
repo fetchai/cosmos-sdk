@@ -1,7 +1,8 @@
 package keeper
 
 import (
-	"github.com/tendermint/tendermint/libs/log"
+	"cosmossdk.io/log"
+	storetypes "cosmossdk.io/store/types"
 
 	"github.com/cosmos/cosmos-sdk/codec"
 	sdk "github.com/cosmos/cosmos-sdk/types"
@@ -10,16 +11,20 @@ import (
 )
 
 // Keeper of the global paramstore
+//
+// Deprecated: the params keeper is deprecated and will be removed in the next Cosmos SDK major release.
 type Keeper struct {
 	cdc         codec.BinaryCodec
 	legacyAmino *codec.LegacyAmino
-	key         sdk.StoreKey
-	tkey        sdk.StoreKey
+	key         storetypes.StoreKey
+	tkey        storetypes.StoreKey
 	spaces      map[string]*types.Subspace
 }
 
 // NewKeeper constructs a params keeper
-func NewKeeper(cdc codec.BinaryCodec, legacyAmino *codec.LegacyAmino, key, tkey sdk.StoreKey) Keeper {
+//
+// Deprecated: the params keeper is deprecated and will be removed in the next Cosmos SDK major release.
+func NewKeeper(cdc codec.BinaryCodec, legacyAmino *codec.LegacyAmino, key, tkey storetypes.StoreKey) Keeper {
 	return Keeper{
 		cdc:         cdc,
 		legacyAmino: legacyAmino,
@@ -58,4 +63,16 @@ func (k Keeper) GetSubspace(s string) (types.Subspace, bool) {
 		return types.Subspace{}, false
 	}
 	return *space, ok
+}
+
+// GetSubspaces returns all the registered subspaces.
+func (k Keeper) GetSubspaces() []types.Subspace {
+	spaces := make([]types.Subspace, len(k.spaces))
+	i := 0
+	for _, ss := range k.spaces {
+		spaces[i] = *ss
+		i++
+	}
+
+	return spaces
 }

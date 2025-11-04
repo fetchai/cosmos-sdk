@@ -1,4 +1,4 @@
-package cli
+package cli_test
 
 import (
 	"context"
@@ -8,29 +8,27 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/cosmos/cosmos-sdk/client"
-	simappparams "github.com/cosmos/cosmos-sdk/simapp/params"
 	"github.com/cosmos/cosmos-sdk/testutil"
 	sdk "github.com/cosmos/cosmos-sdk/types"
-	authtypes "github.com/cosmos/cosmos-sdk/x/auth/types"
+	moduletestutil "github.com/cosmos/cosmos-sdk/types/module/testutil"
+	"github.com/cosmos/cosmos-sdk/x/auth"
+	"github.com/cosmos/cosmos-sdk/x/auth/client/cli"
 )
 
 func TestGetCommandEncode(t *testing.T) {
-	encodingConfig := simappparams.MakeTestEncodingConfig()
+	encodingConfig := moduletestutil.MakeTestEncodingConfig(auth.AppModuleBasic{})
+	txConfig := encodingConfig.TxConfig
+	cdc := encodingConfig.Codec
 
-	cmd := GetEncodeCommand()
+	cmd := cli.GetEncodeCommand()
 	_ = testutil.ApplyMockIODiscardOutErr(cmd)
 
-	authtypes.RegisterLegacyAminoCodec(encodingConfig.Amino)
-	sdk.RegisterLegacyAminoCodec(encodingConfig.Amino)
-
-	txCfg := encodingConfig.TxConfig
-
 	// Build a test transaction
-	builder := txCfg.NewTxBuilder()
+	builder := txConfig.NewTxBuilder()
 	builder.SetGasLimit(50000)
 	builder.SetFeeAmount(sdk.Coins{sdk.NewInt64Coin("atom", 150)})
 	builder.SetMemo("foomemo")
-	jsonEncoded, err := txCfg.TxJSONEncoder()(builder.GetTx())
+	jsonEncoded, err := txConfig.TxJSONEncoder()(builder.GetTx())
 	require.NoError(t, err)
 
 	txFile := testutil.WriteToNewTempFile(t, string(jsonEncoded))
@@ -38,8 +36,8 @@ func TestGetCommandEncode(t *testing.T) {
 
 	ctx := context.Background()
 	clientCtx := client.Context{}.
-		WithTxConfig(encodingConfig.TxConfig).
-		WithCodec(encodingConfig.Marshaler)
+		WithTxConfig(txConfig).
+		WithCodec(cdc)
 	ctx = context.WithValue(ctx, client.ClientContextKey, &clientCtx)
 
 	cmd.SetArgs([]string{txFileName})
@@ -48,22 +46,21 @@ func TestGetCommandEncode(t *testing.T) {
 }
 
 func TestGetCommandDecode(t *testing.T) {
-	encodingConfig := simappparams.MakeTestEncodingConfig()
+	encodingConfig := moduletestutil.MakeTestEncodingConfig(auth.AppModuleBasic{})
+	txConfig := encodingConfig.TxConfig
+	cdc := encodingConfig.Codec
 
 	clientCtx := client.Context{}.
-		WithTxConfig(encodingConfig.TxConfig).
-		WithCodec(encodingConfig.Marshaler)
+		WithTxConfig(txConfig).
+		WithCodec(cdc)
 
-	cmd := GetDecodeCommand()
+	cmd := cli.GetDecodeCommand()
 	_ = testutil.ApplyMockIODiscardOutErr(cmd)
 
-	sdk.RegisterLegacyAminoCodec(encodingConfig.Amino)
-
-	txCfg := encodingConfig.TxConfig
-	clientCtx = clientCtx.WithTxConfig(txCfg)
+	clientCtx = clientCtx.WithTxConfig(txConfig)
 
 	// Build a test transaction
-	builder := txCfg.NewTxBuilder()
+	builder := txConfig.NewTxBuilder()
 	builder.SetGasLimit(50000)
 	builder.SetFeeAmount(sdk.Coins{sdk.NewInt64Coin("atom", 150)})
 	builder.SetMemo("foomemo")

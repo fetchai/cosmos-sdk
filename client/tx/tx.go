@@ -3,34 +3,36 @@ package tx
 import (
 	"bufio"
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
-	"net/http"
 	"os"
 
-	gogogrpc "github.com/gogo/protobuf/grpc"
+	gogogrpc "github.com/cosmos/gogoproto/grpc"
 	"github.com/spf13/pflag"
 
 	"github.com/cosmos/cosmos-sdk/client"
-	"github.com/cosmos/cosmos-sdk/client/flags"
 	"github.com/cosmos/cosmos-sdk/client/input"
 	cryptotypes "github.com/cosmos/cosmos-sdk/crypto/types"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
-	"github.com/cosmos/cosmos-sdk/types/rest"
 	"github.com/cosmos/cosmos-sdk/types/tx"
 	"github.com/cosmos/cosmos-sdk/types/tx/signing"
 	authsigning "github.com/cosmos/cosmos-sdk/x/auth/signing"
 )
 
-// GenerateOrBroadcastTxCLI will either generate and print and unsigned transaction
+// GenerateOrBroadcastTxCLI will either generate and print an unsigned transaction
 // or sign it and broadcast it returning an error upon failure.
 func GenerateOrBroadcastTxCLI(clientCtx client.Context, flagSet *pflag.FlagSet, msgs ...sdk.Msg) error {
-	txf := NewFactoryCLI(clientCtx, flagSet)
+	txf, err := NewFactoryCLI(clientCtx, flagSet)
+	if err != nil {
+		return err
+	}
+
 	return GenerateOrBroadcastTxWithFactory(clientCtx, txf, msgs...)
 }
 
-// GenerateOrBroadcastTxWithFactory will either generate and print and unsigned transaction
+// GenerateOrBroadcastTxWithFactory will either generate and print an unsigned transaction
 // or sign it and broadcast it returning an error upon failure.
 func GenerateOrBroadcastTxWithFactory(clientCtx client.Context, txf Factory, msgs ...sdk.Msg) error {
 	// Validate all msgs before generating or broadcasting the tx.
@@ -38,59 +40,47 @@ func GenerateOrBroadcastTxWithFactory(clientCtx client.Context, txf Factory, msg
 	// Right now, we're factorizing that call inside this function.
 	// ref: https://github.com/cosmos/cosmos-sdk/pull/9236#discussion_r623803504
 	for _, msg := range msgs {
-		if err := msg.ValidateBasic(); err != nil {
+		m, ok := msg.(sdk.HasValidateBasic)
+		if !ok {
+			continue
+		}
+
+		if err := m.ValidateBasic(); err != nil {
 			return err
 		}
 	}
 
-	if clientCtx.GenerateOnly {
-		return GenerateTx(clientCtx, txf, msgs...)
-	}
-
-	return BroadcastTx(clientCtx, txf, msgs...)
-}
-
-// GenerateTx will generate an unsigned transaction and print it to the writer
-// specified by ctx.Output. If simulation was requested, the gas will be
-// simulated and also printed to the same writer before the transaction is
-// printed.
-func GenerateTx(clientCtx client.Context, txf Factory, msgs ...sdk.Msg) error {
-	if txf.SimulateAndExecute() {
-		if clientCtx.Offline {
-			return errors.New("cannot estimate gas in offline mode")
-		}
-
-		_, adjusted, err := CalculateGas(clientCtx, txf, msgs...)
+	// If the --aux flag is set, we simply generate and print the AuxSignerData.
+	if clientCtx.IsAux {
+		auxSignerData, err := makeAuxSignerData(clientCtx, txf, msgs...)
 		if err != nil {
 			return err
 		}
 
-		txf = txf.WithGas(adjusted)
+		return clientCtx.PrintProto(&auxSignerData)
 	}
 
-	tx, err := BuildUnsignedTx(txf, msgs...)
-	if err != nil {
-		return err
+	if clientCtx.GenerateOnly {
+		return txf.PrintUnsignedTx(clientCtx, msgs...)
 	}
 
-	json, err := clientCtx.TxConfig.TxJSONEncoder()(tx.GetTx())
-	if err != nil {
-		return err
-	}
-
-	return clientCtx.PrintString(fmt.Sprintf("%s\n", json))
+	return BroadcastTx(clientCtx, txf, msgs...)
 }
 
 // BroadcastTx attempts to generate, sign and broadcast a transaction with the
 // given set of messages. It will also simulate gas requirements if necessary.
 // It will return an error upon failure.
 func BroadcastTx(clientCtx client.Context, txf Factory, msgs ...sdk.Msg) error {
-	txf, err := prepareFactory(clientCtx, txf)
+	txf, err := txf.Prepare(clientCtx)
 	if err != nil {
 		return err
 	}
 
 	if txf.SimulateAndExecute() || clientCtx.Simulate {
+		if clientCtx.Offline {
+			return errors.New("cannot estimate gas in offline mode")
+		}
+
 		_, adjusted, err := CalculateGas(clientCtx, txf, msgs...)
 		if err != nil {
 			return err
@@ -104,31 +94,39 @@ func BroadcastTx(clientCtx client.Context, txf Factory, msgs ...sdk.Msg) error {
 		return nil
 	}
 
-	tx, err := BuildUnsignedTx(txf, msgs...)
+	tx, err := txf.BuildUnsignedTx(msgs...)
 	if err != nil {
 		return err
 	}
 
 	if !clientCtx.SkipConfirm {
-		out, err := clientCtx.TxConfig.TxJSONEncoder()(tx.GetTx())
-		if err != nil {
-			return err
+		encoder := txf.txConfig.TxJSONEncoder()
+		if encoder == nil {
+			return errors.New("failed to encode transaction: tx json encoder is nil")
 		}
 
-		_, _ = fmt.Fprintf(os.Stderr, "%s\n\n", out)
+		txBytes, err := encoder(tx.GetTx())
+		if err != nil {
+			return fmt.Errorf("failed to encode transaction: %w", err)
+		}
+
+		if err := clientCtx.PrintRaw(json.RawMessage(txBytes)); err != nil {
+			_, _ = fmt.Fprintf(os.Stderr, "error: %v\n%s\n", err, txBytes)
+		}
 
 		buf := bufio.NewReader(os.Stdin)
 		ok, err := input.GetConfirmation("confirm transaction before signing and broadcasting", buf, os.Stderr)
-
-		if err != nil || !ok {
-			_, _ = fmt.Fprintf(os.Stderr, "%s\n", "cancelled transaction")
+		if err != nil {
+			_, _ = fmt.Fprintf(os.Stderr, "error: %v\ncanceled transaction\n", err)
 			return err
+		}
+		if !ok {
+			_, _ = fmt.Fprintln(os.Stderr, "canceled transaction")
+			return nil
 		}
 	}
 
-	tx.SetFeeGranter(clientCtx.GetFeeGranterAddress())
-	err = Sign(txf, clientCtx.GetFromName(), tx, true)
-	if err != nil {
+	if err = Sign(clientCtx.CmdContext, txf, clientCtx.FromName, tx, true); err != nil {
 		return err
 	}
 
@@ -137,7 +135,7 @@ func BroadcastTx(clientCtx client.Context, txf Factory, msgs ...sdk.Msg) error {
 		return err
 	}
 
-	// broadcast to a Tendermint node
+	// broadcast to a CometBFT node
 	res, err := clientCtx.BroadcastTx(txBytes)
 	if err != nil {
 		return err
@@ -146,95 +144,12 @@ func BroadcastTx(clientCtx client.Context, txf Factory, msgs ...sdk.Msg) error {
 	return clientCtx.PrintProto(res)
 }
 
-// WriteGeneratedTxResponse writes a generated unsigned transaction to the
-// provided http.ResponseWriter. It will simulate gas costs if requested by the
-// BaseReq. Upon any error, the error will be written to the http.ResponseWriter.
-// Note that this function returns the legacy StdTx Amino JSON format for compatibility
-// with legacy clients.
-// Deprecated: We are removing Amino soon.
-func WriteGeneratedTxResponse(
-	clientCtx client.Context, w http.ResponseWriter, br rest.BaseReq, msgs ...sdk.Msg,
-) {
-	gasAdj, ok := rest.ParseFloat64OrReturnBadRequest(w, br.GasAdjustment, flags.DefaultGasAdjustment)
-	if !ok {
-		return
-	}
-
-	gasSetting, err := flags.ParseGasSetting(br.Gas)
-	if rest.CheckBadRequestError(w, err) {
-		return
-	}
-
-	txf := Factory{fees: br.Fees, gasPrices: br.GasPrices}.
-		WithAccountNumber(br.AccountNumber).
-		WithSequence(br.Sequence).
-		WithGas(gasSetting.Gas).
-		WithGasAdjustment(gasAdj).
-		WithMemo(br.Memo).
-		WithChainID(br.ChainID).
-		WithSimulateAndExecute(br.Simulate).
-		WithTxConfig(clientCtx.TxConfig).
-		WithTimeoutHeight(br.TimeoutHeight)
-
-	if br.Simulate || gasSetting.Simulate {
-		if gasAdj < 0 {
-			rest.WriteErrorResponse(w, http.StatusBadRequest, sdkerrors.ErrorInvalidGasAdjustment.Error())
-			return
-		}
-
-		_, adjusted, err := CalculateGas(clientCtx, txf, msgs...)
-		if rest.CheckInternalServerError(w, err) {
-			return
-		}
-
-		txf = txf.WithGas(adjusted)
-
-		if br.Simulate {
-			rest.WriteSimulationResponse(w, clientCtx.LegacyAmino, txf.Gas())
-			return
-		}
-	}
-
-	tx, err := BuildUnsignedTx(txf, msgs...)
-	if rest.CheckBadRequestError(w, err) {
-		return
-	}
-
-	stdTx, err := ConvertTxToStdTx(clientCtx.LegacyAmino, tx.GetTx())
-	if rest.CheckInternalServerError(w, err) {
-		return
-	}
-
-	output, err := clientCtx.LegacyAmino.MarshalJSON(stdTx)
-	if rest.CheckInternalServerError(w, err) {
-		return
-	}
-
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
-	_, _ = w.Write(output)
-}
-
-// BuildUnsignedTx builds a transaction to be signed given a set of messages. The
-// transaction is initially created via the provided factory's generator. Once
-// created, the fee, memo, and messages are set.
-func BuildUnsignedTx(txf Factory, msgs ...sdk.Msg) (client.TxBuilder, error) {
-	return txf.BuildUnsignedTx(msgs...)
-}
-
-// BuildSimTx creates an unsigned tx with an empty single signature and returns
-// the encoded transaction or an error if the unsigned transaction cannot be
-// built.
-func BuildSimTx(txf Factory, msgs ...sdk.Msg) ([]byte, error) {
-	return txf.BuildSimTx(msgs...)
-}
-
 // CalculateGas simulates the execution of a transaction and returns the
 // simulation response obtained by the query and the adjusted gas amount.
 func CalculateGas(
 	clientCtx gogogrpc.ClientConn, txf Factory, msgs ...sdk.Msg,
 ) (*tx.SimulateResponse, uint64, error) {
-	txBytes, err := BuildSimTx(txf, msgs...)
+	txBytes, err := txf.BuildSimTx(msgs...)
 	if err != nil {
 		return nil, 0, err
 	}
@@ -250,39 +165,10 @@ func CalculateGas(
 	return simRes, uint64(txf.GasAdjustment() * float64(simRes.GasInfo.GasUsed)), nil
 }
 
-// prepareFactory ensures the account defined by ctx.GetFromAddress() exists and
-// if the account number and/or the account sequence number are zero (not set),
-// they will be queried for and set on the provided Factory. A new Factory with
-// the updated fields will be returned.
-func prepareFactory(clientCtx client.Context, txf Factory) (Factory, error) {
-	from := clientCtx.GetFromAddress()
-
-	if err := txf.accountRetriever.EnsureExists(clientCtx, from); err != nil {
-		return txf, err
-	}
-
-	initNum, initSeq := txf.accountNumber, txf.sequence
-	if initNum == 0 || initSeq == 0 {
-		num, seq, err := txf.accountRetriever.GetAccountNumberSequence(clientCtx, from)
-		if err != nil {
-			return txf, err
-		}
-
-		if initNum == 0 {
-			txf = txf.WithAccountNumber(num)
-		}
-
-		if initSeq == 0 {
-			txf = txf.WithSequence(seq)
-		}
-	}
-
-	return txf, nil
-}
-
 // SignWithPrivKey signs a given tx with the given private key, and returns the
 // corresponding SignatureV2 if the signing is successful.
 func SignWithPrivKey(
+	ctx context.Context,
 	signMode signing.SignMode, signerData authsigning.SignerData,
 	txBuilder client.TxBuilder, priv cryptotypes.PrivKey, txConfig client.TxConfig,
 	accSeq uint64,
@@ -290,7 +176,8 @@ func SignWithPrivKey(
 	var sigV2 signing.SignatureV2
 
 	// Generate the bytes to be signed.
-	signBytes, err := txConfig.SignModeHandler().GetSignBytes(signMode, signerData, txBuilder.GetTx())
+	signBytes, err := authsigning.GetSignBytesAdapter(
+		ctx, txConfig.SignModeHandler(), signMode, signerData, txBuilder.GetTx())
 	if err != nil {
 		return sigV2, err
 	}
@@ -316,11 +203,42 @@ func SignWithPrivKey(
 	return sigV2, nil
 }
 
-func checkMultipleSigners(mode signing.SignMode, tx authsigning.Tx) error {
-	if mode == signing.SignMode_SIGN_MODE_DIRECT &&
-		len(tx.GetSigners()) > 1 {
-		return sdkerrors.Wrap(sdkerrors.ErrNotSupported, "Signing in DIRECT mode is only supported for transactions with one signer only")
+// countDirectSigners counts the number of DIRECT signers in a signature data.
+func countDirectSigners(data signing.SignatureData) int {
+	switch data := data.(type) {
+	case *signing.SingleSignatureData:
+		if data.SignMode == signing.SignMode_SIGN_MODE_DIRECT {
+			return 1
+		}
+
+		return 0
+	case *signing.MultiSignatureData:
+		directSigners := 0
+		for _, d := range data.Signatures {
+			directSigners += countDirectSigners(d)
+		}
+
+		return directSigners
+	default:
+		panic("unreachable case")
 	}
+}
+
+// checkMultipleSigners checks that there can be maximum one DIRECT signer in
+// a tx.
+func checkMultipleSigners(tx authsigning.Tx) error {
+	directSigners := 0
+	sigsV2, err := tx.GetSignaturesV2()
+	if err != nil {
+		return err
+	}
+	for _, sig := range sigsV2 {
+		directSigners += countDirectSigners(sig.Data)
+		if directSigners > 1 {
+			return sdkerrors.ErrNotSupported.Wrap("txs signed with CLI can have maximum 1 DIRECT signer")
+		}
+	}
+
 	return nil
 }
 
@@ -330,29 +248,37 @@ func checkMultipleSigners(mode signing.SignMode, tx authsigning.Tx) error {
 // Signing a transaction with mutltiple signers in the DIRECT mode is not supprted and will
 // return an error.
 // An error is returned upon failure.
-func Sign(txf Factory, name string, txBuilder client.TxBuilder, overwriteSig bool) error {
+func Sign(ctx context.Context, txf Factory, name string, txBuilder client.TxBuilder, overwriteSig bool) error {
 	if txf.keybase == nil {
 		return errors.New("keybase must be set prior to signing a transaction")
 	}
 
+	var err error
 	signMode := txf.signMode
 	if signMode == signing.SignMode_SIGN_MODE_UNSPECIFIED {
 		// use the SignModeHandler's default mode if unspecified
-		signMode = txf.txConfig.SignModeHandler().DefaultMode()
-	}
-	if err := checkMultipleSigners(signMode, txBuilder.GetTx()); err != nil {
-		return err
+		signMode, err = authsigning.APISignModeToInternal(txf.txConfig.SignModeHandler().DefaultMode())
+		if err != nil {
+			return err
+		}
 	}
 
-	key, err := txf.keybase.Key(name)
+	k, err := txf.keybase.Key(name)
 	if err != nil {
 		return err
 	}
-	pubKey := key.GetPubKey()
+
+	pubKey, err := k.GetPubKey()
+	if err != nil {
+		return err
+	}
+
 	signerData := authsigning.SignerData{
 		ChainID:       txf.chainID,
 		AccountNumber: txf.accountNumber,
 		Sequence:      txf.sequence,
+		PubKey:        pubKey,
+		Address:       sdk.AccAddress(pubKey.Address()).String(),
 	}
 
 	// For SIGN_MODE_DIRECT, calling SetSignatures calls setSignerInfos on
@@ -372,6 +298,7 @@ func Sign(txf Factory, name string, txBuilder client.TxBuilder, overwriteSig boo
 		Data:     &sigData,
 		Sequence: txf.Sequence(),
 	}
+
 	var prevSignatures []signing.SignatureV2
 	if !overwriteSig {
 		prevSignatures, err = txBuilder.GetTx().GetSignaturesV2()
@@ -379,18 +306,29 @@ func Sign(txf Factory, name string, txBuilder client.TxBuilder, overwriteSig boo
 			return err
 		}
 	}
-	if err := txBuilder.SetSignatures(sig); err != nil {
+	// Overwrite or append signer infos.
+	var sigs []signing.SignatureV2
+	if overwriteSig {
+		sigs = []signing.SignatureV2{sig}
+	} else {
+		sigs = append(sigs, prevSignatures...)
+		sigs = append(sigs, sig)
+	}
+	if err := txBuilder.SetSignatures(sigs...); err != nil {
 		return err
 	}
 
-	// Generate the bytes to be signed.
-	bytesToSign, err := txf.txConfig.SignModeHandler().GetSignBytes(signMode, signerData, txBuilder.GetTx())
+	if err := checkMultipleSigners(txBuilder.GetTx()); err != nil {
+		return err
+	}
+
+	bytesToSign, err := authsigning.GetSignBytesAdapter(ctx, txf.txConfig.SignModeHandler(), signMode, signerData, txBuilder.GetTx())
 	if err != nil {
 		return err
 	}
 
 	// Sign those bytes
-	sigBytes, _, err := txf.keybase.Sign(name, bytesToSign)
+	sigBytes, _, err := txf.keybase.Sign(name, bytesToSign, signMode)
 	if err != nil {
 		return err
 	}
@@ -407,10 +345,19 @@ func Sign(txf Factory, name string, txBuilder client.TxBuilder, overwriteSig boo
 	}
 
 	if overwriteSig {
-		return txBuilder.SetSignatures(sig)
+		err = txBuilder.SetSignatures(sig)
+	} else {
+		prevSignatures = append(prevSignatures, sig)
+		err = txBuilder.SetSignatures(prevSignatures...)
 	}
-	prevSignatures = append(prevSignatures, sig)
-	return txBuilder.SetSignatures(prevSignatures...)
+
+	if err != nil {
+		return fmt.Errorf("unable to set signatures on payload: %w", err)
+	}
+
+	// Run optional preprocessing if specified. By default, this is unset
+	// and will return nil.
+	return txf.PreprocessTx(name, txBuilder)
 }
 
 // GasEstimateResponse defines a response definition for tx gas estimation.
@@ -420,4 +367,65 @@ type GasEstimateResponse struct {
 
 func (gr GasEstimateResponse) String() string {
 	return fmt.Sprintf("gas estimate: %d", gr.GasEstimate)
+}
+
+// makeAuxSignerData generates an AuxSignerData from the client inputs.
+func makeAuxSignerData(clientCtx client.Context, f Factory, msgs ...sdk.Msg) (tx.AuxSignerData, error) {
+	b := NewAuxTxBuilder()
+	fromAddress, name, _, err := client.GetFromFields(clientCtx, clientCtx.Keyring, clientCtx.From)
+	if err != nil {
+		return tx.AuxSignerData{}, err
+	}
+
+	b.SetAddress(fromAddress.String())
+	if clientCtx.Offline {
+		b.SetAccountNumber(f.accountNumber)
+		b.SetSequence(f.sequence)
+	} else {
+		accNum, seq, err := clientCtx.AccountRetriever.GetAccountNumberSequence(clientCtx, fromAddress)
+		if err != nil {
+			return tx.AuxSignerData{}, err
+		}
+		b.SetAccountNumber(accNum)
+		b.SetSequence(seq)
+	}
+
+	err = b.SetMsgs(msgs...)
+	if err != nil {
+		return tx.AuxSignerData{}, err
+	}
+
+	err = b.SetSignMode(f.SignMode())
+	if err != nil {
+		return tx.AuxSignerData{}, err
+	}
+
+	key, err := clientCtx.Keyring.Key(name)
+	if err != nil {
+		return tx.AuxSignerData{}, err
+	}
+
+	pub, err := key.GetPubKey()
+	if err != nil {
+		return tx.AuxSignerData{}, err
+	}
+
+	err = b.SetPubKey(pub)
+	if err != nil {
+		return tx.AuxSignerData{}, err
+	}
+
+	b.SetChainID(clientCtx.ChainID)
+	signBz, err := b.GetSignBytes()
+	if err != nil {
+		return tx.AuxSignerData{}, err
+	}
+
+	sig, _, err := clientCtx.Keyring.Sign(name, signBz, f.signMode)
+	if err != nil {
+		return tx.AuxSignerData{}, err
+	}
+	b.SetSignature(sig)
+
+	return b.GetAuxSignerData()
 }

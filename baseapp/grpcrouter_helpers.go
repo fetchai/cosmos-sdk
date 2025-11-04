@@ -4,8 +4,8 @@ import (
 	gocontext "context"
 	"fmt"
 
-	gogogrpc "github.com/gogo/protobuf/grpc"
-	abci "github.com/tendermint/tendermint/abci/types"
+	abci "github.com/cometbft/cometbft/abci/types"
+	gogogrpc "github.com/cosmos/gogoproto/grpc"
 	"google.golang.org/grpc"
 
 	"github.com/cosmos/cosmos-sdk/codec/types"
@@ -35,28 +35,24 @@ func NewQueryServerTestHelper(ctx sdk.Context, interfaceRegistry types.Interface
 }
 
 // Invoke implements the grpc ClientConn.Invoke method
-func (q *QueryServiceTestHelper) Invoke(_ gocontext.Context, method string, args, reply interface{}, _ ...grpc.CallOption) error {
+func (q *QueryServiceTestHelper) Invoke(_ gocontext.Context, method string, args, reply any, _ ...grpc.CallOption) error {
 	querier := q.Route(method)
 	if querier == nil {
 		return fmt.Errorf("handler not found for %s", method)
 	}
-	reqBz, err := protoCodec.Marshal(args)
+	reqBz, err := q.cdc.Marshal(args)
 	if err != nil {
 		return err
 	}
 
-	res, err := querier(q.Ctx, abci.RequestQuery{Data: reqBz})
+	res, err := querier(q.Ctx, &abci.RequestQuery{Data: reqBz})
 	if err != nil {
 		return err
 	}
 
-	err = protoCodec.Unmarshal(res.Value, reply)
+	err = q.cdc.Unmarshal(res.Value, reply)
 	if err != nil {
 		return err
-	}
-
-	if q.interfaceRegistry != nil {
-		return types.UnpackInterfaces(reply, q.interfaceRegistry)
 	}
 
 	return nil

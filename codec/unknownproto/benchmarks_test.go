@@ -4,7 +4,7 @@ import (
 	"sync"
 	"testing"
 
-	"github.com/gogo/protobuf/proto"
+	"github.com/cosmos/gogoproto/proto"
 
 	"github.com/cosmos/cosmos-sdk/codec/unknownproto"
 	"github.com/cosmos/cosmos-sdk/testutil/testdata"
@@ -51,6 +51,7 @@ func BenchmarkRejectUnknownFields_parallel(b *testing.B) {
 }
 
 func benchmarkRejectUnknownFields(b *testing.B, parallel bool) {
+	b.Helper()
 	b.ReportAllocs()
 
 	if !parallel {
@@ -89,6 +90,7 @@ func BenchmarkProtoUnmarshal_parallel(b *testing.B) {
 }
 
 func benchmarkProtoUnmarshal(b *testing.B, parallel bool) {
+	b.Helper()
 	b.ReportAllocs()
 
 	if !parallel {

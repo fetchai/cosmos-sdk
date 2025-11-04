@@ -5,6 +5,8 @@ import (
 
 	"github.com/stretchr/testify/require"
 
+	"cosmossdk.io/math"
+
 	"github.com/cosmos/cosmos-sdk/x/staking/types"
 )
 
@@ -20,4 +22,18 @@ func TestParamsEqual(t *testing.T) {
 
 	ok = p1.Equal(p2)
 	require.False(t, ok)
+}
+
+func TestValidateParams(t *testing.T) {
+	params := types.DefaultParams()
+
+	// default params have no error
+	require.NoError(t, params.Validate())
+
+	// validate mincommission
+	params.MinCommissionRate = math.LegacyNewDec(-1)
+	require.Error(t, params.Validate())
+
+	params.MinCommissionRate = math.LegacyNewDec(2)
+	require.Error(t, params.Validate())
 }

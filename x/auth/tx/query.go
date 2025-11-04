@@ -5,48 +5,46 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
-	"strings"
 	"time"
 
-	ctypes "github.com/tendermint/tendermint/rpc/core/types"
+	coretypes "github.com/cometbft/cometbft/rpc/core/types"
 
 	"github.com/cosmos/cosmos-sdk/client"
 	codectypes "github.com/cosmos/cosmos-sdk/codec/types"
 	sdk "github.com/cosmos/cosmos-sdk/types"
+	querytypes "github.com/cosmos/cosmos-sdk/types/query"
 )
 
-// QueryTxsByEvents performs a search for transactions for a given set of events
-// via the Tendermint RPC. An event takes the form of:
-// "{eventAttribute}.{attributeKey} = '{attributeValue}'". Each event is
-// concatenated with an 'AND' operand. It returns a slice of Info object
-// containing txs and metadata. An error is returned if the query fails.
-// If an empty string is provided it will order txs by asc
-func QueryTxsByEvents(clientCtx client.Context, events []string, page, limit int, orderBy string) (*sdk.SearchTxsResult, error) {
-	if len(events) == 0 {
-		return nil, errors.New("must declare at least one event to search")
+// QueryTxsByEvents retrieves a list of paginated transactions from CometBFT's
+// TxSearch RPC method given a set of pagination criteria and an events query.
+// Note, the events query must be valid based on CometBFT's query semantics.
+// An error is returned if the query or parsing fails or if the query is empty.
+//
+// Note, if an empty orderBy is provided, the default behavior is ascending. If
+// negative values are provided for page or limit, defaults will be used.
+func QueryTxsByEvents(clientCtx client.Context, page, limit int, query, orderBy string) (*sdk.SearchTxsResult, error) {
+	if len(query) == 0 {
+		return nil, errors.New("query cannot be empty")
 	}
 
+	// CometBFT node.TxSearch that is used for querying txs defines pages
+	// starting from 1, so we default to 1 if not provided in the request.
 	if page <= 0 {
-		return nil, errors.New("page must greater than 0")
+		page = 1
 	}
 
 	if limit <= 0 {
-		return nil, errors.New("limit must greater than 0")
+		limit = querytypes.DefaultLimit
 	}
-
-	// XXX: implement ANY
-	query := strings.Join(events, " AND ")
 
 	node, err := clientCtx.GetNode()
 	if err != nil {
 		return nil, err
 	}
 
-	// TODO: this may not always need to be proven
-	// https://github.com/cosmos/cosmos-sdk/issues/6807
-	resTxs, err := node.TxSearch(context.Background(), query, true, &page, &limit, orderBy)
+	resTxs, err := node.TxSearch(context.Background(), query, false, &page, &limit, orderBy)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to search for txs: %w", err)
 	}
 
 	resBlocks, err := getBlocksForTxResults(clientCtx, resTxs.Txs)
@@ -59,9 +57,7 @@ func QueryTxsByEvents(clientCtx client.Context, events []string, page, limit int
 		return nil, err
 	}
 
-	result := sdk.NewSearchTxsResult(uint64(resTxs.TotalCount), uint64(len(txs)), uint64(page), uint64(limit), txs)
-
-	return result, nil
+	return sdk.NewSearchTxsResult(uint64(resTxs.TotalCount), uint64(len(txs)), uint64(page), uint64(limit), txs), nil
 }
 
 // QueryTx queries for a single transaction by a hash string in hex format. An
@@ -84,7 +80,7 @@ func QueryTx(clientCtx client.Context, hashHexStr string) (*sdk.TxResponse, erro
 		return nil, err
 	}
 
-	resBlocks, err := getBlocksForTxResults(clientCtx, []*ctypes.ResultTx{resTx})
+	resBlocks, err := getBlocksForTxResults(clientCtx, []*coretypes.ResultTx{resTx})
 	if err != nil {
 		return nil, err
 	}
@@ -98,7 +94,7 @@ func QueryTx(clientCtx client.Context, hashHexStr string) (*sdk.TxResponse, erro
 }
 
 // formatTxResults parses the indexed txs into a slice of TxResponse objects.
-func formatTxResults(txConfig client.TxConfig, resTxs []*ctypes.ResultTx, resBlocks map[int64]*ctypes.ResultBlock) ([]*sdk.TxResponse, error) {
+func formatTxResults(txConfig client.TxConfig, resTxs []*coretypes.ResultTx, resBlocks map[int64]*coretypes.ResultBlock) ([]*sdk.TxResponse, error) {
 	var err error
 	out := make([]*sdk.TxResponse, len(resTxs))
 	for i := range resTxs {
@@ -111,13 +107,13 @@ func formatTxResults(txConfig client.TxConfig, resTxs []*ctypes.ResultTx, resBlo
 	return out, nil
 }
 
-func getBlocksForTxResults(clientCtx client.Context, resTxs []*ctypes.ResultTx) (map[int64]*ctypes.ResultBlock, error) {
+func getBlocksForTxResults(clientCtx client.Context, resTxs []*coretypes.ResultTx) (map[int64]*coretypes.ResultBlock, error) {
 	node, err := clientCtx.GetNode()
 	if err != nil {
 		return nil, err
 	}
 
-	resBlocks := make(map[int64]*ctypes.ResultBlock)
+	resBlocks := make(map[int64]*coretypes.ResultBlock)
 
 	for _, resTx := range resTxs {
 		if _, ok := resBlocks[resTx.Height]; !ok {
@@ -133,7 +129,7 @@ func getBlocksForTxResults(clientCtx client.Context, resTxs []*ctypes.ResultTx) 
 	return resBlocks, nil
 }
 
-func mkTxResult(txConfig client.TxConfig, resTx *ctypes.ResultTx, resBlock *ctypes.ResultBlock) (*sdk.TxResponse, error) {
+func mkTxResult(txConfig client.TxConfig, resTx *coretypes.ResultTx, resBlock *coretypes.ResultBlock) (*sdk.TxResponse, error) {
 	txb, err := txConfig.TxDecoder()(resTx.Tx)
 	if err != nil {
 		return nil, err

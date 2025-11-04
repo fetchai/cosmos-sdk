@@ -3,10 +3,12 @@ package tx
 import (
 	"fmt"
 
+	errorsmod "cosmossdk.io/errors"
+
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
 	signingtypes "github.com/cosmos/cosmos-sdk/types/tx/signing"
-	"github.com/cosmos/cosmos-sdk/x/auth/legacy/legacytx"
+	"github.com/cosmos/cosmos-sdk/x/auth/migrations/legacytx"
 	"github.com/cosmos/cosmos-sdk/x/auth/signing"
 )
 
@@ -18,14 +20,24 @@ var _ signing.SignModeHandler = signModeLegacyAminoJSONHandler{}
 // SignModeHandler.
 type signModeLegacyAminoJSONHandler struct{}
 
+// NewSignModeLegacyAminoJSONHandler returns a new signModeLegacyAminoJSONHandler.
+// Note: The public constructor is only used for testing.
+// Deprecated: Please use x/tx/signing/aminojson instead.
+func NewSignModeLegacyAminoJSONHandler() signing.SignModeHandler {
+	return signModeLegacyAminoJSONHandler{}
+}
+
+// Deprecated: Please use x/tx/signing/aminojson instead.
 func (s signModeLegacyAminoJSONHandler) DefaultMode() signingtypes.SignMode {
 	return signingtypes.SignMode_SIGN_MODE_LEGACY_AMINO_JSON
 }
 
+// Deprecated: Please use x/tx/signing/aminojson instead.
 func (s signModeLegacyAminoJSONHandler) Modes() []signingtypes.SignMode {
 	return []signingtypes.SignMode{signingtypes.SignMode_SIGN_MODE_LEGACY_AMINO_JSON}
 }
 
+// Deprecated: Please use x/tx/signing/aminojson instead.
 func (s signModeLegacyAminoJSONHandler) GetSignBytes(mode signingtypes.SignMode, data signing.SignerData, tx sdk.Tx) ([]byte, error) {
 	if mode != signingtypes.SignMode_SIGN_MODE_LEGACY_AMINO_JSON {
 		return nil, fmt.Errorf("expected %s, got %s", signingtypes.SignMode_SIGN_MODE_LEGACY_AMINO_JSON, mode)
@@ -37,18 +49,28 @@ func (s signModeLegacyAminoJSONHandler) GetSignBytes(mode signingtypes.SignMode,
 	}
 
 	if protoTx.txBodyHasUnknownNonCriticals {
-		return nil, sdkerrors.Wrap(sdkerrors.ErrInvalidRequest, aminoNonCriticalFieldsError)
+		return nil, errorsmod.Wrap(sdkerrors.ErrInvalidRequest, aminoNonCriticalFieldsError)
 	}
 
 	body := protoTx.tx.Body
 
 	if len(body.ExtensionOptions) != 0 || len(body.NonCriticalExtensionOptions) != 0 {
-		return nil, sdkerrors.Wrap(sdkerrors.ErrInvalidRequest, "SIGN_MODE_LEGACY_AMINO_JSON does not support protobuf extension options.")
+		return nil, errorsmod.Wrapf(sdkerrors.ErrInvalidRequest, "%s does not support protobuf extension options", signingtypes.SignMode_SIGN_MODE_LEGACY_AMINO_JSON)
+	}
+
+	addr := data.Address
+	if addr == "" {
+		return nil, errorsmod.Wrapf(sdkerrors.ErrInvalidRequest, "got empty address in %s handler", signingtypes.SignMode_SIGN_MODE_LEGACY_AMINO_JSON)
 	}
 
 	return legacytx.StdSignBytes(
 		data.ChainID, data.AccountNumber, data.Sequence, protoTx.GetTimeoutHeight(),
-		legacytx.StdFee{Amount: protoTx.GetFee(), Gas: protoTx.GetGas()},
+		legacytx.StdFee{
+			Amount:  protoTx.GetFee(),
+			Gas:     protoTx.GetGas(),
+			Payer:   protoTx.tx.AuthInfo.Fee.Payer,
+			Granter: protoTx.tx.AuthInfo.Fee.Granter,
+		},
 		tx.GetMsgs(), protoTx.GetMemo(),
 	), nil
 }

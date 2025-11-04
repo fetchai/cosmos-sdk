@@ -2,11 +2,12 @@ package types
 
 import (
 	"encoding/json"
-	"fmt"
+	"slices"
 	"strings"
 	"time"
 
-	yaml "gopkg.in/yaml.v2"
+	"cosmossdk.io/core/address"
+	"cosmossdk.io/math"
 
 	"github.com/cosmos/cosmos-sdk/codec"
 	sdk "github.com/cosmos/cosmos-sdk/types"
@@ -15,25 +16,11 @@ import (
 // Implements Delegation interface
 var _ DelegationI = Delegation{}
 
-// String implements the Stringer interface for a DVPair object.
-func (dv DVPair) String() string {
-	out, _ := yaml.Marshal(dv)
-	return string(out)
-}
-
-// String implements the Stringer interface for a DVVTriplet object.
-func (dvv DVVTriplet) String() string {
-	out, _ := yaml.Marshal(dvv)
-	return string(out)
-}
-
 // NewDelegation creates a new delegation object
-//
-//nolint:interfacer
-func NewDelegation(delegatorAddr sdk.AccAddress, validatorAddr sdk.ValAddress, shares sdk.Dec) Delegation {
+func NewDelegation(delegatorAddr, validatorAddr string, shares math.LegacyDec) Delegation {
 	return Delegation{
-		DelegatorAddress: delegatorAddr.String(),
-		ValidatorAddress: validatorAddr.String(),
+		DelegatorAddress: delegatorAddr,
+		ValidatorAddress: validatorAddr,
 		Shares:           shares,
 	}
 }
@@ -60,26 +47,14 @@ func UnmarshalDelegation(cdc codec.BinaryCodec, value []byte) (delegation Delega
 	return delegation, err
 }
 
-func (d Delegation) GetDelegatorAddr() sdk.AccAddress {
-	delAddr := sdk.MustAccAddressFromBech32(d.DelegatorAddress)
-
-	return delAddr
+func (d Delegation) GetDelegatorAddr() string {
+	return d.DelegatorAddress
 }
 
-func (d Delegation) GetValidatorAddr() sdk.ValAddress {
-	addr, err := sdk.ValAddressFromBech32(d.ValidatorAddress)
-	if err != nil {
-		panic(err)
-	}
-	return addr
+func (d Delegation) GetValidatorAddr() string {
+	return d.ValidatorAddress
 }
-func (d Delegation) GetShares() sdk.Dec { return d.Shares }
-
-// String returns a human readable string representation of a Delegation.
-func (d Delegation) String() string {
-	out, _ := yaml.Marshal(d)
-	return string(out)
-}
+func (d Delegation) GetShares() math.LegacyDec { return d.Shares }
 
 // Delegations is a collection of delegations
 type Delegations []Delegation
@@ -92,19 +67,15 @@ func (d Delegations) String() (out string) {
 	return strings.TrimSpace(out)
 }
 
-func NewUnbondingDelegationEntry(creationHeight int64, completionTime time.Time, balance sdk.Int) UnbondingDelegationEntry {
+func NewUnbondingDelegationEntry(creationHeight int64, completionTime time.Time, balance math.Int, unbondingID uint64) UnbondingDelegationEntry {
 	return UnbondingDelegationEntry{
-		CreationHeight: creationHeight,
-		CompletionTime: completionTime,
-		InitialBalance: balance,
-		Balance:        balance,
+		CreationHeight:          creationHeight,
+		CompletionTime:          completionTime,
+		InitialBalance:          balance,
+		Balance:                 balance,
+		UnbondingId:             unbondingID,
+		UnbondingOnHoldRefCount: 0,
 	}
-}
-
-// String implements the stringer interface for a UnbondingDelegationEntry.
-func (e UnbondingDelegationEntry) String() string {
-	out, _ := yaml.Marshal(e)
-	return string(out)
 }
 
 // IsMature - is the current entry mature
@@ -112,31 +83,84 @@ func (e UnbondingDelegationEntry) IsMature(currentTime time.Time) bool {
 	return !e.CompletionTime.After(currentTime)
 }
 
+// OnHold - is the current entry on hold due to external modules
+func (e UnbondingDelegationEntry) OnHold() bool {
+	return e.UnbondingOnHoldRefCount > 0
+}
+
+// return the unbonding delegation entry
+func MustMarshalUBDE(cdc codec.BinaryCodec, ubd UnbondingDelegationEntry) []byte {
+	return cdc.MustMarshal(&ubd)
+}
+
+// unmarshal a unbonding delegation entry from a store value
+func MustUnmarshalUBDE(cdc codec.BinaryCodec, value []byte) UnbondingDelegationEntry {
+	ubd, err := UnmarshalUBDE(cdc, value)
+	if err != nil {
+		panic(err)
+	}
+
+	return ubd
+}
+
+// unmarshal a unbonding delegation entry from a store value
+func UnmarshalUBDE(cdc codec.BinaryCodec, value []byte) (ubd UnbondingDelegationEntry, err error) {
+	err = cdc.Unmarshal(value, &ubd)
+	return ubd, err
+}
+
 // NewUnbondingDelegation - create a new unbonding delegation object
-//
-//nolint:interfacer
 func NewUnbondingDelegation(
 	delegatorAddr sdk.AccAddress, validatorAddr sdk.ValAddress,
-	creationHeight int64, minTime time.Time, balance sdk.Int,
+	creationHeight int64, minTime time.Time, balance math.Int, id uint64,
+	valAc, delAc address.Codec,
 ) UnbondingDelegation {
+	valAddr, err := valAc.BytesToString(validatorAddr)
+	if err != nil {
+		panic(err)
+	}
+	delAddr, err := delAc.BytesToString(delegatorAddr)
+	if err != nil {
+		panic(err)
+	}
 	return UnbondingDelegation{
-		DelegatorAddress: delegatorAddr.String(),
-		ValidatorAddress: validatorAddr.String(),
+		DelegatorAddress: delAddr,
+		ValidatorAddress: valAddr,
 		Entries: []UnbondingDelegationEntry{
-			NewUnbondingDelegationEntry(creationHeight, minTime, balance),
+			NewUnbondingDelegationEntry(creationHeight, minTime, balance, id),
 		},
 	}
 }
 
 // AddEntry - append entry to the unbonding delegation
-func (ubd *UnbondingDelegation) AddEntry(creationHeight int64, minTime time.Time, balance sdk.Int) {
-	entry := NewUnbondingDelegationEntry(creationHeight, minTime, balance)
+func (ubd *UnbondingDelegation) AddEntry(creationHeight int64, minTime time.Time, balance math.Int, unbondingID uint64) bool {
+	// Check the entries exists with creation_height and complete_time
+	entryIndex := -1
+	for index, ubdEntry := range ubd.Entries {
+		if ubdEntry.CreationHeight == creationHeight && ubdEntry.CompletionTime.Equal(minTime) {
+			entryIndex = index
+			break
+		}
+	}
+	// entryIndex exists
+	if entryIndex != -1 {
+		ubdEntry := ubd.Entries[entryIndex]
+		ubdEntry.Balance = ubdEntry.Balance.Add(balance)
+		ubdEntry.InitialBalance = ubdEntry.InitialBalance.Add(balance)
+
+		// update the entry
+		ubd.Entries[entryIndex] = ubdEntry
+		return false
+	}
+	// append the new unbond delegation entry
+	entry := NewUnbondingDelegationEntry(creationHeight, minTime, balance, unbondingID)
 	ubd.Entries = append(ubd.Entries, entry)
+	return true
 }
 
 // RemoveEntry - remove entry at index i to the unbonding delegation
 func (ubd *UnbondingDelegation) RemoveEntry(i int64) {
-	ubd.Entries = append(ubd.Entries[:i], ubd.Entries[i+1:]...)
+	ubd.Entries = slices.Delete(ubd.Entries, int(i), int(i+1))
 }
 
 // return the unbonding delegation
@@ -160,23 +184,6 @@ func UnmarshalUBD(cdc codec.BinaryCodec, value []byte) (ubd UnbondingDelegation,
 	return ubd, err
 }
 
-// String returns a human readable string representation of an UnbondingDelegation.
-func (ubd UnbondingDelegation) String() string {
-	out := fmt.Sprintf(`Unbonding Delegations between:
-  Delegator:                 %s
-  Validator:                 %s
-	Entries:`, ubd.DelegatorAddress, ubd.ValidatorAddress)
-	for i, entry := range ubd.Entries {
-		out += fmt.Sprintf(`    Unbonding Delegation %d:
-      Creation Height:           %v
-      Min time to unbond (unix): %v
-      Expected balance:          %s`, i, entry.CreationHeight,
-			entry.CompletionTime, entry.Balance)
-	}
-
-	return out
-}
-
 // UnbondingDelegations is a collection of UnbondingDelegation
 type UnbondingDelegations []UnbondingDelegation
 
@@ -188,19 +195,15 @@ func (ubds UnbondingDelegations) String() (out string) {
 	return strings.TrimSpace(out)
 }
 
-func NewRedelegationEntry(creationHeight int64, completionTime time.Time, balance sdk.Int, sharesDst sdk.Dec) RedelegationEntry {
+func NewRedelegationEntry(creationHeight int64, completionTime time.Time, balance math.Int, sharesDst math.LegacyDec, id uint64) RedelegationEntry {
 	return RedelegationEntry{
-		CreationHeight: creationHeight,
-		CompletionTime: completionTime,
-		InitialBalance: balance,
-		SharesDst:      sharesDst,
+		CreationHeight:          creationHeight,
+		CompletionTime:          completionTime,
+		InitialBalance:          balance,
+		SharesDst:               sharesDst,
+		UnbondingId:             id,
+		UnbondingOnHoldRefCount: 0,
 	}
-}
-
-// String implements the Stringer interface for a RedelegationEntry object.
-func (e RedelegationEntry) String() string {
-	out, _ := yaml.Marshal(e)
-	return string(out)
 }
 
 // IsMature - is the current entry mature
@@ -208,30 +211,48 @@ func (e RedelegationEntry) IsMature(currentTime time.Time) bool {
 	return !e.CompletionTime.After(currentTime)
 }
 
-//nolint:interfacer
+// OnHold - is the current entry on hold due to external modules
+func (e RedelegationEntry) OnHold() bool {
+	return e.UnbondingOnHoldRefCount > 0
+}
+
 func NewRedelegation(
 	delegatorAddr sdk.AccAddress, validatorSrcAddr, validatorDstAddr sdk.ValAddress,
-	creationHeight int64, minTime time.Time, balance sdk.Int, sharesDst sdk.Dec,
+	creationHeight int64, minTime time.Time, balance math.Int, sharesDst math.LegacyDec, id uint64,
+	valAc, delAc address.Codec,
 ) Redelegation {
+	valSrcAddr, err := valAc.BytesToString(validatorSrcAddr)
+	if err != nil {
+		panic(err)
+	}
+	valDstAddr, err := valAc.BytesToString(validatorDstAddr)
+	if err != nil {
+		panic(err)
+	}
+	delAddr, err := delAc.BytesToString(delegatorAddr)
+	if err != nil {
+		panic(err)
+	}
+
 	return Redelegation{
-		DelegatorAddress:    delegatorAddr.String(),
-		ValidatorSrcAddress: validatorSrcAddr.String(),
-		ValidatorDstAddress: validatorDstAddr.String(),
+		DelegatorAddress:    delAddr,
+		ValidatorSrcAddress: valSrcAddr,
+		ValidatorDstAddress: valDstAddr,
 		Entries: []RedelegationEntry{
-			NewRedelegationEntry(creationHeight, minTime, balance, sharesDst),
+			NewRedelegationEntry(creationHeight, minTime, balance, sharesDst, id),
 		},
 	}
 }
 
 // AddEntry - append entry to the unbonding delegation
-func (red *Redelegation) AddEntry(creationHeight int64, minTime time.Time, balance sdk.Int, sharesDst sdk.Dec) {
-	entry := NewRedelegationEntry(creationHeight, minTime, balance, sharesDst)
+func (red *Redelegation) AddEntry(creationHeight int64, minTime time.Time, balance math.Int, sharesDst math.LegacyDec, id uint64) {
+	entry := NewRedelegationEntry(creationHeight, minTime, balance, sharesDst, id)
 	red.Entries = append(red.Entries, entry)
 }
 
 // RemoveEntry - remove entry at index i to the unbonding delegation
 func (red *Redelegation) RemoveEntry(i int64) {
-	red.Entries = append(red.Entries[:i], red.Entries[i+1:]...)
+	red.Entries = slices.Delete(red.Entries, int(i), int(i+1))
 }
 
 // MustMarshalRED returns the Redelegation bytes. Panics if fails.
@@ -255,30 +276,6 @@ func UnmarshalRED(cdc codec.BinaryCodec, value []byte) (red Redelegation, err er
 	return red, err
 }
 
-// String returns a human readable string representation of a Redelegation.
-func (red Redelegation) String() string {
-	out := fmt.Sprintf(`Redelegations between:
-  Delegator:                 %s
-  Source Validator:          %s
-  Destination Validator:     %s
-  Entries:
-`,
-		red.DelegatorAddress, red.ValidatorSrcAddress, red.ValidatorDstAddress,
-	)
-
-	for i, entry := range red.Entries {
-		out += fmt.Sprintf(`    Redelegation Entry #%d:
-      Creation height:           %v
-      Min time to unbond (unix): %v
-      Dest Shares:               %s
-`,
-			i, entry.CreationHeight, entry.CompletionTime, entry.SharesDst,
-		)
-	}
-
-	return strings.TrimRight(out, "\n")
-}
-
 // Redelegations are a collection of Redelegation
 type Redelegations []Redelegation
 
@@ -295,17 +292,12 @@ func (d Redelegations) String() (out string) {
 
 // NewDelegationResp creates a new DelegationResponse instance
 func NewDelegationResp(
-	delegatorAddr sdk.AccAddress, validatorAddr sdk.ValAddress, shares sdk.Dec, balance sdk.Coin,
+	delegatorAddr, validatorAddr string, shares math.LegacyDec, balance sdk.Coin,
 ) DelegationResponse {
 	return DelegationResponse{
 		Delegation: NewDelegation(delegatorAddr, validatorAddr, shares),
 		Balance:    balance,
 	}
-}
-
-// String implements the Stringer interface for DelegationResponse.
-func (d DelegationResponse) String() string {
-	return fmt.Sprintf("%s\n  Balance:   %s", d.Delegation.String(), d.Balance)
 }
 
 type delegationRespAlias DelegationResponse
@@ -335,16 +327,14 @@ func (d DelegationResponses) String() (out string) {
 }
 
 // NewRedelegationResponse crates a new RedelegationEntryResponse instance.
-//
-//nolint:interfacer
 func NewRedelegationResponse(
-	delegatorAddr sdk.AccAddress, validatorSrc, validatorDst sdk.ValAddress, entries []RedelegationEntryResponse,
+	delegatorAddr, validatorSrc, validatorDst string, entries []RedelegationEntryResponse,
 ) RedelegationResponse {
 	return RedelegationResponse{
 		Redelegation: Redelegation{
-			DelegatorAddress:    delegatorAddr.String(),
-			ValidatorSrcAddress: validatorSrc.String(),
-			ValidatorDstAddress: validatorDst.String(),
+			DelegatorAddress:    delegatorAddr,
+			ValidatorSrcAddress: validatorSrc,
+			ValidatorDstAddress: validatorDst,
 		},
 		Entries: entries,
 	}
@@ -352,10 +342,10 @@ func NewRedelegationResponse(
 
 // NewRedelegationEntryResponse creates a new RedelegationEntryResponse instance.
 func NewRedelegationEntryResponse(
-	creationHeight int64, completionTime time.Time, sharesDst sdk.Dec, initialBalance, balance sdk.Int,
+	creationHeight int64, completionTime time.Time, sharesDst math.LegacyDec, initialBalance, balance math.Int, unbondingID uint64,
 ) RedelegationEntryResponse {
 	return RedelegationEntryResponse{
-		RedelegationEntry: NewRedelegationEntry(creationHeight, completionTime, initialBalance, sharesDst),
+		RedelegationEntry: NewRedelegationEntry(creationHeight, completionTime, initialBalance, sharesDst, unbondingID),
 		Balance:           balance,
 	}
 }

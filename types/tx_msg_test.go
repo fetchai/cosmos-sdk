@@ -4,7 +4,9 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/suite"
+	"google.golang.org/protobuf/types/known/anypb"
 
+	"github.com/cosmos/cosmos-sdk/codec"
 	"github.com/cosmos/cosmos-sdk/testutil/testdata"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 )
@@ -23,13 +25,20 @@ func (s *testMsgSuite) TestMsg() {
 
 	msg := testdata.NewTestMsg(accAddr)
 	s.Require().NotNil(msg)
-	s.Require().Equal([]sdk.AccAddress{accAddr}, msg.GetSigners())
-	s.Require().Equal("TestMsg", msg.Route())
-	s.Require().Equal("Test message", msg.Type())
+	s.Require().True(accAddr.Equals(msg.GetSigners()[0]))
 	s.Require().Nil(msg.ValidateBasic())
-	s.Require().NotPanics(func() { msg.GetSignBytes() })
 }
 
 func (s *testMsgSuite) TestMsgTypeURL() {
-	s.Require().Equal("/testdata.TestMsg", sdk.MsgTypeURL(new(testdata.TestMsg)))
+	s.Require().Equal("/testpb.TestMsg", sdk.MsgTypeURL(new(testdata.TestMsg)))
+	s.Require().Equal("/google.protobuf.Any", sdk.MsgTypeURL(&anypb.Any{}))
+}
+
+func (s *testMsgSuite) TestGetMsgFromTypeURL() {
+	msg := new(testdata.TestMsg)
+	cdc := codec.NewProtoCodec(testdata.NewTestInterfaceRegistry())
+
+	result, err := sdk.GetMsgFromTypeURL(cdc, "/testpb.TestMsg")
+	s.Require().NoError(err)
+	s.Require().Equal(msg, result)
 }

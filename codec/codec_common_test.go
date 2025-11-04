@@ -3,7 +3,7 @@ package codec_test
 import (
 	"testing"
 
-	"github.com/gogo/protobuf/proto"
+	"github.com/cosmos/gogoproto/proto"
 	"github.com/stretchr/testify/require"
 
 	"github.com/cosmos/cosmos-sdk/codec"
@@ -13,7 +13,7 @@ import (
 
 type interfaceMarshaler struct {
 	marshal   func(i proto.Message) ([]byte, error)
-	unmarshal func(bz []byte, ptr interface{}) error
+	unmarshal func(bz []byte, ptr any) error
 }
 
 func testInterfaceMarshaling(require *require.Assertions, cdc interfaceMarshaler, isAminoBin bool) {
@@ -28,7 +28,7 @@ func testInterfaceMarshaling(require *require.Assertions, cdc interfaceMarshaler
 	var animal testdata.Animal
 	if isAminoBin {
 		require.PanicsWithValue("Unmarshal expects a pointer", func() {
-			cdc.unmarshal(bz, animal)
+			_ = cdc.unmarshal(bz, animal)
 		})
 	} else {
 		err = cdc.unmarshal(bz, animal)
@@ -50,16 +50,16 @@ func testInterfaceMarshaling(require *require.Assertions, cdc interfaceMarshaler
 }
 
 type mustMarshaler struct {
-	marshal       func(i codec.ProtoMarshaler) ([]byte, error)
-	mustMarshal   func(i codec.ProtoMarshaler) []byte
-	unmarshal     func(bz []byte, ptr codec.ProtoMarshaler) error
-	mustUnmarshal func(bz []byte, ptr codec.ProtoMarshaler)
+	marshal       func(i proto.Message) ([]byte, error)
+	mustMarshal   func(i proto.Message) []byte
+	unmarshal     func(bz []byte, ptr proto.Message) error
+	mustUnmarshal func(bz []byte, ptr proto.Message)
 }
 
 type testCase struct {
 	name         string
-	input        codec.ProtoMarshaler
-	recv         codec.ProtoMarshaler
+	input        proto.Message
+	recv         proto.Message
 	marshalErr   bool
 	unmarshalErr bool
 }
@@ -87,8 +87,14 @@ func testMarshalingTestCase(require *require.Assertions, tc testCase, m mustMars
 	}
 }
 
-func testMarshaling(t *testing.T, cdc codec.Codec) {
-	any, err := types.NewAnyWithValue(&testdata.Dog{Name: "rufus"})
+func testMarshaling(t *testing.T, cdc interface {
+	codec.BinaryCodec
+	codec.JSONCodec
+},
+) {
+	t.Helper()
+
+	cdcAny, err := types.NewAnyWithValue(&testdata.Dog{Name: "rufus"})
 	require.NoError(t, err)
 
 	testCases := []testCase{
@@ -109,22 +115,21 @@ func testMarshaling(t *testing.T, cdc codec.Codec) {
 	if _, ok := cdc.(*codec.AminoCodec); ok {
 		testCases = append(testCases, testCase{
 			"any marshaling",
-			&testdata.HasAnimal{Animal: any},
-			&testdata.HasAnimal{Animal: any},
+			&testdata.HasAnimal{Animal: cdcAny},
+			&testdata.HasAnimal{Animal: cdcAny},
 			false,
 			false,
 		})
 	}
 
 	for _, tc := range testCases {
-		tc := tc
 		m1 := mustMarshaler{cdc.Marshal, cdc.MustMarshal, cdc.Unmarshal, cdc.MustUnmarshal}
 		m2 := mustMarshaler{cdc.MarshalLengthPrefixed, cdc.MustMarshalLengthPrefixed, cdc.UnmarshalLengthPrefixed, cdc.MustUnmarshalLengthPrefixed}
 		m3 := mustMarshaler{
-			func(i codec.ProtoMarshaler) ([]byte, error) { return cdc.MarshalJSON(i) },
-			func(i codec.ProtoMarshaler) []byte { return cdc.MustMarshalJSON(i) },
-			func(bz []byte, ptr codec.ProtoMarshaler) error { return cdc.UnmarshalJSON(bz, ptr) },
-			func(bz []byte, ptr codec.ProtoMarshaler) { cdc.MustUnmarshalJSON(bz, ptr) },
+			func(i proto.Message) ([]byte, error) { return cdc.MarshalJSON(i) },
+			func(i proto.Message) []byte { return cdc.MustMarshalJSON(i) },
+			func(bz []byte, ptr proto.Message) error { return cdc.UnmarshalJSON(bz, ptr) },
+			func(bz []byte, ptr proto.Message) { cdc.MustUnmarshalJSON(bz, ptr) },
 		}
 
 		t.Run(tc.name+"_BinaryBare",

@@ -92,13 +92,15 @@ func (bA *CompactBitArray) NumTrueBitsBefore(index int) int {
 		index = max
 	}
 	// below we iterate over the bytes then over bits (in low endian) and count bits set to 1
-	for elem := 0; ; elem++ {
+	for elem := range bA.Elems {
 		if elem*8+7 >= index {
 			onesCount += bits.OnesCount8(bA.Elems[elem] >> (7 - (index % 8) + 1))
 			return onesCount
 		}
 		onesCount += bits.OnesCount8(bA.Elems[elem])
 	}
+
+	return onesCount
 }
 
 // Copy returns a copy of the provided bit array.
@@ -145,7 +147,7 @@ func (bA *CompactBitArray) StringIndented(indent string) string {
 	lines := []string{}
 	bits := ""
 	size := bA.Count()
-	for i := 0; i < size; i++ {
+	for i := range size {
 		if bA.GetIndex(i) {
 			bits += "x"
 		} else {
@@ -182,7 +184,7 @@ func (bA *CompactBitArray) MarshalJSON() ([]byte, error) {
 
 	bits := `"`
 	size := bA.Count()
-	for i := 0; i < size; i++ {
+	for i := range size {
 		if bA.GetIndex(i) {
 			bits += `x`
 		} else {
@@ -220,7 +222,7 @@ func (bA *CompactBitArray) UnmarshalJSON(bz []byte) error {
 	// Construct new CompactBitArray and copy over.
 	numBits := len(bits)
 	bA2 := NewCompactBitArray(numBits)
-	for i := 0; i < numBits; i++ {
+	for i := range numBits {
 		if bits[i] == 'x' {
 			bA2.SetIndex(i, true)
 		}

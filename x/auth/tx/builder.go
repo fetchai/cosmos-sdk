@@ -1,9 +1,17 @@
 package tx
 
 import (
-	"github.com/gogo/protobuf/proto"
+	"bytes"
+	"fmt"
+	"time"
+
+	"github.com/cosmos/gogoproto/proto"
+	protov2 "google.golang.org/protobuf/proto"
+
+	errorsmod "cosmossdk.io/errors"
 
 	"github.com/cosmos/cosmos-sdk/client"
+	"github.com/cosmos/cosmos-sdk/codec"
 	codectypes "github.com/cosmos/cosmos-sdk/codec/types"
 	cryptotypes "github.com/cosmos/cosmos-sdk/crypto/types"
 	sdk "github.com/cosmos/cosmos-sdk/types"
@@ -17,6 +25,8 @@ import (
 // wrapper is a wrapper around the tx.Tx proto.Message which retain the raw
 // body and auth_info bytes.
 type wrapper struct {
+	cdc codec.Codec
+
 	tx *tx.Tx
 
 	// bodyBz represents the protobuf encoding of TxBody. This should be encoding
@@ -28,6 +38,9 @@ type wrapper struct {
 	authInfoBz []byte
 
 	txBodyHasUnknownNonCriticals bool
+
+	signers [][]byte
+	msgsV2  []protov2.Message
 }
 
 var (
@@ -45,8 +58,9 @@ type ExtensionOptionsTxBuilder interface {
 	SetNonCriticalExtensionOptions(...*codectypes.Any)
 }
 
-func newBuilder() *wrapper {
-	return &wrapper{
+func newBuilder(cdc codec.Codec) *wrapper {
+	w := &wrapper{
+		cdc: cdc,
 		tx: &tx.Tx{
 			Body: &tx.TxBody{},
 			AuthInfo: &tx.AuthInfo{
@@ -54,14 +68,64 @@ func newBuilder() *wrapper {
 			},
 		},
 	}
+	return w
 }
 
 func (w *wrapper) GetMsgs() []sdk.Msg {
 	return w.tx.GetMsgs()
 }
 
+func (w *wrapper) GetMsgsV2() ([]protov2.Message, error) {
+	if w.msgsV2 == nil {
+		err := w.initSignersAndMsgsV2()
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	return w.msgsV2, nil
+}
+
+func (w *wrapper) SetTimeoutTimestamp(timestamp time.Time) {
+	// Only set TimeoutTimestamp if we have a non-zero time.Time.
+	// Setting timestamppb.New() with a zero/default value time.Time results in a non-zero timestamppb.Timestamp,
+	// which causes the value to show up in the signature - breaking <v0.53.x compatibility.
+	if !timestamp.IsZero() && timestamp.Unix() > 0 {
+		w.tx.Body.TimeoutTimestamp = &timestamp
+	}
+}
+
+func (w *wrapper) GetTimeoutTimeStamp() time.Time {
+	t := w.tx.Body.TimeoutTimestamp
+	if t == nil {
+		return time.Time{}
+	}
+	return *t
+}
+
 func (w *wrapper) ValidateBasic() error {
-	return w.tx.ValidateBasic()
+	if w.tx == nil {
+		return fmt.Errorf("bad Tx")
+	}
+
+	if err := w.tx.ValidateBasic(); err != nil {
+		return err
+	}
+
+	sigs := w.tx.Signatures
+	signers, err := w.GetSigners()
+	if err != nil {
+		return err
+	}
+
+	if len(sigs) != len(signers) {
+		return errorsmod.Wrapf(
+			sdkerrors.ErrUnauthorized,
+			"wrong number of signers; expected %d, got %d", len(signers), len(sigs),
+		)
+	}
+
+	return nil
 }
 
 func (w *wrapper) getBodyBytes() []byte {
@@ -96,8 +160,20 @@ func (w *wrapper) getAuthInfoBytes() []byte {
 	return w.authInfoBz
 }
 
-func (w *wrapper) GetSigners() []sdk.AccAddress {
-	return w.tx.GetSigners()
+func (w *wrapper) initSignersAndMsgsV2() error {
+	var err error
+	w.signers, w.msgsV2, err = w.tx.GetSigners(w.cdc)
+	return err
+}
+
+func (w *wrapper) GetSigners() ([][]byte, error) {
+	if w.signers == nil {
+		err := w.initSignersAndMsgsV2()
+		if err != nil {
+			return nil, err
+		}
+	}
+	return w.signers, nil
 }
 
 func (w *wrapper) GetPubKeys() ([]cryptotypes.PubKey, error) {
@@ -116,7 +192,7 @@ func (w *wrapper) GetPubKeys() ([]cryptotypes.PubKey, error) {
 		if ok {
 			pks[i] = pk
 		} else {
-			return nil, sdkerrors.Wrapf(sdkerrors.ErrLogic, "Expecting PubKey, got: %T", pkAny)
+			return nil, errorsmod.Wrapf(sdkerrors.ErrLogic, "Expecting PubKey, got: %T", pkAny)
 		}
 	}
 
@@ -131,21 +207,27 @@ func (w *wrapper) GetFee() sdk.Coins {
 	return w.tx.AuthInfo.Fee.Amount
 }
 
-func (w *wrapper) FeePayer() sdk.AccAddress {
+func (w *wrapper) FeePayer() []byte {
 	feePayer := w.tx.AuthInfo.Fee.Payer
 	if feePayer != "" {
-		return sdk.MustAccAddressFromBech32(feePayer)
+		feePayerAddr, err := w.cdc.InterfaceRegistry().SigningContext().AddressCodec().StringToBytes(feePayer)
+		if err != nil {
+			panic(err)
+		}
+		return feePayerAddr
 	}
+
 	// use first signer as default if no payer specified
-	return w.GetSigners()[0]
+	signers, err := w.GetSigners()
+	if err != nil {
+		return nil
+	}
+
+	return signers[0]
 }
 
-func (w *wrapper) FeeGranter() sdk.AccAddress {
-	feePayer := w.tx.AuthInfo.Fee.Granter
-	if feePayer != "" {
-		return sdk.MustAccAddressFromBech32(feePayer)
-	}
-	return nil
+func (w *wrapper) FeeGranter() []byte {
+	return w.tx.FeeGranter(w.cdc)
 }
 
 func (w *wrapper) GetMemo() string {
@@ -155,6 +237,11 @@ func (w *wrapper) GetMemo() string {
 // GetTimeoutHeight returns the transaction's timeout height (if set).
 func (w *wrapper) GetTimeoutHeight() uint64 {
 	return w.tx.Body.TimeoutHeight
+}
+
+// GetUnordered returns the transaction's unordered field (if set).
+func (w *wrapper) GetUnordered() bool {
+	return w.tx.Body.Unordered
 }
 
 func (w *wrapper) GetSignaturesV2() ([]signing.SignatureV2, error) {
@@ -179,10 +266,12 @@ func (w *wrapper) GetSignaturesV2() ([]signing.SignatureV2, error) {
 			if err != nil {
 				return nil, err
 			}
+			// sequence number is functionally a transaction nonce and referred to as such in the SDK
+			nonce := si.GetSequence()
 			res[i] = signing.SignatureV2{
 				PubKey:   pubKeys[i],
 				Data:     sigData,
-				Sequence: si.GetSequence(),
+				Sequence: nonce,
 			}
 
 		}
@@ -192,14 +281,9 @@ func (w *wrapper) GetSignaturesV2() ([]signing.SignatureV2, error) {
 }
 
 func (w *wrapper) SetMsgs(msgs ...sdk.Msg) error {
-	anys := make([]*codectypes.Any, len(msgs))
-
-	for i, msg := range msgs {
-		var err error
-		anys[i], err = codectypes.NewAnyWithValue(msg)
-		if err != nil {
-			return err
-		}
+	anys, err := tx.SetMsgs(msgs)
+	if err != nil {
+		return err
 	}
 
 	w.tx.Body.Messages = anys
@@ -207,12 +291,23 @@ func (w *wrapper) SetMsgs(msgs ...sdk.Msg) error {
 	// set bodyBz to nil because the cached bodyBz no longer matches tx.Body
 	w.bodyBz = nil
 
+	// reset signers and msgsV2
+	w.signers = nil
+	w.msgsV2 = nil
+
 	return nil
 }
 
 // SetTimeoutHeight sets the transaction's height timeout.
 func (w *wrapper) SetTimeoutHeight(height uint64) {
 	w.tx.Body.TimeoutHeight = height
+
+	// set bodyBz to nil because the cached bodyBz no longer matches tx.Body
+	w.bodyBz = nil
+}
+
+func (w *wrapper) SetUnordered(v bool) {
+	w.tx.Body.Unordered = v
 
 	// set bodyBz to nil because the cached bodyBz no longer matches tx.Body
 	w.bodyBz = nil
@@ -275,14 +370,20 @@ func (w *wrapper) SetSignatures(signatures ...signing.SignatureV2) error {
 	rawSigs := make([][]byte, n)
 
 	for i, sig := range signatures {
-		var modeInfo *tx.ModeInfo
+		var (
+			modeInfo *tx.ModeInfo
+			pubKey   *codectypes.Any
+			err      error
+		)
 		modeInfo, rawSigs[i] = SignatureDataToModeInfoAndSig(sig.Data)
-		any, err := codectypes.NewAnyWithValue(sig.PubKey)
-		if err != nil {
-			return err
+		if sig.PubKey != nil {
+			pubKey, err = codectypes.NewAnyWithValue(sig.PubKey)
+			if err != nil {
+				return err
+			}
 		}
 		signerInfos[i] = &tx.SignerInfo{
-			PublicKey: any,
+			PublicKey: pubKey,
 			ModeInfo:  modeInfo,
 			Sequence:  sig.Sequence,
 		}
@@ -300,8 +401,36 @@ func (w *wrapper) setSignerInfos(infos []*tx.SignerInfo) {
 	w.authInfoBz = nil
 }
 
+func (w *wrapper) setSignerInfoAtIndex(index int, info *tx.SignerInfo) {
+	signers, err := w.GetSigners()
+	if err != nil {
+		panic(err)
+	}
+
+	if w.tx.AuthInfo.SignerInfos == nil {
+		w.tx.AuthInfo.SignerInfos = make([]*tx.SignerInfo, len(signers))
+	}
+
+	w.tx.AuthInfo.SignerInfos[index] = info
+	// set authInfoBz to nil because the cached authInfoBz no longer matches tx.AuthInfo
+	w.authInfoBz = nil
+}
+
 func (w *wrapper) setSignatures(sigs [][]byte) {
 	w.tx.Signatures = sigs
+}
+
+func (w *wrapper) setSignatureAtIndex(index int, sig []byte) {
+	signers, err := w.GetSigners()
+	if err != nil {
+		panic(err)
+	}
+
+	if w.tx.Signatures == nil {
+		w.tx.Signatures = make([][]byte, len(signers))
+	}
+
+	w.tx.Signatures[index] = sig
 }
 
 func (w *wrapper) GetTx() authsigning.Tx {
@@ -341,4 +470,98 @@ func (w *wrapper) SetExtensionOptions(extOpts ...*codectypes.Any) {
 func (w *wrapper) SetNonCriticalExtensionOptions(extOpts ...*codectypes.Any) {
 	w.tx.Body.NonCriticalExtensionOptions = extOpts
 	w.bodyBz = nil
+}
+
+func (w *wrapper) AddAuxSignerData(data tx.AuxSignerData) error {
+	err := data.ValidateBasic()
+	if err != nil {
+		return err
+	}
+
+	w.bodyBz = data.SignDoc.BodyBytes
+
+	var body tx.TxBody
+	err = w.cdc.Unmarshal(w.bodyBz, &body)
+	if err != nil {
+		return err
+	}
+
+	if w.tx.Body.Memo != "" && w.tx.Body.Memo != body.Memo {
+		return sdkerrors.ErrInvalidRequest.Wrapf("TxBuilder has memo %s, got %s in AuxSignerData", w.tx.Body.Memo, body.Memo)
+	}
+	if w.tx.Body.TimeoutHeight != 0 && w.tx.Body.TimeoutHeight != body.TimeoutHeight {
+		return sdkerrors.ErrInvalidRequest.Wrapf("TxBuilder has timeout height %d, got %d in AuxSignerData", w.tx.Body.TimeoutHeight, body.TimeoutHeight)
+	}
+	if len(w.tx.Body.ExtensionOptions) != 0 {
+		if len(w.tx.Body.ExtensionOptions) != len(body.ExtensionOptions) {
+			return sdkerrors.ErrInvalidRequest.Wrapf("TxBuilder has %d extension options, got %d in AuxSignerData", len(w.tx.Body.ExtensionOptions), len(body.ExtensionOptions))
+		}
+		for i, o := range w.tx.Body.ExtensionOptions {
+			if !o.Equal(body.ExtensionOptions[i]) {
+				return sdkerrors.ErrInvalidRequest.Wrapf("TxBuilder has extension option %+v at index %d, got %+v in AuxSignerData", o, i, body.ExtensionOptions[i])
+			}
+		}
+	}
+	if len(w.tx.Body.NonCriticalExtensionOptions) != 0 {
+		if len(w.tx.Body.NonCriticalExtensionOptions) != len(body.NonCriticalExtensionOptions) {
+			return sdkerrors.ErrInvalidRequest.Wrapf("TxBuilder has %d non-critical extension options, got %d in AuxSignerData", len(w.tx.Body.NonCriticalExtensionOptions), len(body.NonCriticalExtensionOptions))
+		}
+		for i, o := range w.tx.Body.NonCriticalExtensionOptions {
+			if !o.Equal(body.NonCriticalExtensionOptions[i]) {
+				return sdkerrors.ErrInvalidRequest.Wrapf("TxBuilder has non-critical extension option %+v at index %d, got %+v in AuxSignerData", o, i, body.NonCriticalExtensionOptions[i])
+			}
+		}
+	}
+	if len(w.tx.Body.Messages) != 0 {
+		if len(w.tx.Body.Messages) != len(body.Messages) {
+			return sdkerrors.ErrInvalidRequest.Wrapf("TxBuilder has %d Msgs, got %d in AuxSignerData", len(w.tx.Body.Messages), len(body.Messages))
+		}
+		for i, o := range w.tx.Body.Messages {
+			if !o.Equal(body.Messages[i]) {
+				return sdkerrors.ErrInvalidRequest.Wrapf("TxBuilder has Msg %+v at index %d, got %+v in AuxSignerData", o, i, body.Messages[i])
+			}
+		}
+	}
+
+	w.SetMemo(body.Memo)
+	w.SetTimeoutHeight(body.TimeoutHeight)
+	w.SetExtensionOptions(body.ExtensionOptions...)
+	w.SetNonCriticalExtensionOptions(body.NonCriticalExtensionOptions...)
+	msgs := make([]sdk.Msg, len(body.Messages))
+	for i, msgAny := range body.Messages {
+		msgs[i] = msgAny.GetCachedValue().(sdk.Msg)
+	}
+	err = w.SetMsgs(msgs...)
+	if err != nil {
+		return err
+	}
+
+	// Get the aux signer's index in GetSigners.
+	signerIndex := -1
+	signers, err := w.GetSigners()
+	if err != nil {
+		return err
+	}
+
+	for i, signer := range signers {
+		addrBz, err := w.cdc.InterfaceRegistry().SigningContext().AddressCodec().StringToBytes(data.Address)
+		if err != nil {
+			return err
+		}
+		if bytes.Equal(signer, addrBz) {
+			signerIndex = i
+		}
+	}
+	if signerIndex < 0 {
+		return sdkerrors.ErrLogic.Wrapf("address %s is not a signer", data.Address)
+	}
+
+	w.setSignerInfoAtIndex(signerIndex, &tx.SignerInfo{
+		PublicKey: data.SignDoc.PublicKey,
+		ModeInfo:  &tx.ModeInfo{Sum: &tx.ModeInfo_Single_{Single: &tx.ModeInfo_Single{Mode: data.Mode}}},
+		Sequence:  data.SignDoc.Sequence,
+	})
+	w.setSignatureAtIndex(signerIndex, data.Sig)
+
+	return nil
 }

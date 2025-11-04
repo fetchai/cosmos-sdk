@@ -2,8 +2,8 @@
 
 ## Changelog
 
-- 2020 April 27: Initial Draft
-- 2020 August 5: Update guidelines
+* 2020 April 27: Initial Draft
+* 2020 August 5: Update guidelines
 
 ## Status
 
@@ -51,7 +51,7 @@ The goal of this ADR is to provide thoughtful naming conventions that:
 names too short and cryptic) or under-optimizing (just accepting bloated names
 with lots of redundant information)
 
-These guidelines are meant to act as a style guide for both the SDK and
+These guidelines are meant to act as a style guide for both the Cosmos SDK and
 third-party modules.
 
 As a starting point, we should adopt all of the [DEFAULT](https://buf.build/docs/lint-checkers#default)
@@ -191,7 +191,7 @@ is used in source code to denote modules, this is often unnecessary for .proto
 files as modules are the primary thing sub-packages are used for. Only items which
 are known to be used infrequently should have deep sub-package depths.
 
-For the Cosmos SDK, it is recommended that that we simply write `cosmos.bank`,
+For the Cosmos SDK, it is recommended that we simply write `cosmos.bank`,
 `cosmos.gov`, etc. rather than `cosmos.x.bank`. In practice, most non-module
 types can go straight in the `cosmos` package or we can introduce a
 `cosmos.base` package if needed. Note that this naming _will not_ change
@@ -251,7 +251,7 @@ community-based governance.
 the path)
 * code generation will be easier for clients because .proto files will be
 in a single `proto/` directory which can be copied rather than scattered
-throughout the SDK
+throughout the Cosmos SDK
 
 ### Negative
 

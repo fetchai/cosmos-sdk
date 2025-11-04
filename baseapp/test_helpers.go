@@ -1,53 +1,85 @@
 package baseapp
 
 import (
-	tmproto "github.com/tendermint/tendermint/proto/tendermint/types"
+	cmtproto "github.com/cometbft/cometbft/proto/tendermint/types"
+
+	errorsmod "cosmossdk.io/errors"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
 )
 
-func (app *BaseApp) Check(txEncoder sdk.TxEncoder, tx sdk.Tx) (sdk.GasInfo, *sdk.Result, error) {
+// SimCheck defines a CheckTx helper function that used in tests and simulations.
+func (app *BaseApp) SimCheck(txEncoder sdk.TxEncoder, tx sdk.Tx) (sdk.GasInfo, *sdk.Result, error) {
 	// runTx expects tx bytes as argument, so we encode the tx argument into
 	// bytes. Note that runTx will actually decode those bytes again. But since
 	// this helper is only used in tests/simulation, it's fine.
 	bz, err := txEncoder(tx)
 	if err != nil {
-		return sdk.GasInfo{}, nil, sdkerrors.Wrapf(sdkerrors.ErrInvalidRequest, "%s", err)
+		return sdk.GasInfo{}, nil, errorsmod.Wrapf(sdkerrors.ErrInvalidRequest, "%s", err)
 	}
-	gasInfo, result, _, err := app.runTx(runTxModeCheck, bz)
+
+	gasInfo, result, _, err := app.runTx(execModeCheck, bz, tx)
 	return gasInfo, result, err
 }
 
+// Simulate executes a tx in simulate mode to get result and gas info.
 func (app *BaseApp) Simulate(txBytes []byte) (sdk.GasInfo, *sdk.Result, error) {
-	gasInfo, result, _, err := app.runTx(runTxModeSimulate, txBytes)
+	gasInfo, result, _, err := app.runTx(execModeSimulate, txBytes, nil)
 	return gasInfo, result, err
 }
 
-func (app *BaseApp) Deliver(txEncoder sdk.TxEncoder, tx sdk.Tx) (sdk.GasInfo, *sdk.Result, error) {
+func (app *BaseApp) SimDeliver(txEncoder sdk.TxEncoder, tx sdk.Tx) (sdk.GasInfo, *sdk.Result, error) {
 	// See comment for Check().
 	bz, err := txEncoder(tx)
 	if err != nil {
-		return sdk.GasInfo{}, nil, sdkerrors.Wrapf(sdkerrors.ErrInvalidRequest, "%s", err)
+		return sdk.GasInfo{}, nil, errorsmod.Wrapf(sdkerrors.ErrInvalidRequest, "%s", err)
 	}
-	gasInfo, result, _, err := app.runTx(runTxModeDeliver, bz)
+
+	gasInfo, result, _, err := app.runTx(execModeFinalize, bz, tx)
 	return gasInfo, result, err
 }
 
-// Context with current {check, deliver}State of the app used by tests.
-func (app *BaseApp) NewContext(isCheckTx bool, header tmproto.Header) sdk.Context {
+func (app *BaseApp) SimTxFinalizeBlock(txEncoder sdk.TxEncoder, tx sdk.Tx) (sdk.GasInfo, *sdk.Result, error) {
+	// See comment for Check().
+	bz, err := txEncoder(tx)
+	if err != nil {
+		return sdk.GasInfo{}, nil, errorsmod.Wrapf(sdkerrors.ErrInvalidRequest, "%s", err)
+	}
+
+	gasInfo, result, _, err := app.runTx(execModeFinalize, bz, tx)
+	return gasInfo, result, err
+}
+
+// SimWriteState is an entrypoint for simulations only. They are not executed during the normal ABCI finalize
+// block step but later. Therefor an extra call to the root multi-store (app.cms) is required to write the changes.
+func (app *BaseApp) SimWriteState() {
+	app.finalizeBlockState.ms.Write()
+}
+
+// NewContextLegacy returns a new sdk.Context with the provided header
+func (app *BaseApp) NewContextLegacy(isCheckTx bool, header cmtproto.Header) sdk.Context {
 	if isCheckTx {
 		return sdk.NewContext(app.checkState.ms, header, true, app.logger).
 			WithMinGasPrices(app.minGasPrices)
 	}
 
-	return sdk.NewContext(app.deliverState.ms, header, false, app.logger)
+	return sdk.NewContext(app.finalizeBlockState.ms, header, false, app.logger)
 }
 
-func (app *BaseApp) NewUncachedContext(isCheckTx bool, header tmproto.Header) sdk.Context {
+// NewContext returns a new sdk.Context with a empty header
+func (app *BaseApp) NewContext(isCheckTx bool) sdk.Context {
+	return app.NewContextLegacy(isCheckTx, cmtproto.Header{})
+}
+
+func (app *BaseApp) NewUncachedContext(isCheckTx bool, header cmtproto.Header) sdk.Context {
 	return sdk.NewContext(app.cms, header, isCheckTx, app.logger)
 }
 
-func (app *BaseApp) GetContextForDeliverTx(txBytes []byte) sdk.Context {
-	return app.getContextForTx(runTxModeDeliver, txBytes)
+func (app *BaseApp) GetContextForFinalizeBlock(txBytes []byte) sdk.Context {
+	return app.getContextForTx(execModeFinalize, txBytes)
+}
+
+func (app *BaseApp) GetContextForCheckTx(txBytes []byte) sdk.Context {
+	return app.getContextForTx(execModeCheck, txBytes)
 }

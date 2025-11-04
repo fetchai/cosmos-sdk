@@ -3,11 +3,11 @@ package keys
 import (
 	"bufio"
 
+	"github.com/spf13/cobra"
+
 	"github.com/cosmos/cosmos-sdk/client"
 	"github.com/cosmos/cosmos-sdk/client/input"
 	"github.com/cosmos/cosmos-sdk/crypto/keyring"
-
-	"github.com/spf13/cobra"
 )
 
 const (
@@ -35,9 +35,10 @@ private keys stored in a ledger device cannot be deleted with the CLI.
 			}
 
 			for _, name := range args {
-				info, err := clientCtx.Keyring.Key(name)
+				k, err := clientCtx.Keyring.Key(name)
 				if err != nil {
-					return err
+					cmd.PrintErrf("key %s not found\n", name)
+					continue
 				}
 
 				// confirm deletion, unless -y is passed
@@ -53,7 +54,7 @@ private keys stored in a ledger device cannot be deleted with the CLI.
 					return err
 				}
 
-				if info.GetType() == keyring.TypeLedger || info.GetType() == keyring.TypeOffline {
+				if k.GetType() == keyring.TypeLedger || k.GetType() == keyring.TypeOffline {
 					cmd.PrintErrln("Public key reference deleted")
 					continue
 				}

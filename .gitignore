@@ -6,7 +6,6 @@
 *.swm
 *.swn
 *.pyc
-.dccache
 
 # private files
 private[.-]*
@@ -15,25 +14,29 @@ private
 # Build
 vendor
 build
-docs/_build
-docs/tutorial
-docs/node_modules
-docs/modules
-docs/run-node/cosmovisor.md
 dist
 tools-stamp
 buf-stamp
 artifacts
+simapp/simd/simd
+
+# Go
+go.work
+go.work.sum
 
 # Data - ideally these don't exist
 baseapp/data/*
 client/lcd/keys/*
-mytestnet
+.testnets
 
 # Testing
+coverage.out
 coverage.txt
-profile.out
+*profile.out
 sim_log_file
+x/genutil/config
+x/genutil/data
+*.fail
 
 # Vagrant
 .vagrant/
@@ -44,13 +47,21 @@ vagrant
 # IDE
 .idea
 *.iml
+*.ipr
+*.iws
 .dir-locals.el
 .vscode
 
-# Graphviz
+.venv
+
+# Depinject & Graphviz
 dependency-graph.png
+debug_container.dot
+debug_container.log
 
 # Latex
 *.aux
 *.out
 *.synctex.gz
+/x/genutil/config/priv_validator_key.json
+/x/genutil/data/priv_validator_state.json

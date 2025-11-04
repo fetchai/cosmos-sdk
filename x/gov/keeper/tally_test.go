@@ -4,472 +4,112 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
-	tmproto "github.com/tendermint/tendermint/proto/tendermint/types"
 
-	"github.com/cosmos/cosmos-sdk/simapp"
-	sdk "github.com/cosmos/cosmos-sdk/types"
-	"github.com/cosmos/cosmos-sdk/x/gov/types"
-	"github.com/cosmos/cosmos-sdk/x/staking"
-	stakingtypes "github.com/cosmos/cosmos-sdk/x/staking/types"
+	"cosmossdk.io/collections"
+	"cosmossdk.io/math"
+
+	"github.com/cosmos/cosmos-sdk/codec/address"
+	simtestutil "github.com/cosmos/cosmos-sdk/testutil/sims"
+	v1 "github.com/cosmos/cosmos-sdk/x/gov/types/v1"
 )
 
-func TestTallyNoOneVotes(t *testing.T) {
-	app := simapp.Setup(false)
-	ctx := app.BaseApp.NewContext(false, tmproto.Header{})
+func TestVoteRemovalAfterTally(t *testing.T) {
+	govKeeper, authKeeper, bankKeeper, stakingKeeper, _, _, ctx := setupGovKeeper(t)
+	authKeeper.EXPECT().AddressCodec().Return(address.NewBech32Codec("cosmos")).AnyTimes()
+	stakingKeeper.EXPECT().ValidatorAddressCodec().Return(address.NewBech32Codec("cosmos")).AnyTimes()
 
-	createValidators(t, ctx, app, []int64{5, 5, 5})
+	addrs := simtestutil.AddTestAddrsIncremental(bankKeeper, stakingKeeper, ctx, 3, math.NewInt(30000000))
 
+	// Create a test proposal
 	tp := TestProposal
-	proposal, err := app.GovKeeper.SubmitProposal(ctx, tp)
+	proposal, err := govKeeper.SubmitProposal(ctx, tp, "", "test", "summary", addrs[0], false)
 	require.NoError(t, err)
-	proposalID := proposal.ProposalId
-	proposal.Status = types.StatusVotingPeriod
-	app.GovKeeper.SetProposal(ctx, proposal)
+	proposalID := proposal.Id
 
-	proposal, ok := app.GovKeeper.GetProposal(ctx, proposalID)
-	require.True(t, ok)
-	passes, burnDeposits, tallyResults := app.GovKeeper.Tally(ctx, proposal)
+	// Activate voting period
+	proposal.Status = v1.StatusVotingPeriod
+	require.NoError(t, govKeeper.SetProposal(ctx, proposal))
 
-	require.False(t, passes)
-	require.True(t, burnDeposits)
-	require.True(t, tallyResults.Equals(types.EmptyTallyResult()))
+	// Add votes from different addresses
+	require.NoError(t, govKeeper.AddVote(ctx, proposalID, addrs[0], v1.NewNonSplitVoteOption(v1.OptionYes), ""))
+	require.NoError(t, govKeeper.AddVote(ctx, proposalID, addrs[1], v1.NewNonSplitVoteOption(v1.OptionNo), ""))
+	require.NoError(t, govKeeper.AddVote(ctx, proposalID, addrs[2], v1.NewNonSplitVoteOption(v1.OptionAbstain), ""))
+
+	// verify votes were added to state
+	for i, addr := range addrs {
+		vote, err := govKeeper.Votes.Get(ctx, collections.Join(proposalID, addr))
+		require.NoError(t, err, "Vote for address %d should exist before tally", i)
+		require.NotNil(t, vote, "Vote for address %d should not be nil before tally", i)
+	}
+
+	// tally the proposal
+	proposal, err = govKeeper.Proposals.Get(ctx, proposalID)
+	require.NoError(t, err)
+	_, _, _, err = govKeeper.Tally(ctx, proposal)
+	require.NoError(t, err)
+
+	// votes should be deleted.
+	for i, addr := range addrs {
+		_, err := govKeeper.Votes.Get(ctx, collections.Join(proposalID, addr))
+		require.Error(t, err, "Vote for address %d should be removed after tally", i)
+		require.ErrorIs(t, err, collections.ErrNotFound, "Error should be ErrNotFound for address %d after tally", i)
+	}
 }
 
-func TestTallyNoQuorum(t *testing.T) {
-	app := simapp.Setup(false)
-	ctx := app.BaseApp.NewContext(false, tmproto.Header{})
+// TestMultipleProposalsVoteRemoval verifies that votes for one proposal are removed
+// while votes for another proposal are preserved during tallying
+func TestMultipleProposalsVoteRemoval(t *testing.T) {
+	govKeeper, authKeeper, bankKeeper, stakingKeeper, _, _, ctx := setupGovKeeper(t)
+	authKeeper.EXPECT().AddressCodec().Return(address.NewBech32Codec("cosmos")).AnyTimes()
+	stakingKeeper.EXPECT().ValidatorAddressCodec().Return(address.NewBech32Codec("cosmos")).AnyTimes()
 
-	createValidators(t, ctx, app, []int64{2, 5, 0})
-
-	addrs := simapp.AddTestAddrsIncremental(app, ctx, 1, sdk.NewInt(10000000))
-
-	tp := TestProposal
-	proposal, err := app.GovKeeper.SubmitProposal(ctx, tp)
-	require.NoError(t, err)
-	proposalID := proposal.ProposalId
-	proposal.Status = types.StatusVotingPeriod
-	app.GovKeeper.SetProposal(ctx, proposal)
-
-	err = app.GovKeeper.AddVote(ctx, proposalID, addrs[0], types.NewNonSplitVoteOption(types.OptionYes))
-	require.Nil(t, err)
-
-	proposal, ok := app.GovKeeper.GetProposal(ctx, proposalID)
-	require.True(t, ok)
-	passes, burnDeposits, _ := app.GovKeeper.Tally(ctx, proposal)
-	require.False(t, passes)
-	require.True(t, burnDeposits)
-}
-
-func TestTallyOnlyValidatorsAllYes(t *testing.T) {
-	app := simapp.Setup(false)
-	ctx := app.BaseApp.NewContext(false, tmproto.Header{})
-
-	addrs, _ := createValidators(t, ctx, app, []int64{5, 5, 5})
-	tp := TestProposal
-
-	proposal, err := app.GovKeeper.SubmitProposal(ctx, tp)
-	require.NoError(t, err)
-	proposalID := proposal.ProposalId
-	proposal.Status = types.StatusVotingPeriod
-	app.GovKeeper.SetProposal(ctx, proposal)
-
-	require.NoError(t, app.GovKeeper.AddVote(ctx, proposalID, addrs[0], types.NewNonSplitVoteOption(types.OptionYes)))
-	require.NoError(t, app.GovKeeper.AddVote(ctx, proposalID, addrs[1], types.NewNonSplitVoteOption(types.OptionYes)))
-	require.NoError(t, app.GovKeeper.AddVote(ctx, proposalID, addrs[2], types.NewNonSplitVoteOption(types.OptionYes)))
-
-	proposal, ok := app.GovKeeper.GetProposal(ctx, proposalID)
-	require.True(t, ok)
-	passes, burnDeposits, tallyResults := app.GovKeeper.Tally(ctx, proposal)
-
-	require.True(t, passes)
-	require.False(t, burnDeposits)
-	require.False(t, tallyResults.Equals(types.EmptyTallyResult()))
-}
-
-func TestTallyOnlyValidators51No(t *testing.T) {
-	app := simapp.Setup(false)
-	ctx := app.BaseApp.NewContext(false, tmproto.Header{})
-
-	valAccAddrs, _ := createValidators(t, ctx, app, []int64{5, 6, 0})
+	addrs := simtestutil.AddTestAddrsIncremental(bankKeeper, stakingKeeper, ctx, 2, math.NewInt(30000000))
 
 	tp := TestProposal
-	proposal, err := app.GovKeeper.SubmitProposal(ctx, tp)
+	proposal1, err := govKeeper.SubmitProposal(ctx, tp, "", "test1", "summary", addrs[0], false)
 	require.NoError(t, err)
-	proposalID := proposal.ProposalId
-	proposal.Status = types.StatusVotingPeriod
-	app.GovKeeper.SetProposal(ctx, proposal)
+	proposal1ID := proposal1.Id
 
-	require.NoError(t, app.GovKeeper.AddVote(ctx, proposalID, valAccAddrs[0], types.NewNonSplitVoteOption(types.OptionYes)))
-	require.NoError(t, app.GovKeeper.AddVote(ctx, proposalID, valAccAddrs[1], types.NewNonSplitVoteOption(types.OptionNo)))
-
-	proposal, ok := app.GovKeeper.GetProposal(ctx, proposalID)
-	require.True(t, ok)
-	passes, burnDeposits, _ := app.GovKeeper.Tally(ctx, proposal)
-
-	require.False(t, passes)
-	require.False(t, burnDeposits)
-}
-
-func TestTallyOnlyValidators51Yes(t *testing.T) {
-	app := simapp.Setup(false)
-	ctx := app.BaseApp.NewContext(false, tmproto.Header{})
-
-	valAccAddrs, _ := createValidators(t, ctx, app, []int64{5, 6, 0})
-
-	tp := TestProposal
-	proposal, err := app.GovKeeper.SubmitProposal(ctx, tp)
+	proposal2, err := govKeeper.SubmitProposal(ctx, tp, "", "test2", "summary", addrs[0], false)
 	require.NoError(t, err)
-	proposalID := proposal.ProposalId
-	proposal.Status = types.StatusVotingPeriod
-	app.GovKeeper.SetProposal(ctx, proposal)
+	proposal2ID := proposal2.Id
 
-	require.NoError(t, app.GovKeeper.AddVote(ctx, proposalID, valAccAddrs[0], types.NewNonSplitVoteOption(types.OptionNo)))
-	require.NoError(t, app.GovKeeper.AddVote(ctx, proposalID, valAccAddrs[1], types.NewNonSplitVoteOption(types.OptionYes)))
+	// activate both proposals
+	proposal1.Status = v1.StatusVotingPeriod
+	require.NoError(t, govKeeper.SetProposal(ctx, proposal1))
+	proposal2.Status = v1.StatusVotingPeriod
+	require.NoError(t, govKeeper.SetProposal(ctx, proposal2))
 
-	proposal, ok := app.GovKeeper.GetProposal(ctx, proposalID)
-	require.True(t, ok)
-	passes, burnDeposits, tallyResults := app.GovKeeper.Tally(ctx, proposal)
+	// add some votes for both proposals
+	require.NoError(t, govKeeper.AddVote(ctx, proposal1ID, addrs[0], v1.NewNonSplitVoteOption(v1.OptionYes), ""))
+	require.NoError(t, govKeeper.AddVote(ctx, proposal1ID, addrs[1], v1.NewNonSplitVoteOption(v1.OptionNo), ""))
 
-	require.True(t, passes)
-	require.False(t, burnDeposits)
-	require.False(t, tallyResults.Equals(types.EmptyTallyResult()))
-}
+	require.NoError(t, govKeeper.AddVote(ctx, proposal2ID, addrs[0], v1.NewNonSplitVoteOption(v1.OptionNo), ""))
+	require.NoError(t, govKeeper.AddVote(ctx, proposal2ID, addrs[1], v1.NewNonSplitVoteOption(v1.OptionYes), ""))
 
-func TestTallyOnlyValidatorsVetoed(t *testing.T) {
-	app := simapp.Setup(false)
-	ctx := app.BaseApp.NewContext(false, tmproto.Header{})
-
-	valAccAddrs, _ := createValidators(t, ctx, app, []int64{6, 6, 7})
-
-	tp := TestProposal
-	proposal, err := app.GovKeeper.SubmitProposal(ctx, tp)
+	// votes should eixst
+	vote1Addr0, err := govKeeper.Votes.Get(ctx, collections.Join(proposal1ID, addrs[0]))
 	require.NoError(t, err)
-	proposalID := proposal.ProposalId
-	proposal.Status = types.StatusVotingPeriod
-	app.GovKeeper.SetProposal(ctx, proposal)
-
-	require.NoError(t, app.GovKeeper.AddVote(ctx, proposalID, valAccAddrs[0], types.NewNonSplitVoteOption(types.OptionYes)))
-	require.NoError(t, app.GovKeeper.AddVote(ctx, proposalID, valAccAddrs[1], types.NewNonSplitVoteOption(types.OptionYes)))
-	require.NoError(t, app.GovKeeper.AddVote(ctx, proposalID, valAccAddrs[2], types.NewNonSplitVoteOption(types.OptionNoWithVeto)))
-
-	proposal, ok := app.GovKeeper.GetProposal(ctx, proposalID)
-	require.True(t, ok)
-	passes, burnDeposits, tallyResults := app.GovKeeper.Tally(ctx, proposal)
-
-	require.False(t, passes)
-	require.True(t, burnDeposits)
-	require.False(t, tallyResults.Equals(types.EmptyTallyResult()))
-}
-
-func TestTallyOnlyValidatorsAbstainPasses(t *testing.T) {
-	app := simapp.Setup(false)
-	ctx := app.BaseApp.NewContext(false, tmproto.Header{})
-
-	valAccAddrs, _ := createValidators(t, ctx, app, []int64{6, 6, 7})
-
-	tp := TestProposal
-	proposal, err := app.GovKeeper.SubmitProposal(ctx, tp)
+	require.Equal(t, v1.OptionYes, vote1Addr0.Options[0].Option)
+	vote2Addr0, err := govKeeper.Votes.Get(ctx, collections.Join(proposal2ID, addrs[0]))
 	require.NoError(t, err)
-	proposalID := proposal.ProposalId
-	proposal.Status = types.StatusVotingPeriod
-	app.GovKeeper.SetProposal(ctx, proposal)
+	require.Equal(t, v1.OptionNo, vote2Addr0.Options[0].Option)
 
-	require.NoError(t, app.GovKeeper.AddVote(ctx, proposalID, valAccAddrs[0], types.NewNonSplitVoteOption(types.OptionAbstain)))
-	require.NoError(t, app.GovKeeper.AddVote(ctx, proposalID, valAccAddrs[1], types.NewNonSplitVoteOption(types.OptionNo)))
-	require.NoError(t, app.GovKeeper.AddVote(ctx, proposalID, valAccAddrs[2], types.NewNonSplitVoteOption(types.OptionYes)))
-
-	proposal, ok := app.GovKeeper.GetProposal(ctx, proposalID)
-	require.True(t, ok)
-	passes, burnDeposits, tallyResults := app.GovKeeper.Tally(ctx, proposal)
-
-	require.True(t, passes)
-	require.False(t, burnDeposits)
-	require.False(t, tallyResults.Equals(types.EmptyTallyResult()))
-}
-
-func TestTallyOnlyValidatorsAbstainFails(t *testing.T) {
-	app := simapp.Setup(false)
-	ctx := app.BaseApp.NewContext(false, tmproto.Header{})
-
-	valAccAddrs, _ := createValidators(t, ctx, app, []int64{6, 6, 7})
-
-	tp := TestProposal
-	proposal, err := app.GovKeeper.SubmitProposal(ctx, tp)
+	// only tally proposal1
+	proposal1, err = govKeeper.Proposals.Get(ctx, proposal1ID)
 	require.NoError(t, err)
-	proposalID := proposal.ProposalId
-	proposal.Status = types.StatusVotingPeriod
-	app.GovKeeper.SetProposal(ctx, proposal)
-
-	require.NoError(t, app.GovKeeper.AddVote(ctx, proposalID, valAccAddrs[0], types.NewNonSplitVoteOption(types.OptionAbstain)))
-	require.NoError(t, app.GovKeeper.AddVote(ctx, proposalID, valAccAddrs[1], types.NewNonSplitVoteOption(types.OptionYes)))
-	require.NoError(t, app.GovKeeper.AddVote(ctx, proposalID, valAccAddrs[2], types.NewNonSplitVoteOption(types.OptionNo)))
-
-	proposal, ok := app.GovKeeper.GetProposal(ctx, proposalID)
-	require.True(t, ok)
-	passes, burnDeposits, tallyResults := app.GovKeeper.Tally(ctx, proposal)
-
-	require.False(t, passes)
-	require.False(t, burnDeposits)
-	require.False(t, tallyResults.Equals(types.EmptyTallyResult()))
-}
-
-func TestTallyOnlyValidatorsNonVoter(t *testing.T) {
-	app := simapp.Setup(false)
-	ctx := app.BaseApp.NewContext(false, tmproto.Header{})
-
-	valAccAddrs, _ := createValidators(t, ctx, app, []int64{5, 6, 7})
-	valAccAddr1, valAccAddr2 := valAccAddrs[0], valAccAddrs[1]
-
-	tp := TestProposal
-	proposal, err := app.GovKeeper.SubmitProposal(ctx, tp)
-	require.NoError(t, err)
-	proposalID := proposal.ProposalId
-	proposal.Status = types.StatusVotingPeriod
-	app.GovKeeper.SetProposal(ctx, proposal)
-
-	require.NoError(t, app.GovKeeper.AddVote(ctx, proposalID, valAccAddr1, types.NewNonSplitVoteOption(types.OptionYes)))
-	require.NoError(t, app.GovKeeper.AddVote(ctx, proposalID, valAccAddr2, types.NewNonSplitVoteOption(types.OptionNo)))
-
-	proposal, ok := app.GovKeeper.GetProposal(ctx, proposalID)
-	require.True(t, ok)
-	passes, burnDeposits, tallyResults := app.GovKeeper.Tally(ctx, proposal)
-
-	require.False(t, passes)
-	require.False(t, burnDeposits)
-	require.False(t, tallyResults.Equals(types.EmptyTallyResult()))
-}
-
-func TestTallyDelgatorOverride(t *testing.T) {
-	app := simapp.Setup(false)
-	ctx := app.BaseApp.NewContext(false, tmproto.Header{})
-
-	addrs, valAddrs := createValidators(t, ctx, app, []int64{5, 6, 7})
-
-	delTokens := app.StakingKeeper.TokensFromConsensusPower(ctx, 30)
-	val1, found := app.StakingKeeper.GetValidator(ctx, valAddrs[0])
-	require.True(t, found)
-
-	_, err := app.StakingKeeper.Delegate(ctx, addrs[4], delTokens, stakingtypes.Unbonded, val1, true)
+	_, _, _, err = govKeeper.Tally(ctx, proposal1)
 	require.NoError(t, err)
 
-	_ = staking.EndBlocker(ctx, app.StakingKeeper)
+	// check votes
+	for _, addr := range addrs {
+		// proposal1 votes should be deleted
+		_, err := govKeeper.Votes.Get(ctx, collections.Join(proposal1ID, addr))
+		require.Error(t, err)
+		require.ErrorIs(t, err, collections.ErrNotFound)
 
-	tp := TestProposal
-	proposal, err := app.GovKeeper.SubmitProposal(ctx, tp)
-	require.NoError(t, err)
-	proposalID := proposal.ProposalId
-	proposal.Status = types.StatusVotingPeriod
-	app.GovKeeper.SetProposal(ctx, proposal)
-
-	require.NoError(t, app.GovKeeper.AddVote(ctx, proposalID, addrs[1], types.NewNonSplitVoteOption(types.OptionYes)))
-	require.NoError(t, app.GovKeeper.AddVote(ctx, proposalID, addrs[2], types.NewNonSplitVoteOption(types.OptionYes)))
-	require.NoError(t, app.GovKeeper.AddVote(ctx, proposalID, addrs[3], types.NewNonSplitVoteOption(types.OptionYes)))
-	require.NoError(t, app.GovKeeper.AddVote(ctx, proposalID, addrs[4], types.NewNonSplitVoteOption(types.OptionNo)))
-
-	proposal, ok := app.GovKeeper.GetProposal(ctx, proposalID)
-	require.True(t, ok)
-	passes, burnDeposits, tallyResults := app.GovKeeper.Tally(ctx, proposal)
-
-	require.False(t, passes)
-	require.False(t, burnDeposits)
-	require.False(t, tallyResults.Equals(types.EmptyTallyResult()))
-}
-
-func TestTallyDelgatorInherit(t *testing.T) {
-	app := simapp.Setup(false)
-	ctx := app.BaseApp.NewContext(false, tmproto.Header{})
-
-	addrs, vals := createValidators(t, ctx, app, []int64{5, 6, 7})
-
-	delTokens := app.StakingKeeper.TokensFromConsensusPower(ctx, 30)
-	val3, found := app.StakingKeeper.GetValidator(ctx, vals[2])
-	require.True(t, found)
-
-	_, err := app.StakingKeeper.Delegate(ctx, addrs[3], delTokens, stakingtypes.Unbonded, val3, true)
-	require.NoError(t, err)
-
-	_ = staking.EndBlocker(ctx, app.StakingKeeper)
-
-	tp := TestProposal
-	proposal, err := app.GovKeeper.SubmitProposal(ctx, tp)
-	require.NoError(t, err)
-	proposalID := proposal.ProposalId
-	proposal.Status = types.StatusVotingPeriod
-	app.GovKeeper.SetProposal(ctx, proposal)
-
-	require.NoError(t, app.GovKeeper.AddVote(ctx, proposalID, addrs[0], types.NewNonSplitVoteOption(types.OptionNo)))
-	require.NoError(t, app.GovKeeper.AddVote(ctx, proposalID, addrs[1], types.NewNonSplitVoteOption(types.OptionNo)))
-	require.NoError(t, app.GovKeeper.AddVote(ctx, proposalID, addrs[2], types.NewNonSplitVoteOption(types.OptionYes)))
-
-	proposal, ok := app.GovKeeper.GetProposal(ctx, proposalID)
-	require.True(t, ok)
-	passes, burnDeposits, tallyResults := app.GovKeeper.Tally(ctx, proposal)
-
-	require.True(t, passes)
-	require.False(t, burnDeposits)
-	require.False(t, tallyResults.Equals(types.EmptyTallyResult()))
-}
-
-func TestTallyDelgatorMultipleOverride(t *testing.T) {
-	app := simapp.Setup(false)
-	ctx := app.BaseApp.NewContext(false, tmproto.Header{})
-
-	addrs, vals := createValidators(t, ctx, app, []int64{5, 6, 7})
-
-	delTokens := app.StakingKeeper.TokensFromConsensusPower(ctx, 10)
-	val1, found := app.StakingKeeper.GetValidator(ctx, vals[0])
-	require.True(t, found)
-	val2, found := app.StakingKeeper.GetValidator(ctx, vals[1])
-	require.True(t, found)
-
-	_, err := app.StakingKeeper.Delegate(ctx, addrs[3], delTokens, stakingtypes.Unbonded, val1, true)
-	require.NoError(t, err)
-	_, err = app.StakingKeeper.Delegate(ctx, addrs[3], delTokens, stakingtypes.Unbonded, val2, true)
-	require.NoError(t, err)
-
-	_ = staking.EndBlocker(ctx, app.StakingKeeper)
-
-	tp := TestProposal
-	proposal, err := app.GovKeeper.SubmitProposal(ctx, tp)
-	require.NoError(t, err)
-	proposalID := proposal.ProposalId
-	proposal.Status = types.StatusVotingPeriod
-	app.GovKeeper.SetProposal(ctx, proposal)
-
-	require.NoError(t, app.GovKeeper.AddVote(ctx, proposalID, addrs[0], types.NewNonSplitVoteOption(types.OptionYes)))
-	require.NoError(t, app.GovKeeper.AddVote(ctx, proposalID, addrs[1], types.NewNonSplitVoteOption(types.OptionYes)))
-	require.NoError(t, app.GovKeeper.AddVote(ctx, proposalID, addrs[2], types.NewNonSplitVoteOption(types.OptionYes)))
-	require.NoError(t, app.GovKeeper.AddVote(ctx, proposalID, addrs[3], types.NewNonSplitVoteOption(types.OptionNo)))
-
-	proposal, ok := app.GovKeeper.GetProposal(ctx, proposalID)
-	require.True(t, ok)
-	passes, burnDeposits, tallyResults := app.GovKeeper.Tally(ctx, proposal)
-
-	require.False(t, passes)
-	require.False(t, burnDeposits)
-	require.False(t, tallyResults.Equals(types.EmptyTallyResult()))
-}
-
-func TestTallyDelgatorMultipleInherit(t *testing.T) {
-	app := simapp.Setup(false)
-	ctx := app.BaseApp.NewContext(false, tmproto.Header{})
-
-	createValidators(t, ctx, app, []int64{25, 6, 7})
-
-	addrs, vals := createValidators(t, ctx, app, []int64{5, 6, 7})
-
-	delTokens := app.StakingKeeper.TokensFromConsensusPower(ctx, 10)
-	val2, found := app.StakingKeeper.GetValidator(ctx, vals[1])
-	require.True(t, found)
-	val3, found := app.StakingKeeper.GetValidator(ctx, vals[2])
-	require.True(t, found)
-
-	_, err := app.StakingKeeper.Delegate(ctx, addrs[3], delTokens, stakingtypes.Unbonded, val2, true)
-	require.NoError(t, err)
-	_, err = app.StakingKeeper.Delegate(ctx, addrs[3], delTokens, stakingtypes.Unbonded, val3, true)
-	require.NoError(t, err)
-
-	_ = staking.EndBlocker(ctx, app.StakingKeeper)
-
-	tp := TestProposal
-	proposal, err := app.GovKeeper.SubmitProposal(ctx, tp)
-	require.NoError(t, err)
-	proposalID := proposal.ProposalId
-	proposal.Status = types.StatusVotingPeriod
-	app.GovKeeper.SetProposal(ctx, proposal)
-
-	require.NoError(t, app.GovKeeper.AddVote(ctx, proposalID, addrs[0], types.NewNonSplitVoteOption(types.OptionYes)))
-	require.NoError(t, app.GovKeeper.AddVote(ctx, proposalID, addrs[1], types.NewNonSplitVoteOption(types.OptionNo)))
-	require.NoError(t, app.GovKeeper.AddVote(ctx, proposalID, addrs[2], types.NewNonSplitVoteOption(types.OptionNo)))
-
-	proposal, ok := app.GovKeeper.GetProposal(ctx, proposalID)
-	require.True(t, ok)
-	passes, burnDeposits, tallyResults := app.GovKeeper.Tally(ctx, proposal)
-
-	require.False(t, passes)
-	require.False(t, burnDeposits)
-	require.False(t, tallyResults.Equals(types.EmptyTallyResult()))
-}
-
-func TestTallyJailedValidator(t *testing.T) {
-	app := simapp.Setup(false)
-	ctx := app.BaseApp.NewContext(false, tmproto.Header{})
-
-	addrs, valAddrs := createValidators(t, ctx, app, []int64{25, 6, 7})
-
-	delTokens := app.StakingKeeper.TokensFromConsensusPower(ctx, 10)
-	val2, found := app.StakingKeeper.GetValidator(ctx, valAddrs[1])
-	require.True(t, found)
-	val3, found := app.StakingKeeper.GetValidator(ctx, valAddrs[2])
-	require.True(t, found)
-
-	_, err := app.StakingKeeper.Delegate(ctx, addrs[3], delTokens, stakingtypes.Unbonded, val2, true)
-	require.NoError(t, err)
-	_, err = app.StakingKeeper.Delegate(ctx, addrs[3], delTokens, stakingtypes.Unbonded, val3, true)
-	require.NoError(t, err)
-
-	_ = staking.EndBlocker(ctx, app.StakingKeeper)
-
-	consAddr, err := val2.GetConsAddr()
-	require.NoError(t, err)
-	app.StakingKeeper.Jail(ctx, sdk.ConsAddress(consAddr.Bytes()))
-
-	tp := TestProposal
-	proposal, err := app.GovKeeper.SubmitProposal(ctx, tp)
-	require.NoError(t, err)
-	proposalID := proposal.ProposalId
-	proposal.Status = types.StatusVotingPeriod
-	app.GovKeeper.SetProposal(ctx, proposal)
-
-	require.NoError(t, app.GovKeeper.AddVote(ctx, proposalID, addrs[0], types.NewNonSplitVoteOption(types.OptionYes)))
-	require.NoError(t, app.GovKeeper.AddVote(ctx, proposalID, addrs[1], types.NewNonSplitVoteOption(types.OptionNo)))
-	require.NoError(t, app.GovKeeper.AddVote(ctx, proposalID, addrs[2], types.NewNonSplitVoteOption(types.OptionNo)))
-
-	proposal, ok := app.GovKeeper.GetProposal(ctx, proposalID)
-	require.True(t, ok)
-	passes, burnDeposits, tallyResults := app.GovKeeper.Tally(ctx, proposal)
-
-	require.True(t, passes)
-	require.False(t, burnDeposits)
-	require.False(t, tallyResults.Equals(types.EmptyTallyResult()))
-}
-
-func TestTallyValidatorMultipleDelegations(t *testing.T) {
-	app := simapp.Setup(false)
-	ctx := app.BaseApp.NewContext(false, tmproto.Header{})
-
-	addrs, valAddrs := createValidators(t, ctx, app, []int64{10, 10, 10})
-
-	delTokens := app.StakingKeeper.TokensFromConsensusPower(ctx, 10)
-	val2, found := app.StakingKeeper.GetValidator(ctx, valAddrs[1])
-	require.True(t, found)
-
-	_, err := app.StakingKeeper.Delegate(ctx, addrs[0], delTokens, stakingtypes.Unbonded, val2, true)
-	require.NoError(t, err)
-
-	tp := TestProposal
-	proposal, err := app.GovKeeper.SubmitProposal(ctx, tp)
-	require.NoError(t, err)
-	proposalID := proposal.ProposalId
-	proposal.Status = types.StatusVotingPeriod
-	app.GovKeeper.SetProposal(ctx, proposal)
-
-	require.NoError(t, app.GovKeeper.AddVote(ctx, proposalID, addrs[0], types.NewNonSplitVoteOption(types.OptionYes)))
-	require.NoError(t, app.GovKeeper.AddVote(ctx, proposalID, addrs[1], types.NewNonSplitVoteOption(types.OptionNo)))
-	require.NoError(t, app.GovKeeper.AddVote(ctx, proposalID, addrs[2], types.NewNonSplitVoteOption(types.OptionYes)))
-
-	proposal, ok := app.GovKeeper.GetProposal(ctx, proposalID)
-	require.True(t, ok)
-	passes, burnDeposits, tallyResults := app.GovKeeper.Tally(ctx, proposal)
-
-	require.True(t, passes)
-	require.False(t, burnDeposits)
-
-	expectedYes := app.StakingKeeper.TokensFromConsensusPower(ctx, 30)
-	expectedAbstain := app.StakingKeeper.TokensFromConsensusPower(ctx, 0)
-	expectedNo := app.StakingKeeper.TokensFromConsensusPower(ctx, 10)
-	expectedNoWithVeto := app.StakingKeeper.TokensFromConsensusPower(ctx, 0)
-	expectedTallyResult := types.NewTallyResult(expectedYes, expectedAbstain, expectedNo, expectedNoWithVeto)
-
-	require.True(t, tallyResults.Equals(expectedTallyResult))
+		// proposal2 votes should still exist.
+		_, err = govKeeper.Votes.Get(ctx, collections.Join(proposal2ID, addr))
+		require.NoError(t, err)
+	}
 }

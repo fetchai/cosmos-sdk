@@ -2,8 +2,10 @@ package address
 
 import (
 	"crypto/sha256"
+	"slices"
 	"testing"
 
+	"github.com/cometbft/cometbft/crypto/tmhash"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
 )
@@ -39,7 +41,7 @@ func (suite *AddressSuite) TestComposed() {
 	assert.Len(ac, Len)
 
 	// check if optimizations work
-	checkingKey := append([]byte{}, a1.AddressWithLen(suite.T())...)
+	checkingKey := slices.Clone(a1.AddressWithLen(suite.T()))
 	checkingKey = append(checkingKey, a2.AddressWithLen(suite.T())...)
 	ac2 := Hash(typ, checkingKey)
 	assert.Equal(ac, ac2, "NewComposed works correctly")
@@ -56,7 +58,7 @@ func (suite *AddressSuite) TestComposed() {
 	assert.NotEqual(ac, ac2, "NewComposed must be sensitive to type")
 
 	// changing order of addresses shouldn't impact a composed address
-	ac2, err = Compose(typ, []Addressable{a1, addrMock{make([]byte, 300, 300)}})
+	_, err = Compose(typ, []Addressable{a1, addrMock{make([]byte, 300)}})
 	assert.Error(err)
 	assert.Contains(err.Error(), "should be max 255 bytes, got 300")
 }
@@ -64,15 +66,30 @@ func (suite *AddressSuite) TestComposed() {
 func (suite *AddressSuite) TestModule() {
 	assert := suite.Assert()
 	modName, key := "myModule", []byte{1, 2}
+
+	addrLegacy := Module(modName)
+	assert.Equal(tmhash.SumTruncated([]byte(modName)), addrLegacy,
+		"when no derivation keys, we fall back to the legacy module address using sha256 of the module name")
+
 	addr := Module(modName, key)
-	assert.Len(addr, Len, "must have address length")
+	assert.Len(addr, Len, "must have correct address length")
+	assert.NotEqual(addrLegacy, addr,
+		"when derivation key is specified, it must generate non legacy module address")
 
 	addr2 := Module("myModule2", key)
 	assert.NotEqual(addr, addr2, "changing module name must change address")
 
-	addr3 := Module(modName, []byte{1, 2, 3})
+	k1 := []byte{1, 2, 3}
+	addr3 := Module(modName, k1)
 	assert.NotEqual(addr, addr3, "changing key must change address")
 	assert.NotEqual(addr2, addr3, "changing key must change address")
+
+	addr4 := Module(modName, k1, k1)
+	assert.Equal(Derive(addr3, k1), addr4)
+
+	k2 := []byte{0, 0, 7}
+	addr5 := Module(modName, k1, k1, k2)
+	assert.Equal(Derive(addr4, k2), addr5)
 }
 
 func (suite *AddressSuite) TestDerive() {
@@ -99,6 +116,8 @@ func (a addrMock) Address() []byte {
 }
 
 func (a addrMock) AddressWithLen(t *testing.T) []byte {
+	t.Helper()
+
 	addr, err := LengthPrefix(a.Addr)
 	assert.NoError(t, err)
 	return addr

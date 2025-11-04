@@ -1,10 +1,11 @@
 package types_test
 
 import (
-	"bytes"
 	"testing"
 
 	"github.com/stretchr/testify/require"
+
+	"cosmossdk.io/math"
 
 	"github.com/cosmos/cosmos-sdk/crypto/keys/ed25519"
 	sdk "github.com/cosmos/cosmos-sdk/types"
@@ -49,7 +50,7 @@ func TestBalanceValidate(t *testing.T) {
 			bank.Balance{
 				Address: "cosmos1yq8lgssgxlx9smjhes6ryjasmqmd3ts2559g0t",
 				Coins: sdk.Coins{
-					sdk.Coin{Denom: "", Amount: sdk.OneInt()},
+					sdk.Coin{Denom: "", Amount: math.OneInt()},
 				},
 			},
 			true,
@@ -59,7 +60,7 @@ func TestBalanceValidate(t *testing.T) {
 			bank.Balance{
 				Address: "cosmos1yq8lgssgxlx9smjhes6ryjasmqmd3ts2559g0t",
 				Coins: sdk.Coins{
-					sdk.Coin{Denom: "uatom", Amount: sdk.NewInt(-1)},
+					sdk.Coin{Denom: "uatom", Amount: math.NewInt(-1)},
 				},
 			},
 			true,
@@ -102,7 +103,6 @@ func TestBalanceValidate(t *testing.T) {
 	}
 
 	for _, tc := range testCases {
-		tc := tc
 		t.Run(tc.name, func(t *testing.T) {
 			err := tc.balance.Validate()
 
@@ -117,22 +117,21 @@ func TestBalanceValidate(t *testing.T) {
 
 func TestBalance_GetAddress(t *testing.T) {
 	tests := []struct {
-		name      string
-		Address   string
-		wantPanic bool
+		name    string
+		Address string
+		err     bool
 	}{
 		{"empty address", "", true},
 		{"malformed address", "invalid", true},
 		{"valid address", "cosmos1vy0ga0klndqy92ceqehfkvgmn4t94eteq4hmqv", false},
 	}
 	for _, tt := range tests {
-		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
 			b := bank.Balance{Address: tt.Address}
-			if tt.wantPanic {
-				require.Panics(t, func() { b.GetAddress() })
+			if !tt.err {
+				require.Equal(t, b.GetAddress(), tt.Address)
 			} else {
-				require.False(t, b.GetAddress().Empty())
+				require.False(t, len(b.GetAddress()) != 0 && b.GetAddress() != tt.Address)
 			}
 		})
 	}
@@ -158,13 +157,12 @@ func TestSanitizeBalances(t *testing.T) {
 	// 3. Compare and ensure that all the values are sorted in ascending order.
 	// Invariant after sorting:
 	//    a[i] <= a[i+1...n]
-	for i := 0; i < len(sorted); i++ {
+	for i := range sorted {
 		ai := sorted[i]
 		// Ensure that every single value that comes after i is less than it.
 		for j := i + 1; j < len(sorted); j++ {
 			aj := sorted[j]
-
-			if got := bytes.Compare(ai.GetAddress(), aj.GetAddress()); got > 0 {
+			if ai.GetAddress() == aj.GetAddress() {
 				t.Errorf("Balance(%d) > Balance(%d)", i, j)
 			}
 		}
@@ -172,7 +170,7 @@ func TestSanitizeBalances(t *testing.T) {
 }
 
 func makeRandomAddressesAndPublicKeys(n int) (accL []sdk.AccAddress, pkL []*ed25519.PubKey) {
-	for i := 0; i < n; i++ {
+	for range n {
 		pk := ed25519.GenPrivKey().PubKey().(*ed25519.PubKey)
 		pkL = append(pkL, pk)
 		accL = append(accL, sdk.AccAddress(pk.Address()))
@@ -180,7 +178,7 @@ func makeRandomAddressesAndPublicKeys(n int) (accL []sdk.AccAddress, pkL []*ed25
 	return accL, pkL
 }
 
-var sink, revert interface{}
+var sink, revert any
 
 func BenchmarkSanitizeBalances500(b *testing.B) {
 	benchmarkSanitizeBalances(b, 500)
@@ -191,6 +189,7 @@ func BenchmarkSanitizeBalances1000(b *testing.B) {
 }
 
 func benchmarkSanitizeBalances(b *testing.B, nAddresses int) {
+	b.Helper()
 	b.ReportAllocs()
 	tokens := sdk.TokensFromConsensusPower(81, sdk.DefaultPowerReduction)
 	coin := sdk.NewCoin("benchcoin", tokens)
