@@ -81,7 +81,7 @@ func (s *MintFnTestSuite) TestDefaultMintFn_Success() {
 	s.stakingKeeper.EXPECT().StakingTokenSupply(s.ctx).Return(stakingSupply, nil).Times(1)
 	s.stakingKeeper.EXPECT().BondedRatio(s.ctx).Return(bondedRatio, nil).Times(1)
 
-	expectedCoins := sdk.NewCoins(sdk.NewCoin("stake", math.NewInt(20)))
+	expectedCoins := sdk.NewCoins(sdk.NewCoin("stake", math.NewInt(4)))
 
 	minter, err := s.mintKeeper.Minter.Get(s.ctx)
 	s.Require().NoError(err)

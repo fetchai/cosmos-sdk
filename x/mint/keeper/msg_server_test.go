@@ -32,12 +32,9 @@ func (s *IntegrationTestSuite) TestUpdateParams() {
 			request: &types.MsgUpdateParams{
 				Authority: s.mintKeeper.GetAuthority(),
 				Params: types.Params{
-					MintDenom:           sdk.DefaultBondDenom,
-					InflationRateChange: sdkmath.LegacyNewDecWithPrec(-13, 2),
-					InflationMax:        sdkmath.LegacyNewDecWithPrec(20, 2),
-					InflationMin:        sdkmath.LegacyNewDecWithPrec(7, 2),
-					GoalBonded:          sdkmath.LegacyNewDecWithPrec(67, 2),
-					BlocksPerYear:       uint64(60 * 60 * 8766 / 5),
+					MintDenom:     sdk.DefaultBondDenom,
+					InflationRate: sdkmath.LegacyNewDecWithPrec(-2, 2),
+					BlocksPerYear: uint64(60 * 60 * 8766 / 5),
 				},
 			},
 			expectErr: true,
@@ -47,12 +44,9 @@ func (s *IntegrationTestSuite) TestUpdateParams() {
 			request: &types.MsgUpdateParams{
 				Authority: s.mintKeeper.GetAuthority(),
 				Params: types.Params{
-					MintDenom:           sdk.DefaultBondDenom,
-					InflationRateChange: sdkmath.LegacyNewDecWithPrec(8, 2),
-					InflationMax:        sdkmath.LegacyNewDecWithPrec(20, 2),
-					InflationMin:        sdkmath.LegacyNewDecWithPrec(2, 2),
-					GoalBonded:          sdkmath.LegacyNewDecWithPrec(37, 2),
-					BlocksPerYear:       uint64(60 * 60 * 8766 / 5),
+					MintDenom:     sdk.DefaultBondDenom,
+					InflationRate: sdkmath.LegacyNewDecWithPrec(2, 2),
+					BlocksPerYear: uint64(60 * 60 * 8766 / 5),
 				},
 			},
 			expectErr: false,

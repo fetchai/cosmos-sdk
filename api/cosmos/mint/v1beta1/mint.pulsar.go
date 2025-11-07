@@ -500,23 +500,17 @@ func (x *fastReflection_Minter) ProtoMethods() *protoiface.Methods {
 }
 
 var (
-	md_Params                       protoreflect.MessageDescriptor
-	fd_Params_mint_denom            protoreflect.FieldDescriptor
-	fd_Params_inflation_rate_change protoreflect.FieldDescriptor
-	fd_Params_inflation_max         protoreflect.FieldDescriptor
-	fd_Params_inflation_min         protoreflect.FieldDescriptor
-	fd_Params_goal_bonded           protoreflect.FieldDescriptor
-	fd_Params_blocks_per_year       protoreflect.FieldDescriptor
+	md_Params                 protoreflect.MessageDescriptor
+	fd_Params_mint_denom      protoreflect.FieldDescriptor
+	fd_Params_inflation_rate  protoreflect.FieldDescriptor
+	fd_Params_blocks_per_year protoreflect.FieldDescriptor
 )
 
 func init() {
 	file_cosmos_mint_v1beta1_mint_proto_init()
 	md_Params = File_cosmos_mint_v1beta1_mint_proto.Messages().ByName("Params")
 	fd_Params_mint_denom = md_Params.Fields().ByName("mint_denom")
-	fd_Params_inflation_rate_change = md_Params.Fields().ByName("inflation_rate_change")
-	fd_Params_inflation_max = md_Params.Fields().ByName("inflation_max")
-	fd_Params_inflation_min = md_Params.Fields().ByName("inflation_min")
-	fd_Params_goal_bonded = md_Params.Fields().ByName("goal_bonded")
+	fd_Params_inflation_rate = md_Params.Fields().ByName("inflation_rate")
 	fd_Params_blocks_per_year = md_Params.Fields().ByName("blocks_per_year")
 }
 
@@ -591,27 +585,9 @@ func (x *fastReflection_Params) Range(f func(protoreflect.FieldDescriptor, proto
 			return
 		}
 	}
-	if x.InflationRateChange != "" {
-		value := protoreflect.ValueOfString(x.InflationRateChange)
-		if !f(fd_Params_inflation_rate_change, value) {
-			return
-		}
-	}
-	if x.InflationMax != "" {
-		value := protoreflect.ValueOfString(x.InflationMax)
-		if !f(fd_Params_inflation_max, value) {
-			return
-		}
-	}
-	if x.InflationMin != "" {
-		value := protoreflect.ValueOfString(x.InflationMin)
-		if !f(fd_Params_inflation_min, value) {
-			return
-		}
-	}
-	if x.GoalBonded != "" {
-		value := protoreflect.ValueOfString(x.GoalBonded)
-		if !f(fd_Params_goal_bonded, value) {
+	if x.InflationRate != "" {
+		value := protoreflect.ValueOfString(x.InflationRate)
+		if !f(fd_Params_inflation_rate, value) {
 			return
 		}
 	}
@@ -638,14 +614,8 @@ func (x *fastReflection_Params) Has(fd protoreflect.FieldDescriptor) bool {
 	switch fd.FullName() {
 	case "cosmos.mint.v1beta1.Params.mint_denom":
 		return x.MintDenom != ""
-	case "cosmos.mint.v1beta1.Params.inflation_rate_change":
-		return x.InflationRateChange != ""
-	case "cosmos.mint.v1beta1.Params.inflation_max":
-		return x.InflationMax != ""
-	case "cosmos.mint.v1beta1.Params.inflation_min":
-		return x.InflationMin != ""
-	case "cosmos.mint.v1beta1.Params.goal_bonded":
-		return x.GoalBonded != ""
+	case "cosmos.mint.v1beta1.Params.inflation_rate":
+		return x.InflationRate != ""
 	case "cosmos.mint.v1beta1.Params.blocks_per_year":
 		return x.BlocksPerYear != uint64(0)
 	default:
@@ -666,14 +636,8 @@ func (x *fastReflection_Params) Clear(fd protoreflect.FieldDescriptor) {
 	switch fd.FullName() {
 	case "cosmos.mint.v1beta1.Params.mint_denom":
 		x.MintDenom = ""
-	case "cosmos.mint.v1beta1.Params.inflation_rate_change":
-		x.InflationRateChange = ""
-	case "cosmos.mint.v1beta1.Params.inflation_max":
-		x.InflationMax = ""
-	case "cosmos.mint.v1beta1.Params.inflation_min":
-		x.InflationMin = ""
-	case "cosmos.mint.v1beta1.Params.goal_bonded":
-		x.GoalBonded = ""
+	case "cosmos.mint.v1beta1.Params.inflation_rate":
+		x.InflationRate = ""
 	case "cosmos.mint.v1beta1.Params.blocks_per_year":
 		x.BlocksPerYear = uint64(0)
 	default:
@@ -695,17 +659,8 @@ func (x *fastReflection_Params) Get(descriptor protoreflect.FieldDescriptor) pro
 	case "cosmos.mint.v1beta1.Params.mint_denom":
 		value := x.MintDenom
 		return protoreflect.ValueOfString(value)
-	case "cosmos.mint.v1beta1.Params.inflation_rate_change":
-		value := x.InflationRateChange
-		return protoreflect.ValueOfString(value)
-	case "cosmos.mint.v1beta1.Params.inflation_max":
-		value := x.InflationMax
-		return protoreflect.ValueOfString(value)
-	case "cosmos.mint.v1beta1.Params.inflation_min":
-		value := x.InflationMin
-		return protoreflect.ValueOfString(value)
-	case "cosmos.mint.v1beta1.Params.goal_bonded":
-		value := x.GoalBonded
+	case "cosmos.mint.v1beta1.Params.inflation_rate":
+		value := x.InflationRate
 		return protoreflect.ValueOfString(value)
 	case "cosmos.mint.v1beta1.Params.blocks_per_year":
 		value := x.BlocksPerYear
@@ -732,14 +687,8 @@ func (x *fastReflection_Params) Set(fd protoreflect.FieldDescriptor, value proto
 	switch fd.FullName() {
 	case "cosmos.mint.v1beta1.Params.mint_denom":
 		x.MintDenom = value.Interface().(string)
-	case "cosmos.mint.v1beta1.Params.inflation_rate_change":
-		x.InflationRateChange = value.Interface().(string)
-	case "cosmos.mint.v1beta1.Params.inflation_max":
-		x.InflationMax = value.Interface().(string)
-	case "cosmos.mint.v1beta1.Params.inflation_min":
-		x.InflationMin = value.Interface().(string)
-	case "cosmos.mint.v1beta1.Params.goal_bonded":
-		x.GoalBonded = value.Interface().(string)
+	case "cosmos.mint.v1beta1.Params.inflation_rate":
+		x.InflationRate = value.Interface().(string)
 	case "cosmos.mint.v1beta1.Params.blocks_per_year":
 		x.BlocksPerYear = value.Uint()
 	default:
@@ -764,14 +713,8 @@ func (x *fastReflection_Params) Mutable(fd protoreflect.FieldDescriptor) protore
 	switch fd.FullName() {
 	case "cosmos.mint.v1beta1.Params.mint_denom":
 		panic(fmt.Errorf("field mint_denom of message cosmos.mint.v1beta1.Params is not mutable"))
-	case "cosmos.mint.v1beta1.Params.inflation_rate_change":
-		panic(fmt.Errorf("field inflation_rate_change of message cosmos.mint.v1beta1.Params is not mutable"))
-	case "cosmos.mint.v1beta1.Params.inflation_max":
-		panic(fmt.Errorf("field inflation_max of message cosmos.mint.v1beta1.Params is not mutable"))
-	case "cosmos.mint.v1beta1.Params.inflation_min":
-		panic(fmt.Errorf("field inflation_min of message cosmos.mint.v1beta1.Params is not mutable"))
-	case "cosmos.mint.v1beta1.Params.goal_bonded":
-		panic(fmt.Errorf("field goal_bonded of message cosmos.mint.v1beta1.Params is not mutable"))
+	case "cosmos.mint.v1beta1.Params.inflation_rate":
+		panic(fmt.Errorf("field inflation_rate of message cosmos.mint.v1beta1.Params is not mutable"))
 	case "cosmos.mint.v1beta1.Params.blocks_per_year":
 		panic(fmt.Errorf("field blocks_per_year of message cosmos.mint.v1beta1.Params is not mutable"))
 	default:
@@ -789,13 +732,7 @@ func (x *fastReflection_Params) NewField(fd protoreflect.FieldDescriptor) protor
 	switch fd.FullName() {
 	case "cosmos.mint.v1beta1.Params.mint_denom":
 		return protoreflect.ValueOfString("")
-	case "cosmos.mint.v1beta1.Params.inflation_rate_change":
-		return protoreflect.ValueOfString("")
-	case "cosmos.mint.v1beta1.Params.inflation_max":
-		return protoreflect.ValueOfString("")
-	case "cosmos.mint.v1beta1.Params.inflation_min":
-		return protoreflect.ValueOfString("")
-	case "cosmos.mint.v1beta1.Params.goal_bonded":
+	case "cosmos.mint.v1beta1.Params.inflation_rate":
 		return protoreflect.ValueOfString("")
 	case "cosmos.mint.v1beta1.Params.blocks_per_year":
 		return protoreflect.ValueOfUint64(uint64(0))
@@ -872,19 +809,7 @@ func (x *fastReflection_Params) ProtoMethods() *protoiface.Methods {
 		if l > 0 {
 			n += 1 + l + runtime.Sov(uint64(l))
 		}
-		l = len(x.InflationRateChange)
-		if l > 0 {
-			n += 1 + l + runtime.Sov(uint64(l))
-		}
-		l = len(x.InflationMax)
-		if l > 0 {
-			n += 1 + l + runtime.Sov(uint64(l))
-		}
-		l = len(x.InflationMin)
-		if l > 0 {
-			n += 1 + l + runtime.Sov(uint64(l))
-		}
-		l = len(x.GoalBonded)
+		l = len(x.InflationRate)
 		if l > 0 {
 			n += 1 + l + runtime.Sov(uint64(l))
 		}
@@ -925,31 +850,10 @@ func (x *fastReflection_Params) ProtoMethods() *protoiface.Methods {
 			i--
 			dAtA[i] = 0x30
 		}
-		if len(x.GoalBonded) > 0 {
-			i -= len(x.GoalBonded)
-			copy(dAtA[i:], x.GoalBonded)
-			i = runtime.EncodeVarint(dAtA, i, uint64(len(x.GoalBonded)))
-			i--
-			dAtA[i] = 0x2a
-		}
-		if len(x.InflationMin) > 0 {
-			i -= len(x.InflationMin)
-			copy(dAtA[i:], x.InflationMin)
-			i = runtime.EncodeVarint(dAtA, i, uint64(len(x.InflationMin)))
-			i--
-			dAtA[i] = 0x22
-		}
-		if len(x.InflationMax) > 0 {
-			i -= len(x.InflationMax)
-			copy(dAtA[i:], x.InflationMax)
-			i = runtime.EncodeVarint(dAtA, i, uint64(len(x.InflationMax)))
-			i--
-			dAtA[i] = 0x1a
-		}
-		if len(x.InflationRateChange) > 0 {
-			i -= len(x.InflationRateChange)
-			copy(dAtA[i:], x.InflationRateChange)
-			i = runtime.EncodeVarint(dAtA, i, uint64(len(x.InflationRateChange)))
+		if len(x.InflationRate) > 0 {
+			i -= len(x.InflationRate)
+			copy(dAtA[i:], x.InflationRate)
+			i = runtime.EncodeVarint(dAtA, i, uint64(len(x.InflationRate)))
 			i--
 			dAtA[i] = 0x12
 		}
@@ -1043,7 +947,7 @@ func (x *fastReflection_Params) ProtoMethods() *protoiface.Methods {
 				iNdEx = postIndex
 			case 2:
 				if wireType != 2 {
-					return protoiface.UnmarshalOutput{NoUnkeyedLiterals: input.NoUnkeyedLiterals, Flags: input.Flags}, fmt.Errorf("proto: wrong wireType = %d for field InflationRateChange", wireType)
+					return protoiface.UnmarshalOutput{NoUnkeyedLiterals: input.NoUnkeyedLiterals, Flags: input.Flags}, fmt.Errorf("proto: wrong wireType = %d for field InflationRate", wireType)
 				}
 				var stringLen uint64
 				for shift := uint(0); ; shift += 7 {
@@ -1071,103 +975,7 @@ func (x *fastReflection_Params) ProtoMethods() *protoiface.Methods {
 				if postIndex > l {
 					return protoiface.UnmarshalOutput{NoUnkeyedLiterals: input.NoUnkeyedLiterals, Flags: input.Flags}, io.ErrUnexpectedEOF
 				}
-				x.InflationRateChange = string(dAtA[iNdEx:postIndex])
-				iNdEx = postIndex
-			case 3:
-				if wireType != 2 {
-					return protoiface.UnmarshalOutput{NoUnkeyedLiterals: input.NoUnkeyedLiterals, Flags: input.Flags}, fmt.Errorf("proto: wrong wireType = %d for field InflationMax", wireType)
-				}
-				var stringLen uint64
-				for shift := uint(0); ; shift += 7 {
-					if shift >= 64 {
-						return protoiface.UnmarshalOutput{NoUnkeyedLiterals: input.NoUnkeyedLiterals, Flags: input.Flags}, runtime.ErrIntOverflow
-					}
-					if iNdEx >= l {
-						return protoiface.UnmarshalOutput{NoUnkeyedLiterals: input.NoUnkeyedLiterals, Flags: input.Flags}, io.ErrUnexpectedEOF
-					}
-					b := dAtA[iNdEx]
-					iNdEx++
-					stringLen |= uint64(b&0x7F) << shift
-					if b < 0x80 {
-						break
-					}
-				}
-				intStringLen := int(stringLen)
-				if intStringLen < 0 {
-					return protoiface.UnmarshalOutput{NoUnkeyedLiterals: input.NoUnkeyedLiterals, Flags: input.Flags}, runtime.ErrInvalidLength
-				}
-				postIndex := iNdEx + intStringLen
-				if postIndex < 0 {
-					return protoiface.UnmarshalOutput{NoUnkeyedLiterals: input.NoUnkeyedLiterals, Flags: input.Flags}, runtime.ErrInvalidLength
-				}
-				if postIndex > l {
-					return protoiface.UnmarshalOutput{NoUnkeyedLiterals: input.NoUnkeyedLiterals, Flags: input.Flags}, io.ErrUnexpectedEOF
-				}
-				x.InflationMax = string(dAtA[iNdEx:postIndex])
-				iNdEx = postIndex
-			case 4:
-				if wireType != 2 {
-					return protoiface.UnmarshalOutput{NoUnkeyedLiterals: input.NoUnkeyedLiterals, Flags: input.Flags}, fmt.Errorf("proto: wrong wireType = %d for field InflationMin", wireType)
-				}
-				var stringLen uint64
-				for shift := uint(0); ; shift += 7 {
-					if shift >= 64 {
-						return protoiface.UnmarshalOutput{NoUnkeyedLiterals: input.NoUnkeyedLiterals, Flags: input.Flags}, runtime.ErrIntOverflow
-					}
-					if iNdEx >= l {
-						return protoiface.UnmarshalOutput{NoUnkeyedLiterals: input.NoUnkeyedLiterals, Flags: input.Flags}, io.ErrUnexpectedEOF
-					}
-					b := dAtA[iNdEx]
-					iNdEx++
-					stringLen |= uint64(b&0x7F) << shift
-					if b < 0x80 {
-						break
-					}
-				}
-				intStringLen := int(stringLen)
-				if intStringLen < 0 {
-					return protoiface.UnmarshalOutput{NoUnkeyedLiterals: input.NoUnkeyedLiterals, Flags: input.Flags}, runtime.ErrInvalidLength
-				}
-				postIndex := iNdEx + intStringLen
-				if postIndex < 0 {
-					return protoiface.UnmarshalOutput{NoUnkeyedLiterals: input.NoUnkeyedLiterals, Flags: input.Flags}, runtime.ErrInvalidLength
-				}
-				if postIndex > l {
-					return protoiface.UnmarshalOutput{NoUnkeyedLiterals: input.NoUnkeyedLiterals, Flags: input.Flags}, io.ErrUnexpectedEOF
-				}
-				x.InflationMin = string(dAtA[iNdEx:postIndex])
-				iNdEx = postIndex
-			case 5:
-				if wireType != 2 {
-					return protoiface.UnmarshalOutput{NoUnkeyedLiterals: input.NoUnkeyedLiterals, Flags: input.Flags}, fmt.Errorf("proto: wrong wireType = %d for field GoalBonded", wireType)
-				}
-				var stringLen uint64
-				for shift := uint(0); ; shift += 7 {
-					if shift >= 64 {
-						return protoiface.UnmarshalOutput{NoUnkeyedLiterals: input.NoUnkeyedLiterals, Flags: input.Flags}, runtime.ErrIntOverflow
-					}
-					if iNdEx >= l {
-						return protoiface.UnmarshalOutput{NoUnkeyedLiterals: input.NoUnkeyedLiterals, Flags: input.Flags}, io.ErrUnexpectedEOF
-					}
-					b := dAtA[iNdEx]
-					iNdEx++
-					stringLen |= uint64(b&0x7F) << shift
-					if b < 0x80 {
-						break
-					}
-				}
-				intStringLen := int(stringLen)
-				if intStringLen < 0 {
-					return protoiface.UnmarshalOutput{NoUnkeyedLiterals: input.NoUnkeyedLiterals, Flags: input.Flags}, runtime.ErrInvalidLength
-				}
-				postIndex := iNdEx + intStringLen
-				if postIndex < 0 {
-					return protoiface.UnmarshalOutput{NoUnkeyedLiterals: input.NoUnkeyedLiterals, Flags: input.Flags}, runtime.ErrInvalidLength
-				}
-				if postIndex > l {
-					return protoiface.UnmarshalOutput{NoUnkeyedLiterals: input.NoUnkeyedLiterals, Flags: input.Flags}, io.ErrUnexpectedEOF
-				}
-				x.GoalBonded = string(dAtA[iNdEx:postIndex])
+				x.InflationRate = string(dAtA[iNdEx:postIndex])
 				iNdEx = postIndex
 			case 6:
 				if wireType != 0 {
@@ -1290,14 +1098,8 @@ type Params struct {
 
 	// type of coin to mint
 	MintDenom string `protobuf:"bytes,1,opt,name=mint_denom,json=mintDenom,proto3" json:"mint_denom,omitempty"`
-	// maximum annual change in inflation rate
-	InflationRateChange string `protobuf:"bytes,2,opt,name=inflation_rate_change,json=inflationRateChange,proto3" json:"inflation_rate_change,omitempty"`
-	// maximum inflation rate
-	InflationMax string `protobuf:"bytes,3,opt,name=inflation_max,json=inflationMax,proto3" json:"inflation_max,omitempty"`
-	// minimum inflation rate
-	InflationMin string `protobuf:"bytes,4,opt,name=inflation_min,json=inflationMin,proto3" json:"inflation_min,omitempty"`
-	// goal of percent bonded atoms
-	GoalBonded string `protobuf:"bytes,5,opt,name=goal_bonded,json=goalBonded,proto3" json:"goal_bonded,omitempty"`
+	// maximum annual inflation rate
+	InflationRate string `protobuf:"bytes,2,opt,name=inflation_rate,json=inflationRate,proto3" json:"inflation_rate,omitempty"`
 	// expected blocks per year
 	BlocksPerYear uint64 `protobuf:"varint,6,opt,name=blocks_per_year,json=blocksPerYear,proto3" json:"blocks_per_year,omitempty"`
 }
@@ -1329,30 +1131,9 @@ func (x *Params) GetMintDenom() string {
 	return ""
 }
 
-func (x *Params) GetInflationRateChange() string {
+func (x *Params) GetInflationRate() string {
 	if x != nil {
-		return x.InflationRateChange
-	}
-	return ""
-}
-
-func (x *Params) GetInflationMax() string {
-	if x != nil {
-		return x.InflationMax
-	}
-	return ""
-}
-
-func (x *Params) GetInflationMin() string {
-	if x != nil {
-		return x.InflationMin
-	}
-	return ""
-}
-
-func (x *Params) GetGoalBonded() string {
-	if x != nil {
-		return x.GoalBonded
+		return x.InflationRate
 	}
 	return ""
 }
@@ -1386,33 +1167,15 @@ var file_cosmos_mint_v1beta1_mint_proto_rawDesc = []byte{
 	0x73, 0x64, 0x6b, 0x2e, 0x69, 0x6f, 0x2f, 0x6d, 0x61, 0x74, 0x68, 0x2e, 0x4c, 0x65, 0x67, 0x61,
 	0x63, 0x79, 0x44, 0x65, 0x63, 0xd2, 0xb4, 0x2d, 0x0a, 0x63, 0x6f, 0x73, 0x6d, 0x6f, 0x73, 0x2e,
 	0x44, 0x65, 0x63, 0x52, 0x10, 0x61, 0x6e, 0x6e, 0x75, 0x61, 0x6c, 0x50, 0x72, 0x6f, 0x76, 0x69,
-	0x73, 0x69, 0x6f, 0x6e, 0x73, 0x22, 0xed, 0x03, 0x0a, 0x06, 0x50, 0x61, 0x72, 0x61, 0x6d, 0x73,
+	0x73, 0x69, 0x6f, 0x6e, 0x73, 0x22, 0xcd, 0x01, 0x0a, 0x06, 0x50, 0x61, 0x72, 0x61, 0x6d, 0x73,
 	0x12, 0x1d, 0x0a, 0x0a, 0x6d, 0x69, 0x6e, 0x74, 0x5f, 0x64, 0x65, 0x6e, 0x6f, 0x6d, 0x18, 0x01,
 	0x20, 0x01, 0x28, 0x09, 0x52, 0x09, 0x6d, 0x69, 0x6e, 0x74, 0x44, 0x65, 0x6e, 0x6f, 0x6d, 0x12,
-	0x6a, 0x0a, 0x15, 0x69, 0x6e, 0x66, 0x6c, 0x61, 0x74, 0x69, 0x6f, 0x6e, 0x5f, 0x72, 0x61, 0x74,
-	0x65, 0x5f, 0x63, 0x68, 0x61, 0x6e, 0x67, 0x65, 0x18, 0x02, 0x20, 0x01, 0x28, 0x09, 0x42, 0x36,
-	0xc8, 0xde, 0x1f, 0x00, 0xda, 0xde, 0x1f, 0x1b, 0x63, 0x6f, 0x73, 0x6d, 0x6f, 0x73, 0x73, 0x64,
-	0x6b, 0x2e, 0x69, 0x6f, 0x2f, 0x6d, 0x61, 0x74, 0x68, 0x2e, 0x4c, 0x65, 0x67, 0x61, 0x63, 0x79,
-	0x44, 0x65, 0x63, 0xd2, 0xb4, 0x2d, 0x0a, 0x63, 0x6f, 0x73, 0x6d, 0x6f, 0x73, 0x2e, 0x44, 0x65,
-	0x63, 0xa8, 0xe7, 0xb0, 0x2a, 0x01, 0x52, 0x13, 0x69, 0x6e, 0x66, 0x6c, 0x61, 0x74, 0x69, 0x6f,
-	0x6e, 0x52, 0x61, 0x74, 0x65, 0x43, 0x68, 0x61, 0x6e, 0x67, 0x65, 0x12, 0x5b, 0x0a, 0x0d, 0x69,
-	0x6e, 0x66, 0x6c, 0x61, 0x74, 0x69, 0x6f, 0x6e, 0x5f, 0x6d, 0x61, 0x78, 0x18, 0x03, 0x20, 0x01,
-	0x28, 0x09, 0x42, 0x36, 0xc8, 0xde, 0x1f, 0x00, 0xda, 0xde, 0x1f, 0x1b, 0x63, 0x6f, 0x73, 0x6d,
-	0x6f, 0x73, 0x73, 0x64, 0x6b, 0x2e, 0x69, 0x6f, 0x2f, 0x6d, 0x61, 0x74, 0x68, 0x2e, 0x4c, 0x65,
-	0x67, 0x61, 0x63, 0x79, 0x44, 0x65, 0x63, 0xd2, 0xb4, 0x2d, 0x0a, 0x63, 0x6f, 0x73, 0x6d, 0x6f,
-	0x73, 0x2e, 0x44, 0x65, 0x63, 0xa8, 0xe7, 0xb0, 0x2a, 0x01, 0x52, 0x0c, 0x69, 0x6e, 0x66, 0x6c,
-	0x61, 0x74, 0x69, 0x6f, 0x6e, 0x4d, 0x61, 0x78, 0x12, 0x5b, 0x0a, 0x0d, 0x69, 0x6e, 0x66, 0x6c,
-	0x61, 0x74, 0x69, 0x6f, 0x6e, 0x5f, 0x6d, 0x69, 0x6e, 0x18, 0x04, 0x20, 0x01, 0x28, 0x09, 0x42,
-	0x36, 0xc8, 0xde, 0x1f, 0x00, 0xda, 0xde, 0x1f, 0x1b, 0x63, 0x6f, 0x73, 0x6d, 0x6f, 0x73, 0x73,
-	0x64, 0x6b, 0x2e, 0x69, 0x6f, 0x2f, 0x6d, 0x61, 0x74, 0x68, 0x2e, 0x4c, 0x65, 0x67, 0x61, 0x63,
-	0x79, 0x44, 0x65, 0x63, 0xd2, 0xb4, 0x2d, 0x0a, 0x63, 0x6f, 0x73, 0x6d, 0x6f, 0x73, 0x2e, 0x44,
-	0x65, 0x63, 0xa8, 0xe7, 0xb0, 0x2a, 0x01, 0x52, 0x0c, 0x69, 0x6e, 0x66, 0x6c, 0x61, 0x74, 0x69,
-	0x6f, 0x6e, 0x4d, 0x69, 0x6e, 0x12, 0x57, 0x0a, 0x0b, 0x67, 0x6f, 0x61, 0x6c, 0x5f, 0x62, 0x6f,
-	0x6e, 0x64, 0x65, 0x64, 0x18, 0x05, 0x20, 0x01, 0x28, 0x09, 0x42, 0x36, 0xc8, 0xde, 0x1f, 0x00,
-	0xda, 0xde, 0x1f, 0x1b, 0x63, 0x6f, 0x73, 0x6d, 0x6f, 0x73, 0x73, 0x64, 0x6b, 0x2e, 0x69, 0x6f,
-	0x2f, 0x6d, 0x61, 0x74, 0x68, 0x2e, 0x4c, 0x65, 0x67, 0x61, 0x63, 0x79, 0x44, 0x65, 0x63, 0xd2,
-	0xb4, 0x2d, 0x0a, 0x63, 0x6f, 0x73, 0x6d, 0x6f, 0x73, 0x2e, 0x44, 0x65, 0x63, 0xa8, 0xe7, 0xb0,
-	0x2a, 0x01, 0x52, 0x0a, 0x67, 0x6f, 0x61, 0x6c, 0x42, 0x6f, 0x6e, 0x64, 0x65, 0x64, 0x12, 0x26,
+	0x5d, 0x0a, 0x0e, 0x69, 0x6e, 0x66, 0x6c, 0x61, 0x74, 0x69, 0x6f, 0x6e, 0x5f, 0x72, 0x61, 0x74,
+	0x65, 0x18, 0x02, 0x20, 0x01, 0x28, 0x09, 0x42, 0x36, 0xc8, 0xde, 0x1f, 0x00, 0xda, 0xde, 0x1f,
+	0x1b, 0x63, 0x6f, 0x73, 0x6d, 0x6f, 0x73, 0x73, 0x64, 0x6b, 0x2e, 0x69, 0x6f, 0x2f, 0x6d, 0x61,
+	0x74, 0x68, 0x2e, 0x4c, 0x65, 0x67, 0x61, 0x63, 0x79, 0x44, 0x65, 0x63, 0xd2, 0xb4, 0x2d, 0x0a,
+	0x63, 0x6f, 0x73, 0x6d, 0x6f, 0x73, 0x2e, 0x44, 0x65, 0x63, 0xa8, 0xe7, 0xb0, 0x2a, 0x01, 0x52,
+	0x0d, 0x69, 0x6e, 0x66, 0x6c, 0x61, 0x74, 0x69, 0x6f, 0x6e, 0x52, 0x61, 0x74, 0x65, 0x12, 0x26,
 	0x0a, 0x0f, 0x62, 0x6c, 0x6f, 0x63, 0x6b, 0x73, 0x5f, 0x70, 0x65, 0x72, 0x5f, 0x79, 0x65, 0x61,
 	0x72, 0x18, 0x06, 0x20, 0x01, 0x28, 0x04, 0x52, 0x0d, 0x62, 0x6c, 0x6f, 0x63, 0x6b, 0x73, 0x50,
 	0x65, 0x72, 0x59, 0x65, 0x61, 0x72, 0x3a, 0x1d, 0x8a, 0xe7, 0xb0, 0x2a, 0x18, 0x63, 0x6f, 0x73,

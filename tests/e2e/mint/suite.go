@@ -30,8 +30,6 @@ func (s *E2ETestSuite) SetupSuite() {
 
 	inflation := math.LegacyMustNewDecFromStr("1.0")
 	mintData.Minter.Inflation = inflation
-	mintData.Params.InflationMin = inflation
-	mintData.Params.InflationMax = inflation
 
 	mintDataBz, err := s.cfg.Codec.MarshalJSON(&mintData)
 	s.Require().NoError(err)

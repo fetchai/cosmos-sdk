@@ -65,9 +65,6 @@ func (s *GenesisTestSuite) TestImportExportGenesis() {
 	genesisState.Params = types.NewParams(
 		"testDenom",
 		math.LegacyNewDecWithPrec(15, 2),
-		math.LegacyNewDecWithPrec(22, 2),
-		math.LegacyNewDecWithPrec(9, 2),
-		math.LegacyNewDecWithPrec(69, 2),
 		uint64(60*60*8766/5),
 	)
 

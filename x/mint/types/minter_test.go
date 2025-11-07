@@ -14,45 +14,26 @@ import (
 func TestNextInflation(t *testing.T) {
 	minter := DefaultInitialMinter()
 	params := DefaultParams()
-	blocksPerYr := math.LegacyNewDec(int64(params.BlocksPerYear))
 
 	// Governing Mechanism:
 	//    inflationRateChangePerYear = (1- BondedRatio/ GoalBonded) * MaxInflationRateChange
 
 	tests := []struct {
-		bondedRatio, setInflation, expChange math.LegacyDec
+		setInflation, expChange math.LegacyDec
 	}{
-		// with 0% bonded atom supply the inflation should increase by InflationRateChange
-		{math.LegacyZeroDec(), math.LegacyNewDecWithPrec(7, 2), params.InflationRateChange.Quo(blocksPerYr)},
+		// no change from the default (3%)
+		{math.LegacyNewDecWithPrec(3, 2), math.LegacyZeroDec()},
 
-		// 100% bonded, starting at 20% inflation and being reduced
-		// (1 - (1/0.67))*(0.13/8667)
-		{
-			math.LegacyOneDec(), math.LegacyNewDecWithPrec(20, 2),
-			math.LegacyOneDec().Sub(math.LegacyOneDec().Quo(params.GoalBonded)).Mul(params.InflationRateChange).Quo(blocksPerYr),
-		},
+		// a change from 4% to default (3%)
+		{math.LegacyNewDecWithPrec(4, 2), math.LegacyNewDecWithPrec(-1, 2)},
 
-		// 50% bonded, starting at 10% inflation and being increased
-		{
-			math.LegacyNewDecWithPrec(5, 1), math.LegacyNewDecWithPrec(10, 2),
-			math.LegacyOneDec().Sub(math.LegacyNewDecWithPrec(5, 1).Quo(params.GoalBonded)).Mul(params.InflationRateChange).Quo(blocksPerYr),
-		},
-
-		// test 7% minimum stop (testing with 100% bonded)
-		{math.LegacyOneDec(), math.LegacyNewDecWithPrec(7, 2), math.LegacyZeroDec()},
-		{math.LegacyOneDec(), math.LegacyNewDecWithPrec(700000001, 10), math.LegacyNewDecWithPrec(-1, 10)},
-
-		// test 20% maximum stop (testing with 0% bonded)
-		{math.LegacyZeroDec(), math.LegacyNewDecWithPrec(20, 2), math.LegacyZeroDec()},
-		{math.LegacyZeroDec(), math.LegacyNewDecWithPrec(1999999999, 10), math.LegacyNewDecWithPrec(1, 10)},
-
-		// perfect balance shouldn't change inflation
-		{math.LegacyNewDecWithPrec(67, 2), math.LegacyNewDecWithPrec(15, 2), math.LegacyZeroDec()},
+		// a change from 1% to default (3%)
+		{math.LegacyNewDecWithPrec(1, 2), math.LegacyNewDecWithPrec(2, 2)},
 	}
 	for i, tc := range tests {
 		minter.Inflation = tc.setInflation
 
-		inflation := minter.NextInflationRate(params, tc.bondedRatio)
+		inflation := minter.NextInflationRate(params)
 		diffInflation := inflation.Sub(tc.setInflation)
 
 		require.True(t, diffInflation.Equal(tc.expChange),
@@ -115,11 +96,9 @@ func BenchmarkNextInflation(b *testing.B) {
 	b.ReportAllocs()
 	minter := InitialMinter(math.LegacyNewDecWithPrec(1, 1))
 	params := DefaultParams()
-	bondedRatio := math.LegacyNewDecWithPrec(1, 1)
-
 	// run the NextInflationRate function b.N times
 	for n := 0; n < b.N; n++ {
-		minter.NextInflationRate(params, bondedRatio)
+		minter.NextInflationRate(params)
 	}
 }
 

@@ -21,7 +21,36 @@ message Minter {
     (gogoproto.customtype) = "cosmossdk.io/math.LegacyDec",
     (gogoproto.nullable)   = false
   ];
+
+  // repeated MunicipalInflationPair municipal_inflation = 3;
 }
+
+/*
+// Inflation holds parameters for individual native token inflation
+message MunicipalInflation {
+  // address where inflation induced new tokens will be minted
+  string target_address = 2 [(gogoproto.moretags) = "yaml:\"target_address\""];
+  // current ANNUAL inflation rate
+  string value = 3 [
+    (cosmos_proto.scalar)  = "cosmos.Dec",
+    (gogoproto.customtype) = "cosmossdk.io/math.LegacyDec",
+    (gogoproto.nullable) = false];
+}
+
+// Pair representing denom -> inflation mapping.
+// This pair-like structure will be used in `repeating MunicipalInflationPair`
+// type, what will have the same Protobuf binary representation on wire as the
+// `map<string, MunicipalInflation>` type.
+// This means that what is serialised as `repeating MunicipalInflationPair` on
+// one end can be deserialised as `map<string, MunicipalInflation>` on the other
+// end, and other vice versa.
+message MunicipalInflationPair {
+  // token denomination
+  string denom = 1;
+  // Structure representing municipal inflation for the the given `denom`
+  MunicipalInflation inflation = 2;
+}
+*/
 
 // Params defines the parameters for the x/mint module.
 message Params {
@@ -29,29 +58,8 @@ message Params {
 
   // type of coin to mint
   string mint_denom = 1;
-  // maximum annual change in inflation rate
-  string inflation_rate_change = 2 [
-    (cosmos_proto.scalar)  = "cosmos.Dec",
-    (gogoproto.customtype) = "cosmossdk.io/math.LegacyDec",
-    (gogoproto.nullable)   = false,
-    (amino.dont_omitempty) = true
-  ];
-  // maximum inflation rate
-  string inflation_max = 3 [
-    (cosmos_proto.scalar)  = "cosmos.Dec",
-    (gogoproto.customtype) = "cosmossdk.io/math.LegacyDec",
-    (gogoproto.nullable)   = false,
-    (amino.dont_omitempty) = true
-  ];
-  // minimum inflation rate
-  string inflation_min = 4 [
-    (cosmos_proto.scalar)  = "cosmos.Dec",
-    (gogoproto.customtype) = "cosmossdk.io/math.LegacyDec",
-    (gogoproto.nullable)   = false,
-    (amino.dont_omitempty) = true
-  ];
-  // goal of percent bonded atoms
-  string goal_bonded = 5 [
+  // maximum annual inflation rate
+  string inflation_rate = 2 [
     (cosmos_proto.scalar)  = "cosmos.Dec",
     (gogoproto.customtype) = "cosmossdk.io/math.LegacyDec",
     (gogoproto.nullable)   = false,
