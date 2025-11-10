@@ -122,7 +122,7 @@ func (s *GRPCQueryTestSuite) TestQueryOutstandingRewardsGRPC() {
 	val := s.network.Validators[0]
 	baseURL := val.APIAddress
 
-	rewards, err := sdk.ParseDecCoins("19.6stake")
+	rewards, err := sdk.ParseDecCoins("3.92stake")
 	s.Require().NoError(err)
 
 	testCases := []struct {
@@ -175,7 +175,7 @@ func (s *GRPCQueryTestSuite) TestQueryValidatorCommissionGRPC() {
 	val := s.network.Validators[0]
 	baseURL := val.APIAddress
 
-	commission, err := sdk.ParseDecCoins("9.8stake")
+	commission, err := sdk.ParseDecCoins("1.96stake")
 	s.Require().NoError(err)
 
 	testCases := []struct {
@@ -286,7 +286,7 @@ func (s *GRPCQueryTestSuite) TestQueryDelegatorRewardsGRPC() {
 	val := s.network.Validators[0]
 	baseURL := val.APIAddress
 
-	rewards, err := sdk.ParseDecCoins("9.8stake")
+	rewards, err := sdk.ParseDecCoins("1.96stake")
 	s.Require().NoError(err)
 
 	testCases := []struct {
@@ -463,7 +463,7 @@ func (s *GRPCQueryTestSuite) TestQueryValidatorCommunityPoolGRPC() {
 	val := s.network.Validators[0]
 	baseURL := val.APIAddress
 
-	communityPool, err := sdk.ParseDecCoins("0.4stake")
+	communityPool, err := sdk.ParseDecCoins("0.08stake")
 	s.Require().NoError(err)
 
 	testCases := []struct {
