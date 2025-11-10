@@ -3,6 +3,7 @@ package keeper
 import (
 	"context"
 
+	sdktypes "github.com/cosmos/cosmos-sdk/types"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 
@@ -14,10 +15,32 @@ import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/types/query"
 	"github.com/cosmos/cosmos-sdk/x/bank/types"
+	banktypes "github.com/cosmos/cosmos-sdk/x/bank/types"
 )
 
 type Querier struct {
 	BaseKeeper
+}
+
+func (q *Querier) GetSupply(ctx context.Context, denom string) sdktypes.Coin {
+	if denom == "" {
+		panic("denom must not be empty")
+	}
+
+	res, err := q.SupplyOf(ctx, &banktypes.QuerySupplyOfRequest{
+		Denom: denom,
+	})
+	if err != nil {
+		// Better to return a zero Coin instead of panic in production code
+		// panic(err)
+		return sdktypes.NewCoin(denom, math.NewInt(0))
+	}
+
+	if res == nil {
+		return sdktypes.NewCoin(denom, math.NewInt(0))
+	}
+
+	return res.Amount
 }
 
 var _ types.QueryServer = BaseKeeper{}

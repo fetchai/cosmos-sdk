@@ -10,11 +10,11 @@
 package testutil
 
 import (
-	context "context"
+	"context"
 	reflect "reflect"
 
 	math "cosmossdk.io/math"
-	types "github.com/cosmos/cosmos-sdk/types"
+	"github.com/cosmos/cosmos-sdk/types"
 	gomock "go.uber.org/mock/gomock"
 )
 
@@ -141,6 +141,13 @@ type MockBankKeeper struct {
 	ctrl     *gomock.Controller
 	recorder *MockBankKeeperMockRecorder
 	isgomock struct{}
+}
+
+func (m *MockBankKeeper) GetSupply(ctx context.Context, denom string) types.Coin {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetSupply", ctx, denom)
+	ret0, _ := ret[0].(types.Coin)
+	return ret0
 }
 
 // MockBankKeeperMockRecorder is the mock recorder for MockBankKeeper.

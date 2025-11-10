@@ -22,10 +22,9 @@ message Minter {
     (gogoproto.nullable)   = false
   ];
 
-  // repeated MunicipalInflationPair municipal_inflation = 3;
+  repeated MunicipalInflationPair municipal_inflation = 3;
 }
 
-/*
 // Inflation holds parameters for individual native token inflation
 message MunicipalInflation {
   // address where inflation induced new tokens will be minted
@@ -34,7 +33,8 @@ message MunicipalInflation {
   string value = 3 [
     (cosmos_proto.scalar)  = "cosmos.Dec",
     (gogoproto.customtype) = "cosmossdk.io/math.LegacyDec",
-    (gogoproto.nullable) = false];
+    (gogoproto.nullable)   = false
+  ];
 }
 
 // Pair representing denom -> inflation mapping.
@@ -50,7 +50,6 @@ message MunicipalInflationPair {
   // Structure representing municipal inflation for the the given `denom`
   MunicipalInflation inflation = 2;
 }
-*/
 
 // Params defines the parameters for the x/mint module.
 message Params {

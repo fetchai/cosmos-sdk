@@ -10,10 +10,11 @@ import (
 
 // NewMinter returns a new Minter object with the given inflation and annual
 // provisions values.
-func NewMinter(inflation, annualProvisions math.LegacyDec) Minter {
+func NewMinter(inflation, annualProvisions math.LegacyDec, inflations []*MunicipalInflationPair) Minter {
 	return Minter{
-		Inflation:        inflation,
-		AnnualProvisions: annualProvisions,
+		Inflation:          inflation,
+		AnnualProvisions:   annualProvisions,
+		MunicipalInflation: inflations,
 	}
 }
 
@@ -22,14 +23,15 @@ func InitialMinter(inflation math.LegacyDec) Minter {
 	return NewMinter(
 		inflation,
 		math.LegacyNewDec(0),
+		nil,
 	)
 }
 
 // DefaultInitialMinter returns a default initial Minter object for a new chain
-// which uses an inflation rate of 13%.
+// which uses an inflation rate of 3%.
 func DefaultInitialMinter() Minter {
 	return InitialMinter(
-		math.LegacyNewDecWithPrec(13, 2),
+		math.LegacyNewDecWithPrec(3, 2),
 	)
 }
 
@@ -39,7 +41,8 @@ func ValidateMinter(minter Minter) error {
 		return fmt.Errorf("mint parameter Inflation should be positive, is %s",
 			minter.Inflation.String())
 	}
-	return nil
+	err := ValidateMunicipalInflations(&minter.MunicipalInflation)
+	return err
 }
 
 // NextInflationRate returns the new inflation rate for the next block.
