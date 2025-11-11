@@ -51,6 +51,17 @@ func (s *E2ETestSuite) TestQueryGRPC() {
 				AnnualProvisions: math.LegacyNewDec(15000000),
 			},
 		},
+		{
+			"gRPC request municipal inflations",
+			fmt.Sprintf("%s/cosmos/mint/v1beta1/municipal_inflation", baseURL),
+			map[string]string{
+				grpctypes.GRPCBlockHeightHeader: "1",
+			},
+			&minttypes.QueryMunicipalInflationResponse{},
+			&minttypes.QueryMunicipalInflationResponse{
+				Inflations: nil,
+			},
+		},
 	}
 	for _, tc := range testCases {
 		resp, err := testutil.GetRequestWithHeaders(tc.url, tc.headers)

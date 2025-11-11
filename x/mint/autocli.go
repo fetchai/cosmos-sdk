@@ -29,6 +29,14 @@ func (am AppModule) AutoCLIOptions() *autocliv1.ModuleOptions {
 					Use:       "annual-provisions",
 					Short:     "Query the current minting annual provisions value",
 				},
+				{
+					RpcMethod: "MunicipalInflation",
+					Use:       "municipal-inflation [denomination]",
+					Short:     "Query municipal inflation configuration",
+					Long: `If there is NO 'denomination' value is provided, then query returns full
+configuration of the municipal inflation (for all registered denominations).
+Otherwise it returns only the configuration for the provided 'denomination' value.`,
+				},
 			},
 		},
 		Tx: &autocliv1.ServiceCommandDescriptor{

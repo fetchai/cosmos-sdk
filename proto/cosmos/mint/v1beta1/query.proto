@@ -21,6 +21,11 @@ service Query {
     option (google.api.http).get = "/cosmos/mint/v1beta1/inflation";
   }
 
+  // Inflation returns the current minting inflation value.
+  rpc MunicipalInflation(QueryMunicipalInflationRequest) returns (QueryMunicipalInflationResponse) {
+    option (google.api.http).get = "/cosmos/mint/v1beta1/municipal_inflation";
+  }
+
   // AnnualProvisions current minting annual provisions value.
   rpc AnnualProvisions(QueryAnnualProvisionsRequest) returns (QueryAnnualProvisionsResponse) {
     option (google.api.http).get = "/cosmos/mint/v1beta1/annual_provisions";
@@ -34,6 +39,18 @@ message QueryParamsRequest {}
 message QueryParamsResponse {
   // params defines the parameters of the module.
   Params params = 1 [(gogoproto.nullable) = false, (amino.dont_omitempty) = true];
+}
+
+// QueryMunicipalInflationRequest is the request type for the Query/MunicipalInflation RPC method.
+message QueryMunicipalInflationRequest {
+  string denom = 1;  // empty => all
+}
+
+// QueryInflationResponse is the response type for the Query/Inflation RPC
+// method.
+message QueryMunicipalInflationResponse {
+  // inflation is the current minting inflation value.
+  repeated MunicipalInflationPair inflations = 1;
 }
 
 // QueryInflationRequest is the request type for the Query/Inflation RPC method.
