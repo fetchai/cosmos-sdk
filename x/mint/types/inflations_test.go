@@ -4,13 +4,13 @@ import (
 	"math/rand"
 	"testing"
 
+	"github.com/stretchr/testify/require"
+
 	"cosmossdk.io/math"
+
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	simtypes "github.com/cosmos/cosmos-sdk/types/simulation"
-
 	"github.com/cosmos/cosmos-sdk/x/mint/types"
-
-	"github.com/stretchr/testify/require"
 )
 
 var (
@@ -20,7 +20,7 @@ var (
 	testAcc                 = "TEST_ACC"
 )
 
-//func resetSupply(app *simapp.SimApp, ctx sdk.Context, initSupply sdk.Coins, curSupply sdk.Coins) {
+// func resetSupply(app *simapp.SimApp, ctx sdk.Context, initSupply sdk.Coins, curSupply sdk.Coins) {
 //	err := app.BankKeeper.MintCoins(ctx, types.ModuleName, initSupply)
 //	if err != nil {
 //		panic(err)
@@ -61,7 +61,7 @@ func TestCalculateInflationPerBlockAndIssuance(t *testing.T) {
 		// Pass: 0.01 = 1% inflation
 		{types.NewMunicipalInflation(testAcc, onePercent), supply.QuoRaw(100)},
 		//// Pass: -0.01 = -1% inflation
-		//{types.NewMunicipalInflation(testDenom, testAcc, onePercent.Neg()), supply.QuoRaw(100).Neg()},
+		// {types.NewMunicipalInflation(testDenom, testAcc, onePercent.Neg()), supply.QuoRaw(100).Neg()},
 		//// Pass: -0.011 = -1.1% inflation
 		//{types.NewMunicipalInflation(testDenom, testAcc, math.LegacyNewDecWithPrec(11, 3).Neg()), supply.MulRaw(11).QuoRaw(1000).Neg()},
 		//// Pass: -0.5 = -50% inflation
@@ -107,7 +107,7 @@ func TestValidationOfMunicipalInflation(t *testing.T) {
 		// Pass: 0.01 = 1% inflation
 		{types.NewMunicipalInflation(targetAccounts[0].Address.String(), onePercent), true},
 		//// Pass: -0.01 = -1% inflation
-		//{types.NewMunicipalInflation(targetAccounts[0].Address.String(), onePercent.Neg()), true},
+		// {types.NewMunicipalInflation(targetAccounts[0].Address.String(), onePercent.Neg()), true},
 		//// Pass: -0.011 = -1.1% inflation
 		//{types.NewMunicipalInflation(targetAccounts[0].Address.String(), math.LegacyNewDecWithPrec(11, 3).Neg()), true},
 		//// Pass: -0.5 = -50% inflation
@@ -146,7 +146,7 @@ func TestBulkValidationOfMunicipalInflations(t *testing.T) {
 		// Pass: 0.01 = 1% inflation
 		{"stake3", types.NewMunicipalInflation(targetAccounts[0].Address.String(), onePercent)},
 		//// Pass: -0.01 = -1% inflation
-		//{"stake4", types.NewMunicipalInflation(targetAccounts[0].Address.String(), onePercent.Neg())},
+		// {"stake4", types.NewMunicipalInflation(targetAccounts[0].Address.String(), onePercent.Neg())},
 		//// Pass: -0.011 = -1.1% inflation
 		//{"stake5", types.NewMunicipalInflation(targetAccounts[0].Address.String(), math.LegacyNewDecWithPrec(11, 3).Neg())},
 		//// Pass: -0.5 = -50% inflation
@@ -181,7 +181,7 @@ func TestBulkValidationOfMunicipalInflations(t *testing.T) {
 	require.Error(t, err)
 }
 
-//func TestHandleMunicipalInflation(t *testing.T) {
+// func TestHandleMunicipalInflation(t *testing.T) {
 //	app := simapp.Setup(t, false)
 //	ctx := app.BaseApp.NewContext(false)
 //	acc := auth.NewEmptyModuleAccount(types.ModuleName, auth.Minter, auth.Burner)
@@ -221,7 +221,7 @@ func TestBulkValidationOfMunicipalInflations(t *testing.T) {
 //		testMunicipalInflations[i] = &types.MunicipalInflationPair{infl.denom, &types.MunicipalInflation{targetAccounts[i].Address.String(), infl.annualInflation}}
 //	}
 //
-//	// Configure/initialise Minter with MunicipalInflation:
+//	// Configure/initialize Minter with MunicipalInflation:
 //	minter.MunicipalInflation = testMunicipalInflations
 //	err = keeper.Minter.Set(ctx, minter)
 //	if err != nil {

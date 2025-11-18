@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"cosmossdk.io/math"
+
 	sdk "github.com/cosmos/cosmos-sdk/types"
 )
 
@@ -65,7 +66,7 @@ func ValidateMunicipalInflations(inflations *[]*MunicipalInflationPair) (err err
 
 		err = sdk.ValidateDenom(pair.Denom)
 		if err != nil {
-			return fmt.Errorf("inflation object param, denom: %s", err)
+			return fmt.Errorf("inflation object param, denom: %w", err)
 		}
 
 		err = pair.Inflation.Validate()

@@ -4,6 +4,7 @@ import (
 	"sync/atomic"
 
 	"cosmossdk.io/math"
+
 	"github.com/cosmos/cosmos-sdk/x/mint/types"
 )
 
@@ -18,7 +19,7 @@ type MunicipalInflationCacheInternal struct {
 	inflations    map[string]*MunicipalInflationCacheItem // {denom: inflationPerBlock}
 }
 
-// MunicipalInflationCache Cache optimised for concurrent reading performance.
+// MunicipalInflationCache Cache optimized for concurrent reading performance.
 // *NO* support for concurrent writing operations.
 type MunicipalInflationCache struct {
 	internal atomic.Value
@@ -26,7 +27,7 @@ type MunicipalInflationCache struct {
 
 // GMunicipalInflationCache Thread safety:
 // As the things stand now from design & impl. perspective:
-//  1. This global variable is supposed to be initialised(= its value set)
+//  1. This global variable is supposed to be initialized(= its value set)
 //     just *ONCE* here, at this place,
 //  2. This global variable shall *NOT* be used anywhere else in the initialisation
 //     context of the *global scope* - e.g. as input for initialisation of
