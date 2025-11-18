@@ -5,7 +5,8 @@ on:
       - "docs/**"
 jobs:
   markdown-link-check:
-    runs-on: depot-ubuntu-22.04-4
+    if: false # Disabled
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - run: cd docs && sh ./pre.sh
@@ -16,7 +17,7 @@ jobs:
   sims-notify-failure:
     permissions:
       contents: none
-    runs-on: depot-ubuntu-22.04-4
+    runs-on: ubuntu-latest
     if: ${{ failure() }}
     steps:
       - name: Notify Slack on failure

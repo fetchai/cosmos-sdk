@@ -16,7 +16,7 @@ concurrency:
 
 jobs:
   test-sim-multi-seed-long:
-    runs-on: depot-ubuntu-22.04-4
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-go@v5
@@ -30,7 +30,7 @@ jobs:
           make test-sim-multi-seed-long
 
   test-sim-import-export:
-    runs-on: depot-ubuntu-22.04-4
+    runs-on: ubuntu-latest
     timeout-minutes: 60
     steps:
       - uses: actions/checkout@v4
@@ -46,7 +46,7 @@ jobs:
 
   sims-notify-success:
     needs: [test-sim-multi-seed-long, test-sim-import-export]
-    runs-on: depot-ubuntu-22.04-4
+    runs-on: ubuntu-latest
     if: ${{ success() }}
     steps:
       - name: Check out repository
@@ -73,7 +73,7 @@ jobs:
     permissions:
       contents: none
     needs: [test-sim-multi-seed-long]
-    runs-on: depot-ubuntu-22.04-4
+    runs-on: ubuntu-latest
     if: ${{ failure() }}
     steps:
       - name: Notify Slack on failure
