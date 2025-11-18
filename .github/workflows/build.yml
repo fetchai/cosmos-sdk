@@ -15,7 +15,7 @@ concurrency:
 
 jobs:
   build:
-    runs-on: depot-ubuntu-22.04-4
+    runs-on: ubuntu-latest
     strategy:
       matrix:
         go-arch: ["amd64", "arm64"] # drop 32 bit support for now (and maybe forever)

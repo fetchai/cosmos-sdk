@@ -22,7 +22,7 @@ on:
 permissions:
   contents: read
   packages: write
-  sid-token: write
+  #sid-token: write
 
 env:
   # Use docker.io for Docker Hub if empty
@@ -32,7 +32,7 @@ env:
 
 jobs:
   build:
-    runs-on: depot-ubuntu-22.04-4
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
         with:
@@ -61,13 +61,9 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Setup Depot
-        uses: depot/setup-action@v1
-
       - name: Publish to GitHub Packages
-        uses: depot/build-push-action@v1
+        uses: docker/build-push-action@v6
         with:
-          project: gnm1jqptpw
           platforms: linux/amd64,linux/arm64
           push: ${{ github.event_name != 'pull_request' }}
           tags: ${{ steps.meta.outputs.tags }}
