@@ -10,11 +10,11 @@
 package testutil
 
 import (
-	"context"
+	context "context"
 	reflect "reflect"
 
 	math "cosmossdk.io/math"
-	"github.com/cosmos/cosmos-sdk/types"
+	types "github.com/cosmos/cosmos-sdk/types"
 	gomock "go.uber.org/mock/gomock"
 )
 
@@ -143,13 +143,6 @@ type MockBankKeeper struct {
 	isgomock struct{}
 }
 
-func (m *MockBankKeeper) GetSupply(ctx context.Context, denom string) types.Coin {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetSupply", ctx, denom)
-	ret0, _ := ret[0].(types.Coin)
-	return ret0
-}
-
 // MockBankKeeperMockRecorder is the mock recorder for MockBankKeeper.
 type MockBankKeeperMockRecorder struct {
 	mock *MockBankKeeper
@@ -165,6 +158,20 @@ func NewMockBankKeeper(ctrl *gomock.Controller) *MockBankKeeper {
 // EXPECT returns an object that allows the caller to indicate expected use.
 func (m *MockBankKeeper) EXPECT() *MockBankKeeperMockRecorder {
 	return m.recorder
+}
+
+// GetSupply mocks base method.
+func (m *MockBankKeeper) GetSupply(ctx context.Context, denom string) types.Coin {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetSupply", ctx, denom)
+	ret0, _ := ret[0].(types.Coin)
+	return ret0
+}
+
+// GetSupply indicates an expected call of GetSupply.
+func (mr *MockBankKeeperMockRecorder) GetSupply(ctx, denom any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetSupply", reflect.TypeOf((*MockBankKeeper)(nil).GetSupply), ctx, denom)
 }
 
 // MintCoins mocks base method.
