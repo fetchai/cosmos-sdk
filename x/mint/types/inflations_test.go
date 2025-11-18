@@ -14,8 +14,8 @@ import (
 )
 
 var (
-	onePercent              = math.LegacyNewDecWithPrec(1, 2)
-	almostOne               = math.LegacyOneDec().Sub(math.LegacyNewDecWithPrec(1, math.LegacyPrecision))
+	onePercent = math.LegacyNewDecWithPrec(1, 2)
+	// almostOne               = math.LegacyOneDec().Sub(math.LegacyNewDecWithPrec(1, math.LegacyPrecision))
 	allowedRelativeMulError = math.LegacyNewDecWithPrec(1, 9)
 	testAcc                 = "TEST_ACC"
 )
@@ -31,7 +31,7 @@ var (
 //	}
 //}
 //
-//func getTestingAccounts(r *rand.Rand, n int, ctx sdk.Context, app *simapp.SimApp) []simtypes.Account {
+// func getTestingAccounts(r *rand.Rand, n int, ctx sdk.Context, app *simapp.SimApp) []simtypes.Account {
 //	accounts := simtypes.RandomAccounts(r, n)
 //
 //	for _, account := range accounts {
@@ -63,11 +63,11 @@ func TestCalculateInflationPerBlockAndIssuance(t *testing.T) {
 		//// Pass: -0.01 = -1% inflation
 		// {types.NewMunicipalInflation(testDenom, testAcc, onePercent.Neg()), supply.QuoRaw(100).Neg()},
 		//// Pass: -0.011 = -1.1% inflation
-		//{types.NewMunicipalInflation(testDenom, testAcc, math.LegacyNewDecWithPrec(11, 3).Neg()), supply.MulRaw(11).QuoRaw(1000).Neg()},
+		// {types.NewMunicipalInflation(testDenom, testAcc, math.LegacyNewDecWithPrec(11, 3).Neg()), supply.MulRaw(11).QuoRaw(1000).Neg()},
 		//// Pass: -0.5 = -50% inflation
-		//{types.NewMunicipalInflation(testDenom, testAcc, math.LegacyNewDecWithPrec(5, 1).Neg()), supply.QuoRaw(2)},
+		// {types.NewMunicipalInflation(testDenom, testAcc, math.LegacyNewDecWithPrec(5, 1).Neg()), supply.QuoRaw(2)},
 		//// Pass: -0.999...9 = -99.999...9% inflation
-		//{types.NewMunicipalInflation(testDenom, testAcc, almostOne.Neg()), math.LegacyNewDecFromInt(supply).Mul(almostOne).TruncateInt().Neg()},
+		// {types.NewMunicipalInflation(testDenom, testAcc, almostOne.Neg()), math.LegacyNewDecFromInt(supply).Mul(almostOne).TruncateInt().Neg()},
 	}
 
 	for _, tc := range tests {
@@ -109,11 +109,11 @@ func TestValidationOfMunicipalInflation(t *testing.T) {
 		//// Pass: -0.01 = -1% inflation
 		// {types.NewMunicipalInflation(targetAccounts[0].Address.String(), onePercent.Neg()), true},
 		//// Pass: -0.011 = -1.1% inflation
-		//{types.NewMunicipalInflation(targetAccounts[0].Address.String(), math.LegacyNewDecWithPrec(11, 3).Neg()), true},
+		// {types.NewMunicipalInflation(targetAccounts[0].Address.String(), math.LegacyNewDecWithPrec(11, 3).Neg()), true},
 		//// Pass: -0.5 = -50% inflation
-		//{types.NewMunicipalInflation(targetAccounts[0].Address.String(), math.LegacyNewDecWithPrec(5, 1).Neg()), true},
+		// {types.NewMunicipalInflation(targetAccounts[0].Address.String(), math.LegacyNewDecWithPrec(5, 1).Neg()), true},
 		//// Pass: -0.999...9 = -99.999...9% inflation
-		//{types.NewMunicipalInflation(targetAccounts[0].Address.String(), math.LegacyOneDec().Sub(math.LegacyNewDecWithPrec(1, sdk.Precision)).Neg()), true},
+		// {types.NewMunicipalInflation(targetAccounts[0].Address.String(), math.LegacyOneDec().Sub(math.LegacyNewDecWithPrec(1, sdk.Precision)).Neg()), true},
 		//// Fail: -1 = -100% inflation
 		//{types.NewMunicipalInflation(targetAccounts[0].Address.String(), math.LegacyOneDec().Neg()), false},
 		// Fail: invalid targetAddress
@@ -148,11 +148,11 @@ func TestBulkValidationOfMunicipalInflations(t *testing.T) {
 		//// Pass: -0.01 = -1% inflation
 		// {"stake4", types.NewMunicipalInflation(targetAccounts[0].Address.String(), onePercent.Neg())},
 		//// Pass: -0.011 = -1.1% inflation
-		//{"stake5", types.NewMunicipalInflation(targetAccounts[0].Address.String(), math.LegacyNewDecWithPrec(11, 3).Neg())},
+		// {"stake5", types.NewMunicipalInflation(targetAccounts[0].Address.String(), math.LegacyNewDecWithPrec(11, 3).Neg())},
 		//// Pass: -0.5 = -50% inflation
-		//{"stake6", types.NewMunicipalInflation(targetAccounts[0].Address.String(), math.LegacyNewDecWithPrec(5, 1).Neg())},
+		// {"stake6", types.NewMunicipalInflation(targetAccounts[0].Address.String(), math.LegacyNewDecWithPrec(5, 1).Neg())},
 		//// Pass: -0.999...9 = -99.999...9% inflation
-		//{"stake7", types.NewMunicipalInflation(targetAccounts[0].Address.String(), math.LegacyOneDec().Sub(math.LegacyNewDecWithPrec(1, sdk.Precision)).Neg())},
+		// {"stake7", types.NewMunicipalInflation(targetAccounts[0].Address.String(), math.LegacyOneDec().Sub(math.LegacyNewDecWithPrec(1, sdk.Precision)).Neg())},
 	}
 
 	// Expected Success:
