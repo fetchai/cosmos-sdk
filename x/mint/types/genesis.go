@@ -15,7 +15,7 @@ type InflationCalculationFn func(ctx context.Context, minter Minter, params Para
 
 // DefaultInflationCalculationFn is the default function used to calculate inflation.
 func DefaultInflationCalculationFn(_ context.Context, minter Minter, params Params, bondedRatio math.LegacyDec) math.LegacyDec {
-	return minter.NextInflationRate(params, bondedRatio)
+	return minter.NextInflationRate(params)
 }
 
 // NewGenesisState creates a new GenesisState object

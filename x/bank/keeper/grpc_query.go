@@ -20,6 +20,27 @@ type Querier struct {
 	BaseKeeper
 }
 
+func (q *Querier) GetSupply(ctx context.Context, denom string) sdk.Coin {
+	if denom == "" {
+		panic("denom must not be empty")
+	}
+
+	res, err := q.SupplyOf(ctx, &types.QuerySupplyOfRequest{
+		Denom: denom,
+	})
+	if err != nil {
+		// Better to return a zero Coin instead of panic in production code
+		// panic(err)
+		return sdk.NewCoin(denom, math.NewInt(0))
+	}
+
+	if res == nil {
+		return sdk.NewCoin(denom, math.NewInt(0))
+	}
+
+	return res.Amount
+}
+
 var _ types.QueryServer = BaseKeeper{}
 
 func NewQuerier(keeper *BaseKeeper) Querier {

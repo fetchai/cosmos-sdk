@@ -73,8 +73,6 @@ func (s *CLITestSuite) SetupSuite() {
 
 	inflation := sdkmath.LegacyMustNewDecFromStr("1.0")
 	mintData.Minter.Inflation = inflation
-	mintData.Params.InflationMin = inflation
-	mintData.Params.InflationMax = inflation
 
 	mintDataBz, err := cfg.Codec.MarshalJSON(&mintData)
 	s.Require().NoError(err)

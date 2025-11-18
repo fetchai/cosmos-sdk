@@ -28,8 +28,7 @@ func (s *E2ETestSuite) TestQueryGRPC() {
 			map[string]string{},
 			&minttypes.QueryParamsResponse{},
 			&minttypes.QueryParamsResponse{
-				Params: minttypes.NewParams("stake", math.LegacyNewDecWithPrec(13, 2), math.LegacyNewDecWithPrec(100, 2),
-					math.LegacyNewDec(1), math.LegacyNewDecWithPrec(67, 2), (60 * 60 * 8766 / 5)),
+				Params: minttypes.NewParams("stake", math.LegacyNewDecWithPrec(3, 2), (60 * 60 * 8766 / 5)),
 			},
 		},
 		{
@@ -38,7 +37,7 @@ func (s *E2ETestSuite) TestQueryGRPC() {
 			map[string]string{},
 			&minttypes.QueryInflationResponse{},
 			&minttypes.QueryInflationResponse{
-				Inflation: math.LegacyNewDec(1),
+				Inflation: math.LegacyNewDecWithPrec(3, 2),
 			},
 		},
 		{
@@ -49,7 +48,18 @@ func (s *E2ETestSuite) TestQueryGRPC() {
 			},
 			&minttypes.QueryAnnualProvisionsResponse{},
 			&minttypes.QueryAnnualProvisionsResponse{
-				AnnualProvisions: math.LegacyNewDec(500000000),
+				AnnualProvisions: math.LegacyNewDec(15000000),
+			},
+		},
+		{
+			"gRPC request municipal inflations",
+			fmt.Sprintf("%s/cosmos/mint/v1beta1/municipal_inflation", baseURL),
+			map[string]string{
+				grpctypes.GRPCBlockHeightHeader: "1",
+			},
+			&minttypes.QueryMunicipalInflationResponse{},
+			&minttypes.QueryMunicipalInflationResponse{
+				Inflations: nil,
 			},
 		},
 	}

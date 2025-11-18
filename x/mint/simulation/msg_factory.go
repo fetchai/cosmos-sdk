@@ -15,10 +15,7 @@ func MsgUpdateParamsFactory() simsx.SimMsgFactoryFn[*types.MsgUpdateParams] {
 		r := testData.Rand()
 		params := types.DefaultParams()
 		params.BlocksPerYear = r.Uint64InRange(1, 1_000_000)
-		params.GoalBonded = sdkmath.LegacyNewDecWithPrec(int64(r.IntInRange(1, 100)), 2)
-		params.InflationMin = sdkmath.LegacyNewDecWithPrec(int64(r.IntInRange(1, 50)), 2)
-		params.InflationMax = sdkmath.LegacyNewDecWithPrec(int64(r.IntInRange(50, 100)), 2)
-		params.InflationRateChange = sdkmath.LegacyNewDecWithPrec(int64(r.IntInRange(1, 100)), 2)
+		params.InflationRate = sdkmath.LegacyNewDecWithPrec(int64(r.IntInRange(1, 100)), 2)
 		params.MintDenom = r.StringN(10)
 
 		return nil, &types.MsgUpdateParams{

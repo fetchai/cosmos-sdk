@@ -2,7 +2,9 @@ package keeper
 
 import (
 	"context"
+	"fmt"
 
+	"github.com/cosmos/cosmos-sdk/x/mint/cache"
 	"github.com/cosmos/cosmos-sdk/x/mint/types"
 )
 
@@ -34,6 +36,22 @@ func (q queryServer) Inflation(ctx context.Context, _ *types.QueryInflationReque
 	}
 
 	return &types.QueryInflationResponse{Inflation: minter.Inflation}, nil
+}
+
+// MunicipalInflation returns minter.MunicipalInflation of the mint module.
+func (q queryServer) MunicipalInflation(ctx context.Context, req *types.QueryMunicipalInflationRequest) (*types.QueryMunicipalInflationResponse, error) {
+	denom := req.GetDenom()
+
+	if len(denom) == 0 {
+		return &types.QueryMunicipalInflationResponse{Inflations: *cache.GMunicipalInflationCache.GetOriginal()}, nil
+	}
+
+	infl := cache.GMunicipalInflationCache.GetInflation(denom)
+	if infl == nil {
+		return nil, fmt.Errorf("there is no municipal inflation defined for requested \"%s\" denomination", denom)
+	}
+
+	return &types.QueryMunicipalInflationResponse{Inflations: []*types.MunicipalInflationPair{{Denom: denom, Inflation: infl.AnnualInflation}}}, nil
 }
 
 // AnnualProvisions returns minter.AnnualProvisions of the mint module.
