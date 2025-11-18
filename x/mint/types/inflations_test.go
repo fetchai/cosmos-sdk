@@ -115,7 +115,7 @@ func TestValidationOfMunicipalInflation(t *testing.T) {
 		//// Pass: -0.999...9 = -99.999...9% inflation
 		// {types.NewMunicipalInflation(targetAccounts[0].Address.String(), math.LegacyOneDec().Sub(math.LegacyNewDecWithPrec(1, sdk.Precision)).Neg()), true},
 		//// Fail: -1 = -100% inflation
-		//{types.NewMunicipalInflation(targetAccounts[0].Address.String(), math.LegacyOneDec().Neg()), false},
+		// {types.NewMunicipalInflation(targetAccounts[0].Address.String(), math.LegacyOneDec().Neg()), false},
 		// Fail: invalid targetAddress
 		{types.NewMunicipalInflation("fetch123abc", onePercent), false},
 		{types.NewMunicipalInflation("", onePercent), false},
