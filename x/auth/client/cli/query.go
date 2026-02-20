@@ -184,7 +184,7 @@ $ %s query txs --%s 'message.sender=cosmos1...&message.action=withdraw_delegator
 				}
 
 				tokens := strings.Split(event, "=")
-				if tokens[0] == tmtypes.TxHeightKey {
+				if strings.Contains(tokens[0], tmtypes.TxHeightKey) {
 					event = fmt.Sprintf("%s=%s", tokens[0], tokens[1])
 				} else {
 					event = fmt.Sprintf("%s='%s'", tokens[0], tokens[1])
