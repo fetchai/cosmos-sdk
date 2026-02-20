@@ -143,6 +143,64 @@ func GetAccountsCmd() *cobra.Command {
 	return cmd
 }
 
+// supported operators (order matters: longer first)
+var supportedEventOps = []string{">=", "<=", ">", "<", "="}
+
+func parseEvent(s string) (key, op, val string, ok bool) {
+	for _, o := range supportedEventOps {
+		if i := strings.Index(s, o); i > 0 {
+			return strings.TrimSpace(s[:i]),
+				o,
+				strings.TrimSpace(s[i+len(o):]),
+				true
+		}
+	}
+	return "", "", "", false
+}
+
+func buildTMEvent(key, op, val string) (string, error) {
+	// special handling for tx.height (numeric comparison)
+	if key == tmtypes.TxHeightKey {
+		// numeric value → no quotes
+		return fmt.Sprintf("%s%s%s", key, op, val), nil
+	}
+
+	// all other events must use equality
+	if op != "=" {
+		return "", fmt.Errorf(
+			"invalid operator %q for event %s; only '=' supported (except %s)",
+			op, key, tmtypes.TxHeightKey,
+		)
+	}
+
+	// string event → quote value
+	return fmt.Sprintf("%s='%s'", key, val), nil
+}
+
+func buildTMEvents(events []string) ([]string, error) {
+	var tmEvents []string
+
+	for _, event := range events {
+		key, op, val, ok := parseEvent(event)
+		if !ok {
+			return nil, fmt.Errorf(
+				"invalid event; event %s should be of the format: %s",
+				event,
+				eventFormat,
+			)
+		}
+
+		tmEvent, err := buildTMEvent(key, op, val)
+		if err != nil {
+			return nil, err
+		}
+
+		tmEvents = append(tmEvents, tmEvent)
+	}
+
+	return tmEvents, nil
+}
+
 // QueryTxsByEventsCmd returns a command to search through transactions by events.
 func QueryTxsByEventsCmd() *cobra.Command {
 	cmd := &cobra.Command{
@@ -174,23 +232,9 @@ $ %s query txs --%s 'message.sender=cosmos1...&message.action=withdraw_delegator
 				events = append(events, eventsStr)
 			}
 
-			var tmEvents []string
-
-			for _, event := range events {
-				if !strings.Contains(event, "=") {
-					return fmt.Errorf("invalid event; event %s should be of the format: %s", event, eventFormat)
-				} else if strings.Count(event, "=") > 1 {
-					return fmt.Errorf("invalid event; event %s should be of the format: %s", event, eventFormat)
-				}
-
-				tokens := strings.Split(event, "=")
-				if strings.Contains(tokens[0], tmtypes.TxHeightKey) {
-					event = fmt.Sprintf("%s=%s", tokens[0], tokens[1])
-				} else {
-					event = fmt.Sprintf("%s='%s'", tokens[0], tokens[1])
-				}
-
-				tmEvents = append(tmEvents, event)
+			tmEvents, err := buildTMEvents(events)
+			if err != nil {
+				return err
 			}
 
 			page, _ := cmd.Flags().GetInt(flags.FlagPage)
