@@ -20,10 +20,10 @@ jobs:
     outputs:
       git_diff: ${{ steps.git_diff.outputs.diff }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         with:
           fetch-tags: true
-      - uses: actions/setup-go@v5
+      - uses: actions/setup-go@v6
         with:
           go-version: "1.23"
           check-latest: true
