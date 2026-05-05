@@ -21,7 +21,7 @@
   - log/*
 "C:x/auth":
   - changed-files:
-      - any-glob-to-any-file: "x/auth/**/*"
+    - any-glob-to-any-file: "x/auth/**/*"
 "C:x/authz":
   - x/authz/**/*
 "C:x/bank":
