@@ -20,10 +20,10 @@ func NewMunicipalInflation(targetAddress string, inflation math.LegacyDec) *Muni
 func CalculateInflationPerBlock(inflation math.LegacyDec, blocksPerYear uint64) (result math.LegacyDec, err error) {
 	inflationPerBlockPlusOne, err := inflation.Add(math.LegacyOneDec()).ApproxRoot(blocksPerYear)
 	if err != nil {
-		return
+		return result, err
 	}
 	result = inflationPerBlockPlusOne.Sub(math.LegacyOneDec())
-	return
+	return result, err
 }
 
 func CalculateInflationIssuance(inflation math.LegacyDec, supply sdk.Coin) (result sdk.Coins) {
@@ -71,9 +71,9 @@ func ValidateMunicipalInflations(inflations *[]*MunicipalInflationPair) (err err
 
 		err = pair.Inflation.Validate()
 		if err != nil {
-			return
+			return err
 		}
 	}
 
-	return
+	return err
 }

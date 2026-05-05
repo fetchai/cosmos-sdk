@@ -3,15 +3,16 @@ package types
 import (
 	"errors"
 	"fmt"
+	"math"
 	"strings"
 
-	"cosmossdk.io/math"
+	sdkmath "cosmossdk.io/math"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
 )
 
 // NewParams returns Params instance with the given values.
-func NewParams(mintDenom string, inflationRate math.LegacyDec, blocksPerYear uint64) Params {
+func NewParams(mintDenom string, inflationRate sdkmath.LegacyDec, blocksPerYear uint64) Params {
 	return Params{
 		MintDenom:     mintDenom,
 		InflationRate: inflationRate,
@@ -23,7 +24,7 @@ func NewParams(mintDenom string, inflationRate math.LegacyDec, blocksPerYear uin
 func DefaultParams() Params {
 	return Params{
 		MintDenom:     sdk.DefaultBondDenom,
-		InflationRate: math.LegacyNewDecWithPrec(3, 2),
+		InflationRate: sdkmath.LegacyNewDecWithPrec(3, 2),
 		BlocksPerYear: uint64(60 * 60 * 8766 / 5), // assuming 5 second block times
 	}
 }
@@ -43,49 +44,38 @@ func (p Params) Validate() error {
 	return nil
 }
 
-func validateMintDenom(i any) error {
-	v, ok := i.(string)
-	if !ok {
-		return fmt.Errorf("invalid parameter type: %T", i)
-	}
-
-	if strings.TrimSpace(v) == "" {
+func validateMintDenom(denom string) error {
+	if strings.TrimSpace(denom) == "" {
 		return errors.New("mint denom cannot be blank")
 	}
-	if err := sdk.ValidateDenom(v); err != nil {
+	if err := sdk.ValidateDenom(denom); err != nil {
 		return err
 	}
 
 	return nil
 }
 
-func validateInflationRate(i any) error {
-	v, ok := i.(math.LegacyDec)
-	if !ok {
-		return fmt.Errorf("invalid parameter type: %T", i)
+func validateInflationRate(inflationRate sdkmath.LegacyDec) error {
+	if inflationRate.IsNil() {
+		return fmt.Errorf("inflation rate cannot be nil: %s", inflationRate)
 	}
-
-	if v.IsNil() {
-		return fmt.Errorf("inflation rate cannot be nil: %s", v)
+	if inflationRate.IsNegative() {
+		return fmt.Errorf("inflation rate cannot be negative: %s", inflationRate)
 	}
-	if v.IsNegative() {
-		return fmt.Errorf("inflation rate cannot be negative: %s", v)
-	}
-	if v.GT(math.LegacyOneDec()) {
-		return fmt.Errorf("inflation rate too large: %s", v)
+	if inflationRate.GT(sdkmath.LegacyOneDec()) {
+		return fmt.Errorf("inflation rate too large: %s", inflationRate)
 	}
 
 	return nil
 }
 
-func validateBlocksPerYear(i any) error {
-	v, ok := i.(uint64)
-	if !ok {
-		return fmt.Errorf("invalid parameter type: %T", i)
+func validateBlocksPerYear(blocksPerYear uint64) error {
+	if blocksPerYear == 0 {
+		return fmt.Errorf("blocks per year must be positive: %d", blocksPerYear)
 	}
 
-	if v == 0 {
-		return fmt.Errorf("blocks per year must be positive: %d", v)
+	if blocksPerYear > math.MaxInt64 {
+		return fmt.Errorf("blocks per year too large: %d, maximum value is: %d", blocksPerYear, math.MaxInt64)
 	}
 
 	return nil
