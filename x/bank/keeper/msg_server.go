@@ -18,16 +18,6 @@ type msgServer struct {
 	Keeper
 }
 
-/*
-func (k msgServer) GetSupply(ctx context.Context, denom string) sdktypes.Coin {
-	res, err := k.SupplyOf(ctx, &types.QuerySupplyOfRequest{Denom: denom})
-	if err != nil {
-		panic(err)
-	}
-	return res.GetAmount()
-}
-*/
-
 var _ types.MsgServer = msgServer{}
 
 // NewMsgServerImpl returns an implementation of the bank MsgServer interface
