@@ -20,7 +20,8 @@
 "C:log":
   - log/*
 "C:x/auth":
-  - x/auth/**/*
+  - changed-files:
+      - any-glob-to-any-file: "x/auth/**/*"
 "C:x/authz":
   - x/authz/**/*
 "C:x/bank":
