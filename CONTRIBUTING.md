@@ -189,7 +189,7 @@ build, in which case we can fall back on `go mod tidy -v`.
 When extracting a package to its own go modules, some extra steps are required, for keeping our CI checks and Dev UX:
 
 * Add a CHANGELOG.md / README.md under the new package folder
-* Add the package in [`labeler.yml`](./.github/labeler.yml)
+* Add the package in [`labeler.yml`](.github/pr_labeler.yml)
 * Add weekly dependabot checks (see [dependabot.yml](./.github/dependabot.yml))
 * Add tests to github workflow [test.yml](.github/workflows/test.yml) (under submodules)
 * (optional) Configure a `cosmossdk.io` vanity url by submitting a PR to [cosmos/vanity](https://github.com/cosmos/vanity).
