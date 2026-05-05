@@ -7,6 +7,8 @@ permissions:
 
 jobs:
   labeler:
+    # Temporarily disabled
+    if: false
     permissions:
       contents: read # for actions/labeler to determine modified files
       pull-requests: write # for actions/labeler to add labels to PRs
