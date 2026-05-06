@@ -84,3 +84,6 @@ require (
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20250422160041-2d3770c4ea7f // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
+
+// Upgrading due to bumping up the go compiler to v1.25
+replace golang.org/x/tools => golang.org/x/tools v0.25.0

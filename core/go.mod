@@ -61,6 +61,9 @@ require (
 // https://github.com/advisories/GHSA-p77j-4mvh-x3m3
 replace google.golang.org/grpc => google.golang.org/grpc v1.79.3
 
+// Upgrading due to bumping up the go compiler to v1.25
+replace golang.org/x/tools => golang.org/x/tools v0.25.0
+
 // Version tagged too early and incompatible with v0.50 (latest at the time of tagging)
 retract v0.12.0
 

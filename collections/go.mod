@@ -49,6 +49,9 @@ require (
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
 
+// Upgrading due to bumping up the go compiler to v1.25
+replace golang.org/x/tools => golang.org/x/tools v0.25.0
+
 retract v1.0.0
 
 retract v1.1.0
