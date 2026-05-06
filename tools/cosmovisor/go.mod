@@ -205,6 +205,11 @@ require (
 	sigs.k8s.io/yaml v1.6.0 // indirect
 )
 
-// Fix GHSA-p77j-4mvh-x3m3 vulnerability: gRPC-Go has an authorization bypass via missing leading slash in :path
-// https://github.com/advisories/GHSA-p77j-4mvh-x3m3
-replace google.golang.org/grpc => google.golang.org/grpc v1.79.3
+replace (
+	// Fix CVE-2026-34986 vulnerability: Go JOSE Panics in JWE decryption
+	// https://github.com/advisories/GHSA-78h2-9frx-2jm8
+	github.com/go-jose/go-jose/v4 => github.com/go-jose/go-jose/v4 v4.1.4
+	// Fix GHSA-p77j-4mvh-x3m3 vulnerability: gRPC-Go has an authorization bypass via missing leading slash in :path
+	// https://github.com/advisories/GHSA-p77j-4mvh-x3m3
+	google.golang.org/grpc => google.golang.org/grpc v1.79.3
+)
