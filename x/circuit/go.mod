@@ -165,3 +165,8 @@ replace golang.org/x/tools => golang.org/x/tools v0.36.0
 // Fix GHSA-p77j-4mvh-x3m3 vulnerability: gRPC-Go has an authorization bypass via missing leading slash in :path
 // https://github.com/advisories/GHSA-p77j-4mvh-x3m3
 replace google.golang.org/grpc => google.golang.org/grpc v1.79.3
+
+// Fix GHSA-c32p-wcqj-j677 vulnerability: CometBFT has inconsistencies between how commit signatures are verified and
+// how block time is derived
+// https://github.com/advisories/GHSA-c32p-wcqj-j677
+replace github.com/cometbft/cometbft => github.com/cometbft/cometbft v0.38.21

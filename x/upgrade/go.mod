@@ -206,6 +206,10 @@ require (
 )
 
 replace (
+	// Fix GHSA-c32p-wcqj-j677 vulnerability: CometBFT has inconsistencies between how commit signatures are verified and
+	// how block time is derived
+	// https://github.com/advisories/GHSA-c32p-wcqj-j677
+	github.com/cometbft/cometbft => github.com/cometbft/cometbft v0.38.21
 	// Fix upstream GHSA-h395-qcrw-5vmq and GHSA-3vp4-m3rf-835h vulnerabilities.
 	// TODO Remove it: https://github.com/cosmos/cosmos-sdk/issues/10409
 	github.com/gin-gonic/gin => github.com/gin-gonic/gin v1.9.1
