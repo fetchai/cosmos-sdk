@@ -162,7 +162,7 @@ require (
 )
 
 // Upgrading due to bumping up the go compiler to v1.25
-replace golang.org/x/tools => golang.org/x/tools v0.25.0
+replace golang.org/x/tools => golang.org/x/tools v0.36.0
 
 // Fix GHSA-p77j-4mvh-x3m3 vulnerability: gRPC-Go has an authorization bypass via missing leading slash in :path
 // https://github.com/advisories/GHSA-p77j-4mvh-x3m3

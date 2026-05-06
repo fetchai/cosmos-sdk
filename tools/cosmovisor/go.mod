@@ -223,4 +223,4 @@ replace (
 )
 
 // Upgrading due to bumping up the go compiler to v1.25
-replace golang.org/x/tools => golang.org/x/tools v0.25.0
+replace golang.org/x/tools => golang.org/x/tools v0.36.0
