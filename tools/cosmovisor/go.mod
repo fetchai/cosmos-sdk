@@ -221,3 +221,6 @@ replace (
 	// https://github.com/advisories/GHSA-p77j-4mvh-x3m3
 	google.golang.org/grpc => google.golang.org/grpc v1.79.3
 )
+
+// Upgrading due to bumping up the go compiler to v1.25
+replace golang.org/x/tools => golang.org/x/tools v0.36.0

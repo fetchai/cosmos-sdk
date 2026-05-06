@@ -191,6 +191,8 @@ replace (
 	github.com/gin-gonic/gin => github.com/gin-gonic/gin v1.9.1
 	// replace broken goleveldb
 	github.com/syndtr/goleveldb => github.com/syndtr/goleveldb v1.0.1-0.20210819022825-2ae1ddf74ef7
+	// Upgrading due to bumping up the go compiler to v1.25
+	golang.org/x/tools => golang.org/x/tools v0.36.0
 	// Fix GHSA-p77j-4mvh-x3m3 vulnerability: gRPC-Go has an authorization bypass via missing leading slash in :path
 	// https://github.com/advisories/GHSA-p77j-4mvh-x3m3
 	google.golang.org/grpc => google.golang.org/grpc v1.79.3

@@ -44,10 +44,13 @@ require (
 	github.com/spf13/cast v1.8.0 // indirect
 	github.com/syndtr/goleveldb v1.0.1-0.20210819022825-2ae1ddf74ef7 // indirect
 	golang.org/x/exp v0.0.0-20230626212559-97b1e661b5df // indirect
-	golang.org/x/sys v0.32.0 // indirect
-	golang.org/x/text v0.24.0 // indirect
+	golang.org/x/sys v0.35.0 // indirect
+	golang.org/x/text v0.28.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
+
+// Upgrading due to bumping up the go compiler to v1.25
+replace golang.org/x/tools => golang.org/x/tools v0.36.0
 
 retract v1.0.0
 

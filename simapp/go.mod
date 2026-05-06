@@ -252,6 +252,8 @@ replace (
 	// CVE-2026-24051: OpenTelemetry Go SDK Vulnerable to Arbitrary Code Execution via PATH Hijacking
 	// CVE-2026-39883: opentelemetry-go: BSD kenv command not using absolute path enables PATH hijacking
 	go.opentelemetry.io/otel/sdk => go.opentelemetry.io/otel/sdk v1.43.0
+	// Upgrading due to bumping up the go compiler to v1.25
+	golang.org/x/tools => golang.org/x/tools v0.36.0
 	// Fix GHSA-p77j-4mvh-x3m3 vulnerability: gRPC-Go has an authorization bypass via missing leading slash in :path
 	// https://github.com/advisories/GHSA-p77j-4mvh-x3m3
 	google.golang.org/grpc => google.golang.org/grpc v1.79.3
