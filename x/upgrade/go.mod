@@ -1,6 +1,6 @@
 module cosmossdk.io/x/upgrade
 
-go 1.24.0
+go 1.25.0
 
 require (
 	cosmossdk.io/api v0.9.2
@@ -177,11 +177,11 @@ require (
 	go.opentelemetry.io/contrib/detectors/gcp v1.39.0 // indirect
 	go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc v0.60.0 // indirect
 	go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp v0.60.0 // indirect
-	go.opentelemetry.io/otel v1.41.0 // indirect
-	go.opentelemetry.io/otel/metric v1.41.0 // indirect
-	go.opentelemetry.io/otel/sdk v1.39.0 // indirect
-	go.opentelemetry.io/otel/sdk/metric v1.39.0 // indirect
-	go.opentelemetry.io/otel/trace v1.41.0 // indirect
+	go.opentelemetry.io/otel v1.43.0 // indirect
+	go.opentelemetry.io/otel/metric v1.43.0 // indirect
+	go.opentelemetry.io/otel/sdk v1.43.0 // indirect
+	go.opentelemetry.io/otel/sdk/metric v1.43.0 // indirect
+	go.opentelemetry.io/otel/trace v1.43.0 // indirect
 	go.uber.org/mock v0.5.2 // indirect
 	go.uber.org/multierr v1.11.0 // indirect
 	go.yaml.in/yaml/v2 v2.4.2 // indirect
@@ -191,7 +191,7 @@ require (
 	golang.org/x/net v0.48.0 // indirect
 	golang.org/x/oauth2 v0.34.0 // indirect
 	golang.org/x/sync v0.19.0 // indirect
-	golang.org/x/sys v0.39.0 // indirect
+	golang.org/x/sys v0.42.0 // indirect
 	golang.org/x/term v0.38.0 // indirect
 	golang.org/x/text v0.32.0 // indirect
 	golang.org/x/time v0.11.0 // indirect
@@ -215,7 +215,11 @@ replace (
 	// Fix CVE-2026-29181 vulnerability: OpenTelemetry-Go: multi-value `baggage` header extraction causes excessive
 	// allocations (remote dos amplification)
 	// https://github.com/advisories/GHSA-mh2q-q3fh-2475
-	go.opentelemetry.io/otel => go.opentelemetry.io/otel v1.41.0
+	go.opentelemetry.io/otel => go.opentelemetry.io/otel v1.43.0
+	// Fix for following 2 vulnerabilities:
+	// CVE-2026-24051: OpenTelemetry Go SDK Vulnerable to Arbitrary Code Execution via PATH Hijacking
+	// CVE-2026-39883: opentelemetry-go: BSD kenv command not using absolute path enables PATH hijacking
+	go.opentelemetry.io/otel/sdk => go.opentelemetry.io/otel/sdk v1.43.0
 	// Fix GHSA-p77j-4mvh-x3m3 vulnerability: gRPC-Go has an authorization bypass via missing leading slash in :path
 	// https://github.com/advisories/GHSA-p77j-4mvh-x3m3
 	google.golang.org/grpc => google.golang.org/grpc v1.79.3
