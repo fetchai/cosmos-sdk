@@ -87,3 +87,8 @@ require (
 
 // Upgrading due to bumping up the go compiler to v1.25
 replace golang.org/x/tools => golang.org/x/tools v0.36.0
+
+// Fix GHSA-c32p-wcqj-j677 vulnerability: CometBFT has inconsistencies between how commit signatures are verified and
+// how block time is derived
+// https://github.com/advisories/GHSA-c32p-wcqj-j677
+replace github.com/cometbft/cometbft => github.com/cometbft/cometbft v0.38.21
