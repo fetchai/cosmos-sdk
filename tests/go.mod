@@ -191,11 +191,11 @@ require (
 	go.opentelemetry.io/contrib/detectors/gcp v1.39.0 // indirect
 	go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc v0.61.0 // indirect
 	go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp v0.62.0 // indirect
-	go.opentelemetry.io/otel v1.39.0 // indirect
-	go.opentelemetry.io/otel/metric v1.39.0 // indirect
+	go.opentelemetry.io/otel v1.41.0 // indirect
+	go.opentelemetry.io/otel/metric v1.41.0 // indirect
 	go.opentelemetry.io/otel/sdk v1.39.0 // indirect
 	go.opentelemetry.io/otel/sdk/metric v1.39.0 // indirect
-	go.opentelemetry.io/otel/trace v1.39.0 // indirect
+	go.opentelemetry.io/otel/trace v1.41.0 // indirect
 	go.uber.org/multierr v1.11.0 // indirect
 	go.uber.org/zap v1.27.0 // indirect
 	go.yaml.in/yaml/v2 v2.4.2 // indirect
@@ -239,6 +239,10 @@ replace (
 	// Fix CVE-2026-34986 vulnerability: Go JOSE Panics in JWE decryption
 	// https://github.com/advisories/GHSA-78h2-9frx-2jm8
 	github.com/go-jose/go-jose/v4 => github.com/go-jose/go-jose/v4 v4.1.4
+	// Fix CVE-2026-29181 vulnerability: OpenTelemetry-Go: multi-value `baggage` header extraction causes excessive
+	// allocations (remote dos amplification)
+	// https://github.com/advisories/GHSA-mh2q-q3fh-2475
+	go.opentelemetry.io/otel => go.opentelemetry.io/otel v1.41.0
 	// Fix GHSA-p77j-4mvh-x3m3 vulnerability: gRPC-Go has an authorization bypass via missing leading slash in :path
 	// https://github.com/advisories/GHSA-p77j-4mvh-x3m3
 	google.golang.org/grpc => google.golang.org/grpc v1.79.3
