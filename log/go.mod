@@ -5,7 +5,7 @@ go 1.23.0
 require (
 	github.com/bytedance/sonic v1.14.2
 	github.com/pkg/errors v0.9.1
-	github.com/rs/zerolog v1.34.0
+	github.com/rs/zerolog v1.35.1
 )
 
 require (
