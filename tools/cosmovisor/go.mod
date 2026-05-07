@@ -4,7 +4,7 @@ go 1.25.8
 
 require (
 	cosmossdk.io/log v1.6.1
-	cosmossdk.io/x/upgrade v0.1.4
+	cosmossdk.io/x/upgrade v0.2.0
 	github.com/cometbft/cometbft v0.38.21
 	github.com/cometbft/cometbft-db v0.14.1
 	github.com/cosmos/cosmos-sdk v0.53.0
@@ -130,7 +130,7 @@ require (
 	github.com/gsterjov/go-libsecret v0.0.0-20161001094733-a6f4afe4910c // indirect
 	github.com/hashicorp/aws-sdk-go-base/v2 v2.0.0-beta.72 // indirect
 	github.com/hashicorp/go-cleanhttp v0.5.2 // indirect
-	github.com/hashicorp/go-getter v1.7.7 // indirect
+	github.com/hashicorp/go-getter v1.7.8 // indirect
 	github.com/hashicorp/go-hclog v1.6.3 // indirect
 	github.com/hashicorp/go-immutable-radix v1.3.1 // indirect
 	github.com/hashicorp/go-metrics v0.5.4 // indirect
