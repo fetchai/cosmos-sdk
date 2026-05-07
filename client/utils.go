@@ -1,8 +1,12 @@
 package client
 
 import (
+	"encoding/base64"
+
+	rpchttp "github.com/cometbft/cometbft/rpc/client/http"
 	"github.com/spf13/pflag"
-	rpchttp "github.com/tendermint/tendermint/rpc/client/http"
+
+	errorsmod "cosmossdk.io/errors"
 
 	"github.com/cosmos/cosmos-sdk/client/flags"
 	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
@@ -31,11 +35,7 @@ func Paginate(numObjs, page, limit, defLimit int) (start, end int) {
 	}
 
 	start = (page - 1) * limit
-	end = limit + start
-
-	if end >= numObjs {
-		end = numObjs
-	}
+	end = min(limit+start, numObjs)
 
 	if start >= numObjs {
 		// page is out of bounds
@@ -55,7 +55,7 @@ func ReadPageRequest(flagSet *pflag.FlagSet) (*query.PageRequest, error) {
 	reverse, _ := flagSet.GetBool(flags.FlagReverse)
 
 	if page > 1 && offset > 0 {
-		return nil, sdkerrors.Wrap(sdkerrors.ErrInvalidRequest, "page and offset cannot be used together")
+		return nil, errorsmod.Wrap(sdkerrors.ErrInvalidRequest, "page and offset cannot be used together")
 	}
 
 	if page > 1 {
@@ -71,10 +71,42 @@ func ReadPageRequest(flagSet *pflag.FlagSet) (*query.PageRequest, error) {
 	}, nil
 }
 
-// NewClientFromNode sets up Client implementation that communicates with a Tendermint node over
+// NewClientFromNode sets up Client implementation that communicates with a CometBFT node over
 // JSON RPC and WebSockets
-// TODO: We might not need to manually append `/websocket`:
-// https://github.com/cosmos/cosmos-sdk/issues/8986
 func NewClientFromNode(nodeURI string) (*rpchttp.HTTP, error) {
 	return rpchttp.New(nodeURI, "/websocket")
+}
+
+// FlagSetWithPageKeyDecoded returns the provided flagSet with the page-key value base64 decoded (if it exists).
+// This is for when the page-key is provided as a base64 string (e.g. from the CLI).
+// ReadPageRequest expects it to be the raw bytes.
+//
+// Common usage:
+// fs, err := client.FlagSetWithPageKeyDecoded(cmd.Flags())
+// pageReq, err := client.ReadPageRequest(fs)
+func FlagSetWithPageKeyDecoded(flagSet *pflag.FlagSet) (*pflag.FlagSet, error) {
+	encoded, err := flagSet.GetString(flags.FlagPageKey)
+	if err != nil {
+		return flagSet, err
+	}
+	if len(encoded) > 0 {
+		var raw []byte
+		raw, err = base64.StdEncoding.DecodeString(encoded)
+		if err != nil {
+			return flagSet, err
+		}
+		_ = flagSet.Set(flags.FlagPageKey, string(raw))
+	}
+	return flagSet, nil
+}
+
+// MustFlagSetWithPageKeyDecoded calls FlagSetWithPageKeyDecoded and panics on error.
+//
+// Common usage: pageReq, err := client.ReadPageRequest(client.MustFlagSetWithPageKeyDecoded(cmd.Flags()))
+func MustFlagSetWithPageKeyDecoded(flagSet *pflag.FlagSet) *pflag.FlagSet {
+	rv, err := FlagSetWithPageKeyDecoded(flagSet)
+	if err != nil {
+		panic(err.Error())
+	}
+	return rv
 }

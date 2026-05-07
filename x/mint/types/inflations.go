@@ -3,28 +3,30 @@ package types
 import (
 	"fmt"
 
+	"cosmossdk.io/math"
+
 	sdk "github.com/cosmos/cosmos-sdk/types"
 )
 
 // NewMunicipalInflation returns a new AnnualInflation object with the given denom, target_address
 // and inflation_rate
-func NewMunicipalInflation(targetAddress string, inflation sdk.Dec) *MunicipalInflation {
+func NewMunicipalInflation(targetAddress string, inflation math.LegacyDec) *MunicipalInflation {
 	return &MunicipalInflation{
 		TargetAddress: targetAddress,
 		Value:         inflation,
 	}
 }
 
-func CalculateInflationPerBlock(inflation sdk.Dec, blocksPerYear uint64) (result sdk.Dec, err error) {
-	inflationPerBlockPlusOne, err := inflation.Add(sdk.OneDec()).ApproxRoot(blocksPerYear)
+func CalculateInflationPerBlock(inflation math.LegacyDec, blocksPerYear uint64) (result math.LegacyDec, err error) {
+	inflationPerBlockPlusOne, err := inflation.Add(math.LegacyOneDec()).ApproxRoot(blocksPerYear)
 	if err != nil {
-		return
+		return result, err
 	}
-	result = inflationPerBlockPlusOne.Sub(sdk.OneDec())
-	return
+	result = inflationPerBlockPlusOne.Sub(math.LegacyOneDec())
+	return result, err
 }
 
-func CalculateInflationIssuance(inflation sdk.Dec, supply sdk.Coin) (result sdk.Coins) {
+func CalculateInflationIssuance(inflation math.LegacyDec, supply sdk.Coin) (result sdk.Coins) {
 	issuedAmount := (inflation.MulInt(supply.Amount)).TruncateInt()
 	return sdk.NewCoins(sdk.NewCoin(supply.Denom, issuedAmount))
 }
@@ -64,14 +66,14 @@ func ValidateMunicipalInflations(inflations *[]*MunicipalInflationPair) (err err
 
 		err = sdk.ValidateDenom(pair.Denom)
 		if err != nil {
-			return fmt.Errorf("inflation object param, denom: %s", err)
+			return fmt.Errorf("inflation object param, denom: %w", err)
 		}
 
 		err = pair.Inflation.Validate()
 		if err != nil {
-			return
+			return err
 		}
 	}
 
-	return
+	return err
 }

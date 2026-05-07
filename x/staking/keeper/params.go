@@ -1,64 +1,84 @@
 package keeper
 
 import (
+	"context"
 	"time"
+
+	"cosmossdk.io/math"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/x/staking/types"
 )
 
-// UnbondingTime
-func (k Keeper) UnbondingTime(ctx sdk.Context) (res time.Duration) {
-	k.paramstore.Get(ctx, types.KeyUnbondingTime, &res)
-	return
+// UnbondingTime - The time duration for unbonding
+func (k Keeper) UnbondingTime(ctx context.Context) (time.Duration, error) {
+	params, err := k.GetParams(ctx)
+	return params.UnbondingTime, err
 }
 
 // MaxValidators - Maximum number of validators
-func (k Keeper) MaxValidators(ctx sdk.Context) (res uint32) {
-	k.paramstore.Get(ctx, types.KeyMaxValidators, &res)
-	return
+func (k Keeper) MaxValidators(ctx context.Context) (uint32, error) {
+	params, err := k.GetParams(ctx)
+	return params.MaxValidators, err
 }
 
 // MaxEntries - Maximum number of simultaneous unbonding
 // delegations or redelegations (per pair/trio)
-func (k Keeper) MaxEntries(ctx sdk.Context) (res uint32) {
-	k.paramstore.Get(ctx, types.KeyMaxEntries, &res)
-	return
+func (k Keeper) MaxEntries(ctx context.Context) (uint32, error) {
+	params, err := k.GetParams(ctx)
+	return params.MaxEntries, err
 }
 
 // HistoricalEntries = number of historical info entries
 // to persist in store
-func (k Keeper) HistoricalEntries(ctx sdk.Context) (res uint32) {
-	k.paramstore.Get(ctx, types.KeyHistoricalEntries, &res)
-	return
+func (k Keeper) HistoricalEntries(ctx context.Context) (uint32, error) {
+	params, err := k.GetParams(ctx)
+	return params.HistoricalEntries, err
 }
 
 // BondDenom - Bondable coin denomination
-func (k Keeper) BondDenom(ctx sdk.Context) (res string) {
-	k.paramstore.Get(ctx, types.KeyBondDenom, &res)
-	return
+func (k Keeper) BondDenom(ctx context.Context) (string, error) {
+	params, err := k.GetParams(ctx)
+	return params.BondDenom, err
 }
 
 // PowerReduction - is the amount of staking tokens required for 1 unit of consensus-engine power.
 // Currently, this returns a global variable that the app developer can tweak.
 // TODO: we might turn this into an on-chain param:
 // https://github.com/cosmos/cosmos-sdk/issues/8365
-func (k Keeper) PowerReduction(ctx sdk.Context) sdk.Int {
+func (k Keeper) PowerReduction(ctx context.Context) math.Int {
 	return sdk.DefaultPowerReduction
 }
 
-// Get all parameteras as types.Params
-func (k Keeper) GetParams(ctx sdk.Context) types.Params {
-	return types.NewParams(
-		k.UnbondingTime(ctx),
-		k.MaxValidators(ctx),
-		k.MaxEntries(ctx),
-		k.HistoricalEntries(ctx),
-		k.BondDenom(ctx),
-	)
+// MinCommissionRate - Minimum validator commission rate
+func (k Keeper) MinCommissionRate(ctx context.Context) (math.LegacyDec, error) {
+	params, err := k.GetParams(ctx)
+	return params.MinCommissionRate, err
 }
 
-// set the params
-func (k Keeper) SetParams(ctx sdk.Context, params types.Params) {
-	k.paramstore.SetParamSet(ctx, &params)
+// SetParams sets the x/staking module parameters.
+// CONTRACT: This method performs no validation of the parameters.
+func (k Keeper) SetParams(ctx context.Context, params types.Params) error {
+	store := k.storeService.OpenKVStore(ctx)
+	bz, err := k.cdc.Marshal(&params)
+	if err != nil {
+		return err
+	}
+	return store.Set(types.ParamsKey, bz)
+}
+
+// GetParams gets the x/staking module parameters.
+func (k Keeper) GetParams(ctx context.Context) (params types.Params, err error) {
+	store := k.storeService.OpenKVStore(ctx)
+	bz, err := store.Get(types.ParamsKey)
+	if err != nil {
+		return params, err
+	}
+
+	if bz == nil {
+		return params, nil
+	}
+
+	err = k.cdc.Unmarshal(bz, &params)
+	return params, err
 }

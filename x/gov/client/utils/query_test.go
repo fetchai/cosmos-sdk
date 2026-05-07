@@ -2,29 +2,30 @@ package utils_test
 
 import (
 	"context"
-	"regexp"
 	"testing"
 
+	"github.com/cometbft/cometbft/rpc/client/mock"
+	coretypes "github.com/cometbft/cometbft/rpc/core/types"
+	cmttypes "github.com/cometbft/cometbft/types"
 	"github.com/stretchr/testify/require"
-	"github.com/tendermint/tendermint/rpc/client/mock"
-	ctypes "github.com/tendermint/tendermint/rpc/core/types"
-	tmtypes "github.com/tendermint/tendermint/types"
+
+	sdkmath "cosmossdk.io/math"
 
 	"github.com/cosmos/cosmos-sdk/client"
-	"github.com/cosmos/cosmos-sdk/simapp"
 	sdk "github.com/cosmos/cosmos-sdk/types"
-	"github.com/cosmos/cosmos-sdk/x/auth/legacy/legacytx"
+	moduletestutil "github.com/cosmos/cosmos-sdk/types/module/testutil"
+	"github.com/cosmos/cosmos-sdk/x/gov"
 	"github.com/cosmos/cosmos-sdk/x/gov/client/utils"
-	"github.com/cosmos/cosmos-sdk/x/gov/types"
+	v1 "github.com/cosmos/cosmos-sdk/x/gov/types/v1"
 )
 
 type TxSearchMock struct {
 	txConfig client.TxConfig
 	mock.Client
-	txs []tmtypes.Tx
+	txs []cmttypes.Tx
 }
 
-func (mock TxSearchMock) TxSearch(ctx context.Context, query string, prove bool, page, perPage *int, orderBy string) (*ctypes.ResultTxSearch, error) {
+func (mock TxSearchMock) TxSearch(ctx context.Context, query string, prove bool, page, perPage *int, orderBy string) (*coretypes.ResultTxSearch, error) {
 	if page == nil {
 		*page = 0
 	}
@@ -33,67 +34,46 @@ func (mock TxSearchMock) TxSearch(ctx context.Context, query string, prove bool,
 		*perPage = 0
 	}
 
-	// Get the `message.action` value from the query.
-	messageAction := regexp.MustCompile(`message\.action='(.*)' .*$`)
-	msgType := messageAction.FindStringSubmatch(query)[1]
-
-	// Filter only the txs that match the query
-	matchingTxs := make([]tmtypes.Tx, 0)
-	for _, tx := range mock.txs {
-		sdkTx, err := mock.txConfig.TxDecoder()(tx)
-		if err != nil {
-			return nil, err
-		}
-		for _, msg := range sdkTx.GetMsgs() {
-			if msg.(legacytx.LegacyMsg).Type() == msgType {
-				matchingTxs = append(matchingTxs, tx)
-				break
-			}
-		}
-	}
-
 	start, end := client.Paginate(len(mock.txs), *page, *perPage, 100)
 	if start < 0 || end < 0 {
 		// nil result with nil error crashes utils.QueryTxsByEvents
-		return &ctypes.ResultTxSearch{}, nil
-	}
-	if len(matchingTxs) < end {
-		return &ctypes.ResultTxSearch{}, nil
+		return &coretypes.ResultTxSearch{}, nil
 	}
 
-	txs := matchingTxs[start:end]
-	rst := &ctypes.ResultTxSearch{Txs: make([]*ctypes.ResultTx, len(txs)), TotalCount: len(txs)}
+	txs := mock.txs[start:end]
+	rst := &coretypes.ResultTxSearch{Txs: make([]*coretypes.ResultTx, len(txs)), TotalCount: len(txs)}
 	for i := range txs {
-		rst.Txs[i] = &ctypes.ResultTx{Tx: txs[i]}
+		rst.Txs[i] = &coretypes.ResultTx{Tx: txs[i]}
 	}
 	return rst, nil
 }
 
-func (mock TxSearchMock) Block(ctx context.Context, height *int64) (*ctypes.ResultBlock, error) {
+func (mock TxSearchMock) Block(ctx context.Context, height *int64) (*coretypes.ResultBlock, error) {
 	// any non nil Block needs to be returned. used to get time value
-	return &ctypes.ResultBlock{Block: &tmtypes.Block{}}, nil
+	return &coretypes.ResultBlock{Block: &cmttypes.Block{}}, nil
 }
 
 func TestGetPaginatedVotes(t *testing.T) {
-	encCfg := simapp.MakeTestEncodingConfig()
+	encCfg := moduletestutil.MakeTestEncodingConfig(gov.AppModuleBasic{})
 
 	type testCase struct {
 		description string
 		page, limit int
 		msgs        [][]sdk.Msg
-		votes       []types.Vote
+		votes       []v1.Vote
 	}
 	acc1 := make(sdk.AccAddress, 20)
 	acc1[0] = 1
 	acc2 := make(sdk.AccAddress, 20)
 	acc2[0] = 2
 	acc1Msgs := []sdk.Msg{
-		types.NewMsgVote(acc1, 0, types.OptionYes),
-		types.NewMsgVote(acc1, 0, types.OptionYes),
+		v1.NewMsgVote(acc1, 0, v1.OptionYes, ""),
+		v1.NewMsgVote(acc1, 0, v1.OptionYes, ""),
+		v1.NewMsgDeposit(acc1, 0, sdk.NewCoins(sdk.NewCoin("stake", sdkmath.NewInt(10)))), // should be ignored
 	}
 	acc2Msgs := []sdk.Msg{
-		types.NewMsgVote(acc2, 0, types.OptionYes),
-		types.NewMsgVoteWeighted(acc2, 0, types.NewNonSplitVoteOption(types.OptionYes)),
+		v1.NewMsgVote(acc2, 0, v1.OptionYes, ""),
+		v1.NewMsgVoteWeighted(acc2, 0, v1.NewNonSplitVoteOption(v1.OptionYes), ""),
 	}
 	for _, tc := range []testCase{
 		{
@@ -104,9 +84,9 @@ func TestGetPaginatedVotes(t *testing.T) {
 				acc1Msgs[:1],
 				acc2Msgs[:1],
 			},
-			votes: []types.Vote{
-				types.NewVote(0, acc1, types.NewNonSplitVoteOption(types.OptionYes)),
-				types.NewVote(0, acc2, types.NewNonSplitVoteOption(types.OptionYes)),
+			votes: []v1.Vote{
+				v1.NewVote(0, acc1, v1.NewNonSplitVoteOption(v1.OptionYes), ""),
+				v1.NewVote(0, acc2, v1.NewNonSplitVoteOption(v1.OptionYes), ""),
 			},
 		},
 		{
@@ -117,9 +97,9 @@ func TestGetPaginatedVotes(t *testing.T) {
 				acc1Msgs,
 				acc2Msgs,
 			},
-			votes: []types.Vote{
-				types.NewVote(0, acc1, types.NewNonSplitVoteOption(types.OptionYes)),
-				types.NewVote(0, acc1, types.NewNonSplitVoteOption(types.OptionYes)),
+			votes: []v1.Vote{
+				v1.NewVote(0, acc1, v1.NewNonSplitVoteOption(v1.OptionYes), ""),
+				v1.NewVote(0, acc1, v1.NewNonSplitVoteOption(v1.OptionYes), ""),
 			},
 		},
 		{
@@ -130,9 +110,9 @@ func TestGetPaginatedVotes(t *testing.T) {
 				acc1Msgs,
 				acc2Msgs,
 			},
-			votes: []types.Vote{
-				types.NewVote(0, acc2, types.NewNonSplitVoteOption(types.OptionYes)),
-				types.NewVote(0, acc2, types.NewNonSplitVoteOption(types.OptionYes)),
+			votes: []v1.Vote{
+				v1.NewVote(0, acc2, v1.NewNonSplitVoteOption(v1.OptionYes), ""),
+				v1.NewVote(0, acc2, v1.NewNonSplitVoteOption(v1.OptionYes), ""),
 			},
 		},
 		{
@@ -142,7 +122,7 @@ func TestGetPaginatedVotes(t *testing.T) {
 			msgs: [][]sdk.Msg{
 				acc1Msgs[:1],
 			},
-			votes: []types.Vote{types.NewVote(0, acc1, types.NewNonSplitVoteOption(types.OptionYes))},
+			votes: []v1.Vote{v1.NewVote(0, acc1, v1.NewNonSplitVoteOption(v1.OptionYes), "")},
 		},
 		{
 			description: "InvalidPage",
@@ -160,11 +140,9 @@ func TestGetPaginatedVotes(t *testing.T) {
 			},
 		},
 	} {
-		tc := tc
-
 		t.Run(tc.description, func(t *testing.T) {
-			marshalled := make([]tmtypes.Tx, len(tc.msgs))
-			cli := TxSearchMock{txs: marshalled, txConfig: encCfg.TxConfig}
+			marshaled := make([]cmttypes.Tx, len(tc.msgs))
+			cli := TxSearchMock{txs: marshaled, txConfig: encCfg.TxConfig}
 			clientCtx := client.Context{}.
 				WithLegacyAmino(encCfg.Amino).
 				WithClient(cli).
@@ -177,13 +155,13 @@ func TestGetPaginatedVotes(t *testing.T) {
 
 				tx, err := clientCtx.TxConfig.TxEncoder()(txBuilder.GetTx())
 				require.NoError(t, err)
-				marshalled[i] = tx
+				marshaled[i] = tx
 			}
 
-			params := types.NewQueryProposalVotesParams(0, tc.page, tc.limit)
+			params := v1.NewQueryProposalVotesParams(0, tc.page, tc.limit)
 			votesData, err := utils.QueryVotesByTxQuery(clientCtx, params)
 			require.NoError(t, err)
-			votes := []types.Vote{}
+			votes := []v1.Vote{}
 			require.NoError(t, clientCtx.LegacyAmino.UnmarshalJSON(votesData, &votes))
 			require.Equal(t, len(tc.votes), len(votes))
 			for i := range votes {

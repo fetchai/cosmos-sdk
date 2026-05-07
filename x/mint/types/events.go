@@ -5,6 +5,7 @@ const (
 	EventTypeMint          = ModuleName
 	EventTypeMunicipalMint = "municipal_mint"
 
+	AttributeKeyBondedRatio      = "bonded_ratio"
 	AttributeKeyInflation        = "inflation"
 	AttributeKeyAnnualProvisions = "annual_provisions"
 	AttributeKeyDenom            = "denom"

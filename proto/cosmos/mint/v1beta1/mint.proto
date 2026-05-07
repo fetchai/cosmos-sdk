@@ -4,16 +4,21 @@ package cosmos.mint.v1beta1;
 option go_package = "github.com/cosmos/cosmos-sdk/x/mint/types";
 
 import "gogoproto/gogo.proto";
+import "cosmos_proto/cosmos.proto";
+import "amino/amino.proto";
 
 // Minter represents the minting state.
 message Minter {
   // current annual inflation rate
-  string inflation = 1
-      [(gogoproto.customtype) = "github.com/cosmos/cosmos-sdk/types.Dec", (gogoproto.nullable) = false];
+  string inflation = 1 [
+    (cosmos_proto.scalar)  = "cosmos.Dec",
+    (gogoproto.customtype) = "cosmossdk.io/math.LegacyDec",
+    (gogoproto.nullable)   = false
+  ];
   // current annual expected provisions
   string annual_provisions = 2 [
-    (gogoproto.moretags)   = "yaml:\"annual_provisions\"",
-    (gogoproto.customtype) = "github.com/cosmos/cosmos-sdk/types.Dec",
+    (cosmos_proto.scalar)  = "cosmos.Dec",
+    (gogoproto.customtype) = "cosmossdk.io/math.LegacyDec",
     (gogoproto.nullable)   = false
   ];
 
@@ -25,7 +30,11 @@ message MunicipalInflation {
   // address where inflation induced new tokens will be minted
   string target_address = 2 [(gogoproto.moretags) = "yaml:\"target_address\""];
   // current ANNUAL inflation rate
-  string value = 3 [(gogoproto.customtype) = "github.com/cosmos/cosmos-sdk/types.Dec", (gogoproto.nullable) = false];
+  string value = 3 [
+    (cosmos_proto.scalar)  = "cosmos.Dec",
+    (gogoproto.customtype) = "cosmossdk.io/math.LegacyDec",
+    (gogoproto.nullable)   = false
+  ];
 }
 
 // Pair representing denom -> inflation mapping.
@@ -42,18 +51,19 @@ message MunicipalInflationPair {
   MunicipalInflation inflation = 2;
 }
 
-// Params holds parameters for the mint module.
+// Params defines the parameters for the x/mint module.
 message Params {
-  option (gogoproto.goproto_stringer) = false;
+  option (amino.name) = "cosmos-sdk/x/mint/Params";
 
   // type of coin to mint
   string mint_denom = 1;
-  // maximum annual change in inflation rate
+  // maximum annual inflation rate
   string inflation_rate = 2 [
-    (gogoproto.moretags)   = "yaml:\"inflation_rate\"",
-    (gogoproto.customtype) = "github.com/cosmos/cosmos-sdk/types.Dec",
-    (gogoproto.nullable)   = false
+    (cosmos_proto.scalar)  = "cosmos.Dec",
+    (gogoproto.customtype) = "cosmossdk.io/math.LegacyDec",
+    (gogoproto.nullable)   = false,
+    (amino.dont_omitempty) = true
   ];
   // expected blocks per year
-  uint64 blocks_per_year = 6 [(gogoproto.moretags) = "yaml:\"blocks_per_year\""];
+  uint64 blocks_per_year = 6;
 }

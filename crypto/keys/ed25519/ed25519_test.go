@@ -5,10 +5,10 @@ import (
 	"encoding/base64"
 	"testing"
 
+	"github.com/cometbft/cometbft/crypto"
+	tmed25519 "github.com/cometbft/cometbft/crypto/ed25519"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"github.com/tendermint/tendermint/crypto"
-	tmed25519 "github.com/tendermint/tendermint/crypto/ed25519"
 
 	"github.com/cosmos/cosmos-sdk/codec"
 	"github.com/cosmos/cosmos-sdk/codec/types"
@@ -31,7 +31,7 @@ func TestSignAndValidateEd25519(t *testing.T) {
 
 	// ----
 	// Test cross packages verification
-	stdPrivKey := stded25519.PrivateKey(privKey.Key)
+	stdPrivKey := privKey.Key
 	stdPubKey := stdPrivKey.Public().(stded25519.PublicKey)
 
 	assert.Equal(t, stdPubKey, pubKey.(*ed25519.PubKey).Key)
@@ -139,7 +139,7 @@ func TestMarshalAmino(t *testing.T) {
 	testCases := []struct {
 		desc      string
 		msg       codec.AminoMarshaler
-		typ       interface{}
+		typ       any
 		expBinary []byte
 		expJSON   string
 	}{
@@ -189,15 +189,15 @@ func TestMarshalAmino_BackwardsCompatibility(t *testing.T) {
 	// Create Tendermint keys.
 	tmPrivKey := tmed25519.GenPrivKey()
 	tmPubKey := tmPrivKey.PubKey()
-	// Create our own keys, with the same private key as Tendermint's.
+	// Create our own keys, with the same private key as CometBFT's.
 	privKey := &ed25519.PrivKey{Key: []byte(tmPrivKey)}
 	pubKey := privKey.PubKey().(*ed25519.PubKey)
 
 	testCases := []struct {
 		desc      string
-		tmKey     interface{}
-		ourKey    interface{}
-		marshalFn func(o interface{}) ([]byte, error)
+		tmKey     any
+		ourKey    any
+		marshalFn func(o any) ([]byte, error)
 	}{
 		{
 			"ed25519 private key, binary",

@@ -5,12 +5,14 @@ import (
 	"math/rand"
 	"testing"
 
-	sdk "github.com/cosmos/cosmos-sdk/types"
-
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	sdkmath "cosmossdk.io/math"
 
 	"github.com/cosmos/cosmos-sdk/codec"
 	codectypes "github.com/cosmos/cosmos-sdk/codec/types"
+	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/types/module"
 	simtypes "github.com/cosmos/cosmos-sdk/types/simulation"
 	"github.com/cosmos/cosmos-sdk/x/bank/simulation"
@@ -30,8 +32,9 @@ func TestRandomizedGenState(t *testing.T) {
 		Cdc:          cdc,
 		Rand:         r,
 		NumBonded:    3,
+		BondDenom:    sdk.DefaultBondDenom,
 		Accounts:     simtypes.RandomAccounts(r, 3),
-		InitialStake: 1000,
+		InitialStake: sdkmath.NewInt(1000),
 		GenState:     make(map[string]json.RawMessage),
 	}
 
@@ -40,18 +43,16 @@ func TestRandomizedGenState(t *testing.T) {
 	var bankGenesis types.GenesisState
 	simState.Cdc.MustUnmarshalJSON(simState.GenState[types.ModuleName], &bankGenesis)
 
-	require.Equal(t, true, bankGenesis.Params.GetDefaultSendEnabled())
-	require.Len(t, bankGenesis.Params.GetSendEnabled(), 1)
-	require.Len(t, bankGenesis.Balances, 3)
-	require.Equal(t, "cosmos1ghekyjucln7y67ntx7cf27m9dpuxxemn4c8g4r", bankGenesis.Balances[2].GetAddress().String())
-	require.Equal(t, "1000stake", bankGenesis.Balances[2].GetCoins().String())
-
-	numAccs := int64(len(simState.Accounts))
-	expectedSupply := sdk.NewCoins(sdk.NewCoin(sdk.DefaultBondDenom, sdk.NewInt(6000)))
-	for _, b := range simulation.AdditionalTestBalancePerAccount {
-		expectedSupply.Add(sdk.NewCoin(b.Denom, b.Amount.MulRaw(numAccs)))
+	assert.Equal(t, true, bankGenesis.Params.GetDefaultSendEnabled(), "Params.GetDefaultSendEnabled")
+	assert.Len(t, bankGenesis.Params.GetSendEnabled(), 0, "Params.GetSendEnabled") //nolint:staticcheck // we're testing deprecated code here
+	if assert.Len(t, bankGenesis.Balances, 3) {
+		assert.Equal(t, "cosmos1ghekyjucln7y67ntx7cf27m9dpuxxemn4c8g4r", bankGenesis.Balances[2].Address, "Balances[2] address")
+		assert.Equal(t, "1000stake", bankGenesis.Balances[2].GetCoins().String(), "Balances[2] coins")
 	}
-	require.Equal(t, expectedSupply.String(), bankGenesis.Supply.String())
+	assert.Equal(t, "6000stake", bankGenesis.Supply.String(), "Supply")
+	if assert.Len(t, bankGenesis.SendEnabled, 1, "SendEnabled") {
+		assert.Equal(t, true, bankGenesis.SendEnabled[0].Enabled, "SendEnabled[0] value")
+	}
 }
 
 // TestRandomizedGenState tests abnormal scenarios of applying RandomizedGenState.

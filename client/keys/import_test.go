@@ -5,10 +5,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"strings"
 	"testing"
-
-	"github.com/spf13/cobra"
 
 	"github.com/stretchr/testify/require"
 
@@ -17,9 +14,11 @@ import (
 	"github.com/cosmos/cosmos-sdk/crypto/keyring"
 	"github.com/cosmos/cosmos-sdk/testutil"
 	sdk "github.com/cosmos/cosmos-sdk/types"
+	moduletestutil "github.com/cosmos/cosmos-sdk/types/module/testutil"
 )
 
 func Test_runImportCmd(t *testing.T) {
+	cdc := moduletestutil.MakeTestEncodingConfig().Codec
 	testCases := []struct {
 		name           string
 		keyringBackend string
@@ -77,27 +76,30 @@ HbP+c6JmeJy9JXe2rbbF1QtCX1gLqGcDQPBXiCtFvP7/8wTZtVOPj8vREzhZ9ElO
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			cmd := ImportKeyCommand()
-			cmd.Flags().AddFlagSet(Commands("home").PersistentFlags())
+			cmd.Flags().AddFlagSet(Commands().PersistentFlags())
 			mockIn := testutil.ApplyMockIODiscardOutErr(cmd)
 
 			// Now add a temporary keybase
-			kbHome := t.TempDir()
-			kb, err := keyring.New(sdk.KeyringServiceName(), tc.keyringBackend, kbHome, nil)
+			kbHome := filepath.Join(t.TempDir(), fmt.Sprintf("kbhome-%s", tc.name))
+			// Create dir, otherwise os.WriteFile will fail
+			require.NoError(t, os.MkdirAll(kbHome, 0o700))
+			t.Cleanup(func() {
+				require.NoError(t, os.RemoveAll(kbHome))
+			})
+			kb, err := keyring.New(sdk.KeyringServiceName(), tc.keyringBackend, kbHome, nil, cdc)
+			require.NoError(t, err)
 
 			clientCtx := client.Context{}.
 				WithKeyringDir(kbHome).
 				WithKeyring(kb).
-				WithInput(mockIn)
+				WithInput(mockIn).
+				WithCodec(cdc)
 			ctx := context.WithValue(context.Background(), client.ClientContextKey, &clientCtx)
 
-			require.NoError(t, err)
-			t.Cleanup(func() {
-				kb.Delete("keyname1") // nolint:errcheck
-			})
+			t.Cleanup(cleanupKeys(t, kb, "keyname1"))
 
 			keyfile := filepath.Join(kbHome, "key.asc")
-
-			require.NoError(t, os.WriteFile(keyfile, []byte(armoredKey), 0o644))
+			require.NoError(t, os.WriteFile(keyfile, []byte(armoredKey), 0o600))
 
 			defer func() {
 				_ = os.RemoveAll(kbHome)
@@ -119,73 +121,64 @@ HbP+c6JmeJy9JXe2rbbF1QtCX1gLqGcDQPBXiCtFvP7/8wTZtVOPj8vREzhZ9ElO
 	}
 }
 
-type UnarmoredKeyTestConfig struct {
-	desc        string
-	key         string
-	expectError bool
-}
-
-func createTestConfigs(descrPreface string, hexKeyWithout0x string, expectError bool) []UnarmoredKeyTestConfig {
-	if len(descrPreface) > 0 {
-		descrPreface = descrPreface + ", "
-	}
-
-	testsConfigs := []UnarmoredKeyTestConfig{
-		{descrPreface + "lower case, prefix 0x", "0x" + strings.ToLower(hexKeyWithout0x), expectError},
-		{descrPreface + "upper case, prefix 0x", "0x" + strings.ToUpper(hexKeyWithout0x), expectError},
-		{descrPreface + "mixed case, prefix 0x", "0x" + hexKeyWithout0x, expectError},
-		{descrPreface + "lower case, prefix x", "x" + strings.ToLower(hexKeyWithout0x), expectError},
-		{descrPreface + "upper case, prefix x", "x" + strings.ToUpper(hexKeyWithout0x), expectError},
-		{descrPreface + "mixed case, prefix x", "x" + hexKeyWithout0x, expectError},
-		{descrPreface + "lower case", strings.ToLower(hexKeyWithout0x), expectError},
-		{descrPreface + "upper case", strings.ToUpper(hexKeyWithout0x), expectError},
-		{descrPreface + "mixed case", hexKeyWithout0x, expectError},
-		{descrPreface + "leading&trailing whitespaces", "\t   \t " + hexKeyWithout0x + "   \t \t", expectError},
+func Test_runImportHexCmd(t *testing.T) {
+	cdc := moduletestutil.MakeTestEncodingConfig().Codec
+	testCases := []struct {
+		name           string
+		keyringBackend string
+		hexKey         string
+		stdInput       bool
+		keyType        string
+		expectError    bool
+	}{
 		{
-			descrPreface + "multi-line leading&trailing whitespaces",
-			"\t   \t " + hexKeyWithout0x + "   \t \t\nbla bla\nsome more bla\n",
-			expectError,
+			name:           "test backend success",
+			keyringBackend: keyring.BackendTest,
+			hexKey:         "0xa3e57952e835ed30eea86a2993ac2a61c03e74f2085b3635bd94aa4d7ae0cfdf",
+			keyType:        "secp256k1",
+		},
+		{
+			name:           "read the hex key from standard input",
+			keyringBackend: keyring.BackendTest,
+			stdInput:       true,
+			hexKey:         "0xa3e57952e835ed30eea86a2993ac2a61c03e74f2085b3635bd94aa4d7ae0cfdf",
+			keyType:        "secp256k1",
 		},
 	}
-	return testsConfigs
-}
 
-func Test_runImportUnarmoredCmd(t *testing.T) {
-	keyringBackend := keyring.BackendTest
-	unarmoredKeyMixedCase := "8BdFbD2eaad5dc4324d19fAbed72882709dc080b39e61044d51b91A6e38F6871"
-	// expectedAddress := "fetch1wurz7uwmvchhc8x0yztc7220hxs9jxdjdsrqmn"
-
-	unarmoredKeyMixedCaseTooLong := unarmoredKeyMixedCase + "Aa"
-	unarmoredKeyMixedCaseTooShort := unarmoredKeyMixedCase[:len(unarmoredKeyMixedCase)-1]
-
-	testConfigs := createTestConfigs("[Expected Pass]", unarmoredKeyMixedCase, false)
-	testConfigs = append(testConfigs, createTestConfigs("[Expected Failure] too short", unarmoredKeyMixedCaseTooShort, true)...)
-	testConfigs = append(testConfigs, createTestConfigs("[Expected Failure] too long", unarmoredKeyMixedCaseTooLong, true)...)
-
-	for _, tc := range testConfigs {
-		runImportUnarmoredCmd := func(commandFnc func(cmd *cobra.Command, testConfig *UnarmoredKeyTestConfig, mockInBufferReader *testutil.BufferReader, kbHome string) error, keyringBackend string, cleanup func(kbHome string)) {
-			cmd := ImportUnarmoredKeyCommand()
-			cmd.Flags().AddFlagSet(Commands("home").PersistentFlags())
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			cmd := ImportKeyHexCommand()
+			cmd.Flags().AddFlagSet(Commands().PersistentFlags())
 			mockIn := testutil.ApplyMockIODiscardOutErr(cmd)
 
 			// Now add a temporary keybase
-			kbHome := t.TempDir()
-			kb, err := keyring.New(sdk.KeyringServiceName(), keyringBackend, kbHome, nil)
+			kbHome := filepath.Join(t.TempDir(), fmt.Sprintf("kbhome-%s", tc.name))
+			t.Cleanup(func() {
+				require.NoError(t, os.RemoveAll(kbHome))
+			})
+
+			kb, err := keyring.New(sdk.KeyringServiceName(), tc.keyringBackend, kbHome, nil, cdc)
+			require.NoError(t, err)
 
 			clientCtx := client.Context{}.
 				WithKeyringDir(kbHome).
 				WithKeyring(kb).
-				WithInput(mockIn)
+				WithInput(mockIn).
+				WithCodec(cdc)
 			ctx := context.WithValue(context.Background(), client.ClientContextKey, &clientCtx)
 
-			require.NoError(t, err)
-			t.Cleanup(func() {
-				kb.Delete("keyname1") // nolint:errcheck
-			})
-
-			defer cleanup(kbHome)
-			err = commandFnc(cmd, &tc, &mockIn, kbHome)
-			require.NoError(t, err)
+			args := []string{"keyname1"}
+			if tc.stdInput {
+				mockIn.Reset(tc.hexKey)
+			} else {
+				args = append(args, tc.hexKey)
+			}
+			cmd.SetArgs(append(
+				args,
+				fmt.Sprintf("--%s=%s", flags.FlagKeyType, tc.keyType),
+				fmt.Sprintf("--%s=%s", flags.FlagKeyringBackend, tc.keyringBackend),
+			))
 
 			err = cmd.ExecuteContext(ctx)
 			if tc.expectError {
@@ -193,35 +186,40 @@ func Test_runImportUnarmoredCmd(t *testing.T) {
 			} else {
 				require.NoError(t, err)
 			}
-		}
-
-		t.Run(tc.desc, func(t *testing.T) {
-			runImportUnarmoredCmd(func(cmd *cobra.Command, testConfig *UnarmoredKeyTestConfig, mockInBufferReader *testutil.BufferReader, kbHome string) error {
-				keyfile := filepath.Join(kbHome, "key.asc")
-
-				err := os.WriteFile(keyfile, []byte(tc.key), 0o644)
-				if err != nil {
-					return err
-				}
-
-				cmd.SetArgs([]string{
-					"keyname1", keyfile,
-					fmt.Sprintf("--%s=%s", flags.FlagKeyringBackend, keyringBackend),
-				})
-
-				return nil
-			}, keyringBackend, func(kbHome string) { _ = os.RemoveAll(kbHome) })
-		})
-
-		t.Run(tc.desc, func(t *testing.T) {
-			runImportUnarmoredCmd(func(cmd *cobra.Command, testConfig *UnarmoredKeyTestConfig, mockInBufferReader *testutil.BufferReader, kbHome string) error {
-				(*mockInBufferReader).Reset(tc.key)
-				cmd.SetArgs([]string{
-					"keyname1",
-					fmt.Sprintf("--%s=%s", flags.FlagKeyringBackend, keyringBackend),
-				})
-				return nil
-			}, keyringBackend, func(_ string) {})
 		})
 	}
+}
+
+func Test_runImportCmdWithEmptyName(t *testing.T) {
+	cmd := ImportKeyCommand()
+	cmd.Flags().AddFlagSet(Commands().PersistentFlags())
+	mockIn := testutil.ApplyMockIODiscardOutErr(cmd)
+	// Now add a temporary keybase
+	kbHome := t.TempDir()
+	cdc := moduletestutil.MakeTestEncodingConfig().Codec
+	kb, err := keyring.New(sdk.KeyringServiceName(), keyring.BackendTest, kbHome, mockIn, cdc)
+	require.NoError(t, err)
+
+	clientCtx := client.Context{}.
+		WithKeyringDir(kbHome).
+		WithKeyring(kb).
+		WithInput(mockIn).
+		WithCodec(cdc)
+	ctx := context.WithValue(context.Background(), client.ClientContextKey, &clientCtx)
+	cmd.SetArgs([]string{
+		"", "fake-file",
+		fmt.Sprintf("--%s=%s", flags.FlagKeyringBackend, keyring.BackendTest),
+	})
+
+	require.ErrorContains(t, cmd.ExecuteContext(ctx), "the provided name is invalid or empty after trimming whitespace")
+
+	cmd = ImportKeyHexCommand()
+	cmd.Flags().AddFlagSet(Commands().PersistentFlags())
+	testutil.ApplyMockIODiscardOutErr(cmd)
+	cmd.SetArgs([]string{
+		"", "fake-hex",
+		fmt.Sprintf("--%s=%s", flags.FlagKeyringBackend, keyring.BackendTest),
+	})
+
+	require.ErrorContains(t, cmd.ExecuteContext(ctx), "the provided name is invalid or empty after trimming whitespace")
 }

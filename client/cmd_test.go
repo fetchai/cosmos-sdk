@@ -70,6 +70,7 @@ func TestSetCmdClientContextHandler(t *testing.T) {
 		}
 
 		c.Flags().String(flags.FlagChainID, "", "network chain ID")
+		c.Flags().String(flags.FlagHome, "", "home dir")
 
 		return c
 	}
@@ -78,11 +79,13 @@ func TestSetCmdClientContextHandler(t *testing.T) {
 		name            string
 		expectedContext client.Context
 		args            []string
+		ctx             context.Context
 	}{
 		{
 			"no flags set",
 			initClientCtx,
 			[]string{},
+			context.WithValue(context.Background(), client.ClientContextKey, &client.Context{}),
 		},
 		{
 			"flags set",
@@ -90,20 +93,44 @@ func TestSetCmdClientContextHandler(t *testing.T) {
 			[]string{
 				fmt.Sprintf("--%s=new-chain-id", flags.FlagChainID),
 			},
+			context.WithValue(context.Background(), client.ClientContextKey, &client.Context{}),
+		},
+		{
+			"flags set with space",
+			initClientCtx.WithHomeDir("/tmp/dir"),
+			[]string{
+				fmt.Sprintf("--%s", flags.FlagHome),
+				"/tmp/dir",
+			},
+			context.Background(),
+		},
+		{
+			"no context provided",
+			initClientCtx.WithHomeDir("/tmp/noctx"),
+			[]string{
+				fmt.Sprintf("--%s", flags.FlagHome),
+				"/tmp/noctx",
+			},
+			nil,
+		},
+		{
+			"with invalid client value in the context",
+			initClientCtx.WithHomeDir("/tmp/invalid"),
+			[]string{
+				fmt.Sprintf("--%s", flags.FlagHome),
+				"/tmp/invalid",
+			},
+			context.WithValue(context.Background(), client.ClientContextKey, "invalid"),
 		},
 	}
 
 	for _, tc := range testCases {
-		tc := tc
-
 		t.Run(tc.name, func(t *testing.T) {
-			ctx := context.WithValue(context.Background(), client.ClientContextKey, &client.Context{})
-
 			cmd := newCmd()
 			_ = testutil.ApplyMockIODiscardOutErr(cmd)
 			cmd.SetArgs(tc.args)
 
-			require.NoError(t, cmd.ExecuteContext(ctx))
+			require.NoError(t, cmd.ExecuteContext(tc.ctx))
 
 			clientCtx := client.GetClientContextFromCmd(cmd)
 			require.Equal(t, tc.expectedContext, clientCtx)

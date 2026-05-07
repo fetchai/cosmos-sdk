@@ -6,10 +6,13 @@ import (
 
 	"github.com/stretchr/testify/require"
 
+	"cosmossdk.io/math"
+
 	"github.com/cosmos/cosmos-sdk/crypto/keys/ed25519"
-	"github.com/cosmos/cosmos-sdk/simapp"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/types/kv"
+	moduletestutil "github.com/cosmos/cosmos-sdk/types/module/testutil"
+	"github.com/cosmos/cosmos-sdk/x/distribution"
 	"github.com/cosmos/cosmos-sdk/x/distribution/simulation"
 	"github.com/cosmos/cosmos-sdk/x/distribution/types"
 )
@@ -22,18 +25,20 @@ var (
 )
 
 func TestDecodeDistributionStore(t *testing.T) {
-	cdc := simapp.MakeTestEncodingConfig().Marshaler
+	encodingConfig := moduletestutil.MakeTestEncodingConfig(distribution.AppModuleBasic{})
+	cdc := encodingConfig.Codec
+
 	dec := simulation.NewDecodeStore(cdc)
 
-	decCoins := sdk.DecCoins{sdk.NewDecCoinFromDec(sdk.DefaultBondDenom, sdk.OneDec())}
+	decCoins := sdk.DecCoins{sdk.NewDecCoinFromDec(sdk.DefaultBondDenom, math.LegacyOneDec())}
 	feePool := types.InitialFeePool()
 	feePool.CommunityPool = decCoins
-	info := types.NewDelegatorStartingInfo(2, sdk.OneDec(), 200)
+	info := types.NewDelegatorStartingInfo(2, math.LegacyOneDec(), 200)
 	outstanding := types.ValidatorOutstandingRewards{Rewards: decCoins}
 	commission := types.ValidatorAccumulatedCommission{Commission: decCoins}
 	historicalRewards := types.NewValidatorHistoricalRewards(decCoins, 100)
 	currentRewards := types.NewValidatorCurrentRewards(decCoins, 5)
-	slashEvent := types.NewValidatorSlashEvent(10, sdk.OneDec())
+	slashEvent := types.NewValidatorSlashEvent(10, math.LegacyOneDec())
 
 	kvPairs := kv.Pairs{
 		Pairs: []kv.Pair{
@@ -66,7 +71,6 @@ func TestDecodeDistributionStore(t *testing.T) {
 		{"other", ""},
 	}
 	for i, tt := range tests {
-		i, tt := i, tt
 		t.Run(tt.name, func(t *testing.T) {
 			switch i {
 			case len(tests) - 1:

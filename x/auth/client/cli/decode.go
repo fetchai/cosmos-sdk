@@ -16,7 +16,7 @@ const flagHex = "hex"
 // it into a JSON-encoded transaction.
 func GetDecodeCommand() *cobra.Command {
 	cmd := &cobra.Command{
-		Use:   "decode [amino-byte-string]",
+		Use:   "decode [protobuf-byte-string]",
 		Short: "Decode a binary encoded transaction string",
 		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) (err error) {
@@ -48,6 +48,7 @@ func GetDecodeCommand() *cobra.Command {
 
 	cmd.Flags().BoolP(flagHex, "x", false, "Treat input as hexadecimal instead of base64")
 	flags.AddTxFlagsToCmd(cmd)
+	_ = cmd.Flags().MarkHidden(flags.FlagOutput) // decoding makes sense to output only json
 
 	return cmd
 }

@@ -1,9 +1,9 @@
 package rootmulti
 
 import (
-	"github.com/tendermint/tendermint/crypto/merkle"
+	"github.com/cometbft/cometbft/crypto/merkle"
 
-	storetypes "github.com/cosmos/cosmos-sdk/store/types"
+	storetypes "cosmossdk.io/store/types"
 )
 
 // RequireProof returns whether proof is required for the subpath.
@@ -23,5 +23,5 @@ func DefaultProofRuntime() (prt *merkle.ProofRuntime) {
 	prt = merkle.NewProofRuntime()
 	prt.RegisterOpDecoder(storetypes.ProofOpIAVLCommitment, storetypes.CommitmentOpDecoder)
 	prt.RegisterOpDecoder(storetypes.ProofOpSimpleMerkleCommitment, storetypes.CommitmentOpDecoder)
-	return
+	return prt
 }

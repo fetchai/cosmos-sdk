@@ -1,19 +1,20 @@
 package proofs
 
 import (
-	"sort"
+	"maps"
+	"slices"
 
-	"github.com/tendermint/tendermint/libs/rand"
-	tmcrypto "github.com/tendermint/tendermint/proto/tendermint/crypto"
+	cmtprotocrypto "github.com/cometbft/cometbft/proto/tendermint/crypto"
 
-	sdkmaps "github.com/cosmos/cosmos-sdk/store/internal/maps"
+	"cosmossdk.io/math/unsafe"
+	sdkmaps "cosmossdk.io/store/internal/maps"
 )
 
 // SimpleResult contains a merkle.SimpleProof along with all data needed to build the confio/proof
 type SimpleResult struct {
 	Key      []byte
 	Value    []byte
-	Proof    *tmcrypto.Proof
+	Proof    *cmtprotocrypto.Proof
 	RootHash []byte
 }
 
@@ -46,14 +47,7 @@ const (
 )
 
 func SortedKeys(data map[string][]byte) []string {
-	keys := make([]string, len(data))
-	i := 0
-	for k := range data {
-		keys[i] = k
-		i++
-	}
-	sort.Strings(keys)
-	return keys
+	return slices.Sorted(maps.Keys(data))
 }
 
 func CalcRoot(data map[string][]byte) []byte {
@@ -70,7 +64,7 @@ func GetKey(allkeys []string, loc Where) string {
 		return allkeys[len(allkeys)-1]
 	}
 	// select a random index between 1 and allkeys-2
-	idx := rand.Int()%(len(allkeys)-2) + 1
+	idx := unsafe.NewRand().Int()%(len(allkeys)-2) + 1
 	return allkeys[idx]
 }
 
@@ -98,7 +92,7 @@ func BuildMap(size int) map[string][]byte {
 	data := make(map[string][]byte)
 	// insert lots of info and store the bytes
 	for i := 0; i < size; i++ {
-		key := rand.Str(20)
+		key := unsafe.Str(20)
 		data[key] = toValue(key)
 	}
 	return data

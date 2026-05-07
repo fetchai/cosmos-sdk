@@ -3,12 +3,17 @@ package types_test
 import (
 	"bytes"
 	"encoding/hex"
+	math2 "math"
 	"math/big"
+	"strconv"
 	"testing"
 	"time"
 
 	"github.com/stretchr/testify/require"
 
+	"cosmossdk.io/math"
+
+	"github.com/cosmos/cosmos-sdk/codec/address"
 	"github.com/cosmos/cosmos-sdk/crypto/keys/ed25519"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/x/staking/types"
@@ -26,7 +31,7 @@ var (
 func TestGetValidatorPowerRank(t *testing.T) {
 	valAddr1 := sdk.ValAddress(keysAddr1)
 	val1 := newValidator(t, valAddr1, keysPK1)
-	val1.Tokens = sdk.ZeroInt()
+	val1.Tokens = math.ZeroInt()
 	val2, val3, val4 := val1, val1, val1
 	val2.Tokens = sdk.TokensFromConsensusPower(1, sdk.DefaultPowerReduction)
 	val3.Tokens = sdk.TokensFromConsensusPower(10, sdk.DefaultPowerReduction)
@@ -43,7 +48,7 @@ func TestGetValidatorPowerRank(t *testing.T) {
 		{val4, "230000010000000000149c288ede7df62742fc3b7d0962045a8cef0f79f6"},
 	}
 	for i, tt := range tests {
-		got := hex.EncodeToString(types.GetValidatorsByPowerIndexKey(tt.validator, sdk.DefaultPowerReduction))
+		got := hex.EncodeToString(types.GetValidatorsByPowerIndexKey(tt.validator, sdk.DefaultPowerReduction, address.NewBech32Codec("cosmosvaloper")))
 
 		require.Equal(t, tt.wantHex, got, "Keys did not match on test case %d", i)
 	}
@@ -127,4 +132,22 @@ func TestTestGetValidatorQueueKeyOrder(t *testing.T) {
 	require.Equal(t, -1, bytes.Compare(keyA, endKey)) // keyA <= endKey
 	require.Equal(t, -1, bytes.Compare(keyB, endKey)) // keyB <= endKey
 	require.Equal(t, 1, bytes.Compare(keyC, endKey))  // keyB >= endKey
+}
+
+func TestGetHistoricalInfoKey(t *testing.T) {
+	tests := []struct {
+		height int64
+		want   []byte
+	}{
+		{0, append(types.HistoricalInfoKey, []byte{0, 0, 0, 0, 0, 0, 0, 0}...)},
+		{1, append(types.HistoricalInfoKey, []byte{0, 0, 0, 0, 0, 0, 0, 1}...)},
+		{2, append(types.HistoricalInfoKey, []byte{0, 0, 0, 0, 0, 0, 0, 2}...)},
+		{514, append(types.HistoricalInfoKey, []byte{0, 0, 0, 0, 0, 0, 2, 2}...)},
+		{math2.MaxInt64, append(types.HistoricalInfoKey, []byte{127, 255, 255, 255, 255, 255, 255, 255}...)},
+	}
+	for _, tt := range tests {
+		t.Run(strconv.FormatInt(tt.height, 10), func(t *testing.T) {
+			require.Equal(t, tt.want, types.GetHistoricalInfoKey(tt.height))
+		})
+	}
 }

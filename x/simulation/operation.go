@@ -73,13 +73,12 @@ func NewOperationQueue() OperationQueue {
 }
 
 // queueOperations adds all future operations into the operation queue.
-func queueOperations(queuedOps OperationQueue, queuedTimeOps []simulation.FutureOperation, futureOps []simulation.FutureOperation) {
+func queueOperations(queuedOps OperationQueue, queuedTimeOps, futureOps []simulation.FutureOperation) {
 	if futureOps == nil {
 		return
 	}
 
 	for _, futureOp := range futureOps {
-		futureOp := futureOp
 		if futureOp.BlockHeight != 0 {
 			if val, ok := queuedOps[futureOp.BlockHeight]; ok {
 				queuedOps[futureOp.BlockHeight] = append(val, futureOp.Op)
@@ -145,7 +144,7 @@ func (ops WeightedOperations) getSelectOpFn() simulation.SelectOpFn {
 
 	return func(r *rand.Rand) simulation.Operation {
 		x := r.Intn(totalOpWeight)
-		for i := 0; i < len(ops); i++ {
+		for i := range ops {
 			if x <= ops[i].Weight() {
 				return ops[i].Op()
 			}

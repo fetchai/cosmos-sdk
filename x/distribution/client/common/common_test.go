@@ -6,11 +6,11 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/cosmos/cosmos-sdk/client"
-	"github.com/cosmos/cosmos-sdk/x/distribution/types"
+	"github.com/cosmos/cosmos-sdk/codec/legacy"
 )
 
 func TestQueryDelegationRewardsAddrValidation(t *testing.T) {
-	clientCtx := client.Context{}.WithLegacyAmino(types.ModuleCdc.LegacyAmino)
+	clientCtx := client.Context{}.WithLegacyAmino(legacy.Cdc)
 
 	type args struct {
 		delAddr string
@@ -30,7 +30,6 @@ func TestQueryDelegationRewardsAddrValidation(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
 			_, _, err := QueryDelegationRewards(clientCtx, tt.args.delAddr, tt.args.valAddr)
 			require.True(t, err != nil, tt.wantErr)

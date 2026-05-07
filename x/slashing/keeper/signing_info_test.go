@@ -1,96 +1,98 @@
 package keeper_test
 
 import (
-	"testing"
 	"time"
 
-	"github.com/stretchr/testify/require"
-	tmproto "github.com/tendermint/tendermint/proto/tendermint/types"
-
-	"github.com/cosmos/cosmos-sdk/simapp"
 	sdk "github.com/cosmos/cosmos-sdk/types"
-	"github.com/cosmos/cosmos-sdk/x/slashing/types"
+	"github.com/cosmos/cosmos-sdk/x/slashing/testutil"
+	slashingtypes "github.com/cosmos/cosmos-sdk/x/slashing/types"
 )
 
-func TestGetSetValidatorSigningInfo(t *testing.T) {
-	app := simapp.Setup(false)
-	ctx := app.BaseApp.NewContext(false, tmproto.Header{})
-	addrDels := simapp.AddTestAddrsIncremental(app, ctx, 1, app.StakingKeeper.TokensFromConsensusPower(ctx, 200))
+func (s *KeeperTestSuite) TestValidatorSigningInfo() {
+	ctx, keeper := s.ctx, s.slashingKeeper
+	require := s.Require()
 
-	info, found := app.SlashingKeeper.GetValidatorSigningInfo(ctx, sdk.ConsAddress(addrDels[0]))
-	require.False(t, found)
-	newInfo := types.NewValidatorSigningInfo(
-		sdk.ConsAddress(addrDels[0]),
-		int64(4),
+	signingInfo := slashingtypes.NewValidatorSigningInfo(
+		consAddr,
+		ctx.BlockHeight(),
 		int64(3),
 		time.Unix(2, 0),
 		false,
 		int64(10),
 	)
-	app.SlashingKeeper.SetValidatorSigningInfo(ctx, sdk.ConsAddress(addrDels[0]), newInfo)
-	info, found = app.SlashingKeeper.GetValidatorSigningInfo(ctx, sdk.ConsAddress(addrDels[0]))
-	require.True(t, found)
-	require.Equal(t, info.StartHeight, int64(4))
-	require.Equal(t, info.IndexOffset, int64(3))
-	require.Equal(t, info.JailedUntil, time.Unix(2, 0).UTC())
-	require.Equal(t, info.MissedBlocksCounter, int64(10))
+
+	// set the validator signing information
+	require.NoError(keeper.SetValidatorSigningInfo(ctx, consAddr, signingInfo))
+
+	require.True(keeper.HasValidatorSigningInfo(ctx, consAddr))
+	info, err := keeper.GetValidatorSigningInfo(ctx, consAddr)
+	require.NoError(err)
+	require.Equal(info.StartHeight, ctx.BlockHeight())
+	require.Equal(info.IndexOffset, int64(3))
+	require.Equal(info.JailedUntil, time.Unix(2, 0).UTC())
+	require.Equal(info.MissedBlocksCounter, int64(10))
+
+	var signingInfos []slashingtypes.ValidatorSigningInfo
+
+	require.NoError(keeper.IterateValidatorSigningInfos(ctx, func(consAddr sdk.ConsAddress, info slashingtypes.ValidatorSigningInfo) (stop bool) {
+		signingInfos = append(signingInfos, info)
+		return false
+	}))
+
+	require.Equal(signingInfos[0].Address, signingInfo.Address)
+
+	// test Tombstone
+	err = keeper.Tombstone(ctx, consAddr)
+	require.NoError(err)
+	require.True(keeper.IsTombstoned(ctx, consAddr))
+
+	// test JailUntil
+	jailTime := time.Now().Add(time.Hour).UTC()
+	require.NoError(keeper.JailUntil(ctx, consAddr, jailTime))
+	sInfo, _ := keeper.GetValidatorSigningInfo(ctx, consAddr)
+	require.Equal(sInfo.JailedUntil, jailTime)
 }
 
-func TestGetSetValidatorMissedBlockBitArray(t *testing.T) {
-	app := simapp.Setup(false)
-	ctx := app.BaseApp.NewContext(false, tmproto.Header{})
-	addrDels := simapp.AddTestAddrsIncremental(app, ctx, 1, app.StakingKeeper.TokensFromConsensusPower(ctx, 200))
+func (s *KeeperTestSuite) TestValidatorMissedBlockBitmap_SmallWindow() {
+	ctx, keeper := s.ctx, s.slashingKeeper
+	require := s.Require()
 
-	missed := app.SlashingKeeper.GetValidatorMissedBlockBitArray(ctx, sdk.ConsAddress(addrDels[0]), 0)
-	require.False(t, missed) // treat empty key as not missed
-	app.SlashingKeeper.SetValidatorMissedBlockBitArray(ctx, sdk.ConsAddress(addrDels[0]), 0, true)
-	missed = app.SlashingKeeper.GetValidatorMissedBlockBitArray(ctx, sdk.ConsAddress(addrDels[0]), 0)
-	require.True(t, missed) // now should be missed
-}
+	for _, window := range []int64{100, 32_000} {
+		params := testutil.TestParams()
+		params.SignedBlocksWindow = window
+		require.NoError(keeper.SetParams(ctx, params))
 
-func TestTombstoned(t *testing.T) {
-	app := simapp.Setup(false)
-	ctx := app.BaseApp.NewContext(false, tmproto.Header{})
-	addrDels := simapp.AddTestAddrsIncremental(app, ctx, 1, app.StakingKeeper.TokensFromConsensusPower(ctx, 200))
+		// validator misses all blocks in the window
+		var valIdxOffset int64
+		for valIdxOffset < params.SignedBlocksWindow {
+			idx := valIdxOffset % params.SignedBlocksWindow
+			err := keeper.SetMissedBlockBitmapValue(ctx, consAddr, idx, true)
+			require.NoError(err)
 
-	require.Panics(t, func() { app.SlashingKeeper.Tombstone(ctx, sdk.ConsAddress(addrDels[0])) })
-	require.False(t, app.SlashingKeeper.IsTombstoned(ctx, sdk.ConsAddress(addrDels[0])))
+			missed, err := keeper.GetMissedBlockBitmapValue(ctx, consAddr, idx)
+			require.NoError(err)
+			require.True(missed)
 
-	newInfo := types.NewValidatorSigningInfo(
-		sdk.ConsAddress(addrDels[0]),
-		int64(4),
-		int64(3),
-		time.Unix(2, 0),
-		false,
-		int64(10),
-	)
-	app.SlashingKeeper.SetValidatorSigningInfo(ctx, sdk.ConsAddress(addrDels[0]), newInfo)
+			valIdxOffset++
+		}
 
-	require.False(t, app.SlashingKeeper.IsTombstoned(ctx, sdk.ConsAddress(addrDels[0])))
-	app.SlashingKeeper.Tombstone(ctx, sdk.ConsAddress(addrDels[0]))
-	require.True(t, app.SlashingKeeper.IsTombstoned(ctx, sdk.ConsAddress(addrDels[0])))
-	require.Panics(t, func() { app.SlashingKeeper.Tombstone(ctx, sdk.ConsAddress(addrDels[0])) })
-}
+		// validator should have missed all blocks
+		missedBlocks, err := keeper.GetValidatorMissedBlocks(ctx, consAddr)
+		require.NoError(err)
+		require.Len(missedBlocks, int(params.SignedBlocksWindow))
 
-func TestJailUntil(t *testing.T) {
-	app := simapp.Setup(false)
-	ctx := app.BaseApp.NewContext(false, tmproto.Header{})
-	addrDels := simapp.AddTestAddrsIncremental(app, ctx, 1, app.StakingKeeper.TokensFromConsensusPower(ctx, 200))
+		// sign next block, which rolls the missed block bitmap
+		idx := valIdxOffset % params.SignedBlocksWindow
+		err = keeper.SetMissedBlockBitmapValue(ctx, consAddr, idx, false)
+		require.NoError(err)
 
-	require.Panics(t, func() { app.SlashingKeeper.JailUntil(ctx, sdk.ConsAddress(addrDels[0]), time.Now()) })
+		missed, err := keeper.GetMissedBlockBitmapValue(ctx, consAddr, idx)
+		require.NoError(err)
+		require.False(missed)
 
-	newInfo := types.NewValidatorSigningInfo(
-		sdk.ConsAddress(addrDels[0]),
-		int64(4),
-		int64(3),
-		time.Unix(2, 0),
-		false,
-		int64(10),
-	)
-	app.SlashingKeeper.SetValidatorSigningInfo(ctx, sdk.ConsAddress(addrDels[0]), newInfo)
-	app.SlashingKeeper.JailUntil(ctx, sdk.ConsAddress(addrDels[0]), time.Unix(253402300799, 0).UTC())
-
-	info, ok := app.SlashingKeeper.GetValidatorSigningInfo(ctx, sdk.ConsAddress(addrDels[0]))
-	require.True(t, ok)
-	require.Equal(t, time.Unix(253402300799, 0).UTC(), info.JailedUntil)
+		// validator should have missed all blocks except the last one
+		missedBlocks, err = keeper.GetValidatorMissedBlocks(ctx, consAddr)
+		require.NoError(err)
+		require.Len(missedBlocks, int(params.SignedBlocksWindow)-1)
+	}
 }

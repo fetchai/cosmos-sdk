@@ -3,7 +3,7 @@ package secp256r1
 import (
 	"testing"
 
-	proto "github.com/gogo/protobuf/proto"
+	proto "github.com/cosmos/gogoproto/proto"
 	"github.com/stretchr/testify/suite"
 
 	"github.com/cosmos/cosmos-sdk/codec"
@@ -62,13 +62,13 @@ func (suite *PKSuite) TestEquals() {
 	require.False(suite.pk.Equals(pkOther))
 	require.True(pkOther.Equals(pkOther2))
 	require.True(pkOther2.Equals(pkOther))
-	require.True(pkOther.Equals(pkOther), "Equals must be reflexive")
+	require.True(pkOther.Equals(pkOther), "Equals must be reflexive") //nolint:gocritic // false positive
 }
 
 func (suite *PKSuite) TestMarshalProto() {
 	require := suite.Require()
 
-	/**** test structure marshalling ****/
+	/**** test structure marshaling ****/
 
 	var pk PubKey
 	bz, err := proto.Marshal(suite.pk)
@@ -76,14 +76,18 @@ func (suite *PKSuite) TestMarshalProto() {
 	require.NoError(proto.Unmarshal(bz, &pk))
 	require.True(pk.Equals(suite.pk))
 
-	/**** test structure marshalling with codec ****/
+	/**** test structure marshaling with codec ****/
 
 	pk = PubKey{}
+	emptyRegistry := types.NewInterfaceRegistry()
+	emptyCodec := codec.NewProtoCodec(emptyRegistry)
 	registry := types.NewInterfaceRegistry()
-	cdc := codec.NewProtoCodec(registry)
-	bz, err = cdc.Marshal(suite.pk)
+	RegisterInterfaces(registry)
+	pubkeyCodec := codec.NewProtoCodec(registry)
+
+	bz, err = emptyCodec.Marshal(suite.pk)
 	require.NoError(err)
-	require.NoError(cdc.Unmarshal(bz, &pk))
+	require.NoError(emptyCodec.Unmarshal(bz, &pk))
 	require.True(pk.Equals(suite.pk))
 
 	const bufSize = 100
@@ -100,19 +104,18 @@ func (suite *PKSuite) TestMarshalProto() {
 	require.Len(bz2, bufSize)
 	require.Equal(bz, bz2[(bufSize-pk.Size()):])
 
-	/**** test interface marshalling ****/
-	bz, err = cdc.MarshalInterface(suite.pk)
+	/**** test interface marshaling ****/
+	bz, err = pubkeyCodec.MarshalInterface(suite.pk)
 	require.NoError(err)
 	var pkI cryptotypes.PubKey
-	err = cdc.UnmarshalInterface(bz, &pkI)
+	err = emptyCodec.UnmarshalInterface(bz, &pkI)
 	require.EqualError(err, "no registered implementations of type types.PubKey")
 
-	RegisterInterfaces(registry)
-	require.NoError(cdc.UnmarshalInterface(bz, &pkI))
+	RegisterInterfaces(emptyRegistry)
+	require.NoError(emptyCodec.UnmarshalInterface(bz, &pkI))
 	require.True(pkI.Equals(suite.pk))
 
-	cdc.UnmarshalInterface(bz, nil)
-	require.Error(err, "nil should fail")
+	require.Error(emptyCodec.UnmarshalInterface(bz, nil), "nil should fail")
 }
 
 func (suite *PKSuite) TestSize() {
@@ -122,4 +125,15 @@ func (suite *PKSuite) TestSize() {
 
 	var nilPk *ecdsaPK
 	require.Equal(0, nilPk.Size(), "nil value must have zero size")
+}
+
+func (suite *PKSuite) TestJson() {
+	require := suite.Require()
+
+	bz, err := suite.pk.Key.MarshalJSON()
+	require.NoError(err)
+
+	pk := &ecdsaPK{}
+	require.NoError(pk.UnmarshalJSON(bz))
+	require.Equal(suite.pk.Key, pk)
 }

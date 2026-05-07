@@ -1,13 +1,20 @@
 package client
 
 import (
+	"context"
+	"crypto/tls"
 	"fmt"
+	"slices"
 	"strings"
 
-	"github.com/pkg/errors"
+	"github.com/cockroachdb/errors"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
-	"github.com/tendermint/tendermint/libs/cli"
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials"
+	"google.golang.org/grpc/credentials/insecure"
+
+	signingv1beta1 "cosmossdk.io/api/cosmos/tx/signing/v1beta1"
 
 	"github.com/cosmos/cosmos-sdk/client/flags"
 	"github.com/cosmos/cosmos-sdk/crypto/keyring"
@@ -88,8 +95,8 @@ func ValidateCmd(cmd *cobra.Command, args []string) error {
 // - client.Context field pre-populated & flag not set: uses pre-populated value
 // - client.Context field pre-populated & flag set: uses set flag value
 func ReadPersistentCommandFlags(clientCtx Context, flagSet *pflag.FlagSet) (Context, error) {
-	if clientCtx.OutputFormat == "" || flagSet.Changed(cli.OutputFlag) {
-		output, _ := flagSet.GetString(cli.OutputFlag)
+	if clientCtx.OutputFormat == "" || flagSet.Changed(flags.FlagOutput) {
+		output, _ := flagSet.GetString(flags.FlagOutput)
 		clientCtx = clientCtx.WithOutputFormat(output)
 	}
 
@@ -144,6 +151,28 @@ func ReadPersistentCommandFlags(clientCtx Context, flagSet *pflag.FlagSet) (Cont
 			}
 
 			clientCtx = clientCtx.WithClient(client)
+		}
+	}
+
+	if clientCtx.GRPCClient == nil || flagSet.Changed(flags.FlagGRPC) {
+		grpcURI, _ := flagSet.GetString(flags.FlagGRPC)
+		if grpcURI != "" {
+			var dialOpts []grpc.DialOption
+
+			useInsecure, _ := flagSet.GetBool(flags.FlagGRPCInsecure)
+			if useInsecure {
+				dialOpts = append(dialOpts, grpc.WithTransportCredentials(insecure.NewCredentials()))
+			} else {
+				dialOpts = append(dialOpts, grpc.WithTransportCredentials(credentials.NewTLS(&tls.Config{
+					MinVersion: tls.VersionTLS12,
+				})))
+			}
+
+			grpcClient, err := grpc.Dial(grpcURI, dialOpts...) // nolint:staticcheck // grpc.Dial is deprecated but we still use it
+			if err != nil {
+				return Context{}, err
+			}
+			clientCtx = clientCtx.WithGRPCClient(grpcClient)
 		}
 	}
 
@@ -220,8 +249,21 @@ func readTxCommandFlags(clientCtx Context, flagSet *pflag.FlagSet) (Context, err
 		clientCtx = clientCtx.WithSignModeStr(signModeStr)
 	}
 
-	if clientCtx.FeeGranter == nil || flagSet.Changed(flags.FlagFeeAccount) {
-		granter, _ := flagSet.GetString(flags.FlagFeeAccount)
+	if clientCtx.FeePayer == nil || flagSet.Changed(flags.FlagFeePayer) {
+		payer, _ := flagSet.GetString(flags.FlagFeePayer)
+
+		if payer != "" {
+			payerAcc, err := sdk.AccAddressFromBech32(payer)
+			if err != nil {
+				return clientCtx, err
+			}
+
+			clientCtx = clientCtx.WithFeePayerAddress(payerAcc)
+		}
+	}
+
+	if clientCtx.FeeGranter == nil || flagSet.Changed(flags.FlagFeeGranter) {
+		granter, _ := flagSet.GetString(flags.FlagFeeGranter)
 
 		if granter != "" {
 			granterAcc, err := sdk.AccAddressFromBech32(granter)
@@ -235,21 +277,47 @@ func readTxCommandFlags(clientCtx Context, flagSet *pflag.FlagSet) (Context, err
 
 	if clientCtx.From == "" || flagSet.Changed(flags.FlagFrom) {
 		from, _ := flagSet.GetString(flags.FlagFrom)
-		fromAddr, fromName, keyType, err := GetFromFields(clientCtx.Keyring, from, clientCtx.GenerateOnly)
+		fromAddr, fromName, keyType, err := GetFromFields(clientCtx, clientCtx.Keyring, from)
 		if err != nil {
-			return clientCtx, err
+			return clientCtx, fmt.Errorf("failed to convert address field to address: %w", err)
 		}
 
 		clientCtx = clientCtx.WithFrom(from).WithFromAddress(fromAddr).WithFromName(fromName)
 
+		if keyType == keyring.TypeLedger && clientCtx.SignModeStr == flags.SignModeTextual {
+			if !slices.Contains(clientCtx.TxConfig.SignModeHandler().SupportedModes(), signingv1beta1.SignMode_SIGN_MODE_TEXTUAL) {
+				return clientCtx, fmt.Errorf("SIGN_MODE_TEXTUAL is not available")
+			}
+		}
+
 		// If the `from` signer account is a ledger key, we need to use
 		// SIGN_MODE_AMINO_JSON, because ledger doesn't support proto yet.
 		// ref: https://github.com/cosmos/cosmos-sdk/issues/8109
-		if keyType == keyring.TypeLedger && clientCtx.SignModeStr != flags.SignModeLegacyAminoJSON {
+		if keyType == keyring.TypeLedger &&
+			clientCtx.SignModeStr != flags.SignModeLegacyAminoJSON &&
+			clientCtx.SignModeStr != flags.SignModeTextual &&
+			!clientCtx.LedgerHasProtobuf {
 			fmt.Println("Default sign-mode 'direct' not supported by Ledger, using sign-mode 'amino-json'.")
 			clientCtx = clientCtx.WithSignModeStr(flags.SignModeLegacyAminoJSON)
 		}
 	}
+
+	if !clientCtx.IsAux || flagSet.Changed(flags.FlagAux) {
+		isAux, _ := flagSet.GetBool(flags.FlagAux)
+		clientCtx = clientCtx.WithAux(isAux)
+		if isAux {
+			// If the user didn't explicitly set an --output flag, use JSON by default.
+			if clientCtx.OutputFormat == "" || !flagSet.Changed(flags.FlagOutput) {
+				clientCtx = clientCtx.WithOutputFormat(flags.OutputFormatJSON)
+			}
+
+			// If the user didn't explicitly set a --sign-mode flag, use DIRECT_AUX by default.
+			if clientCtx.SignModeStr == "" || !flagSet.Changed(flags.FlagSignMode) {
+				clientCtx = clientCtx.WithSignModeStr(flags.SignModeDirectAux)
+			}
+		}
+	}
+
 	return clientCtx, nil
 }
 
@@ -289,14 +357,19 @@ func GetClientContextFromCmd(cmd *cobra.Command) Context {
 }
 
 // SetCmdClientContext sets a command's Context value to the provided argument.
+// If the context has not been set, set the given context as the default.
 func SetCmdClientContext(cmd *cobra.Command, clientCtx Context) error {
-	v := cmd.Context().Value(ClientContextKey)
-	if v == nil {
-		return errors.New("client context not set")
+	cmdCtx := cmd.Context()
+	if cmdCtx == nil {
+		cmdCtx = context.Background()
 	}
 
-	clientCtxPtr := v.(*Context)
-	*clientCtxPtr = clientCtx
+	v := cmd.Context().Value(ClientContextKey)
+	if clientCtxPtr, ok := v.(*Context); ok {
+		*clientCtxPtr = clientCtx
+	} else {
+		cmd.SetContext(context.WithValue(cmdCtx, ClientContextKey, &clientCtx))
+	}
 
 	return nil
 }

@@ -3,6 +3,8 @@ package types
 import (
 	"encoding/binary"
 
+	"cosmossdk.io/collections"
+
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/types/address"
 	"github.com/cosmos/cosmos-sdk/types/kv"
@@ -17,9 +19,6 @@ const (
 
 	// RouterKey is the message route for distribution
 	RouterKey = ModuleName
-
-	// QuerierRoute is the querier route for distribution
-	QuerierRoute = ModuleName
 )
 
 // Keys for distribution store
@@ -42,10 +41,12 @@ const (
 // - 0x07<valAddrLen (1 Byte)><valAddr_Bytes>: ValidatorCurrentCommission
 //
 // - 0x08<valAddrLen (1 Byte)><valAddr_Bytes><height>: ValidatorSlashEvent
+//
+// - 0x09: Params
 var (
-	FeePoolKey                        = []byte{0x00} // key for global distribution state
-	ProposerKey                       = []byte{0x01} // key for the proposer operator address
-	ValidatorOutstandingRewardsPrefix = []byte{0x02} // key for outstanding rewards
+	FeePoolKey                        = collections.NewPrefix(0) // key for global distribution state
+	ProposerKey                       = []byte{0x01}             // key for the proposer operator address
+	ValidatorOutstandingRewardsPrefix = []byte{0x02}             // key for outstanding rewards
 
 	DelegatorWithdrawAddrPrefix          = []byte{0x03} // key for delegator withdraw address
 	DelegatorStartingInfoPrefix          = []byte{0x04} // key for delegator starting info
@@ -53,6 +54,8 @@ var (
 	ValidatorCurrentRewardsPrefix        = []byte{0x06} // key for current validator rewards
 	ValidatorAccumulatedCommissionPrefix = []byte{0x07} // key for accumulated validator commission
 	ValidatorSlashEventPrefix            = []byte{0x08} // key for validator slash fraction
+
+	ParamsKey = collections.NewPrefix(9) // key for distribution module params
 )
 
 // GetValidatorOutstandingRewardsAddress creates an address from a validator's outstanding rewards key.
@@ -94,7 +97,7 @@ func GetDelegatorStartingInfoAddresses(key []byte) (valAddr sdk.ValAddress, delA
 	delAddr = sdk.AccAddress(key[3+valAddrLen:])
 	kv.AssertKeyLength(delAddr.Bytes(), delAddrLen)
 
-	return
+	return valAddr, delAddr
 }
 
 // GetValidatorHistoricalRewardsAddressPeriod creates the address & period from a validator's historical rewards key.
@@ -108,7 +111,7 @@ func GetValidatorHistoricalRewardsAddressPeriod(key []byte) (valAddr sdk.ValAddr
 	b := key[2+valAddrLen:]
 	kv.AssertKeyLength(b, 8)
 	period = binary.LittleEndian.Uint64(b)
-	return
+	return valAddr, period
 }
 
 // GetValidatorCurrentRewardsAddress creates the address from a validator's current rewards key.
@@ -149,7 +152,7 @@ func GetValidatorSlashEventAddressHeight(key []byte) (valAddr sdk.ValAddress, he
 	kv.AssertKeyAtLeastLength(key, startB+9)
 	b := key[startB : startB+8] // the next 8 bytes represent the height
 	height = binary.BigEndian.Uint64(b)
-	return
+	return valAddr, height
 }
 
 // GetValidatorOutstandingRewardsKey creates the outstanding rewards key for a validator.

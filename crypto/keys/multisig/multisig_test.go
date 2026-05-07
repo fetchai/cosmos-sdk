@@ -6,19 +6,23 @@ import (
 
 	"github.com/stretchr/testify/require"
 
+	"cosmossdk.io/core/address"
+	"cosmossdk.io/depinject"
+	"cosmossdk.io/log"
+
 	"github.com/cosmos/cosmos-sdk/codec"
+	addresscodec "github.com/cosmos/cosmos-sdk/codec/address"
 	"github.com/cosmos/cosmos-sdk/codec/legacy"
 	"github.com/cosmos/cosmos-sdk/codec/types"
 	cryptocodec "github.com/cosmos/cosmos-sdk/crypto/codec"
-	"github.com/cosmos/cosmos-sdk/crypto/keyring"
 	kmultisig "github.com/cosmos/cosmos-sdk/crypto/keys/multisig"
 	"github.com/cosmos/cosmos-sdk/crypto/keys/secp256k1"
 	cryptotypes "github.com/cosmos/cosmos-sdk/crypto/types"
 	"github.com/cosmos/cosmos-sdk/crypto/types/multisig"
-	"github.com/cosmos/cosmos-sdk/simapp"
-	sdk "github.com/cosmos/cosmos-sdk/types"
+	"github.com/cosmos/cosmos-sdk/runtime"
+	"github.com/cosmos/cosmos-sdk/testutil/configurator"
 	"github.com/cosmos/cosmos-sdk/types/tx/signing"
-	"github.com/cosmos/cosmos-sdk/x/auth/legacy/legacytx"
+	"github.com/cosmos/cosmos-sdk/x/auth/migrations/legacytx"
 )
 
 func TestNewMultiSig(t *testing.T) {
@@ -125,12 +129,12 @@ func TestVerifyMultisignature(t *testing.T) {
 			func(require *require.Assertions) {
 				k := 2
 				signingIndices := []int{0, 3, 1}
-				pubKeys, sigs := generatePubKeysAndSignatures(5, msg)
+				pubKeys, sigs := generatePubKeysAndSignatures(8, msg)
 				pk = kmultisig.NewLegacyAminoPubKey(k, pubKeys)
 				sig = multisig.NewMultisig(len(pubKeys))
 				signBytesFn := func(mode signing.SignMode) ([]byte, error) { return msg, nil }
 
-				for i := 0; i < k-1; i++ {
+				for i := range k - 1 {
 					signingIndex := signingIndices[i]
 					require.NoError(
 						multisig.AddSignatureFromPubKey(sig, sigs[signingIndex], pubKeys[signingIndex], pubKeys),
@@ -175,7 +179,7 @@ func TestVerifyMultisignature(t *testing.T) {
 				sig = multisig.NewMultisig(5)
 
 				require.Error(pk.VerifyMultisignature(signBytesFn, sig))
-				multisig.AddSignatureFromPubKey(sig, sigs[0], pubKeys[0], pubKeys)
+				require.NoError(multisig.AddSignatureFromPubKey(sig, sigs[0], pubKeys[0], pubKeys))
 				// Add second signature manually
 				sig.Signatures = append(sig.Signatures, sigs[0])
 			},
@@ -213,8 +217,8 @@ func TestVerifyMultisignature(t *testing.T) {
 				_, sigs := generatePubKeysAndSignatures(2, msg)
 				pk = kmultisig.NewLegacyAminoPubKey(2, pubKeys)
 				sig = multisig.NewMultisig(2)
-				multisig.AddSignatureFromPubKey(sig, sigs[0], pubKeys[0], pubKeys)
-				multisig.AddSignatureFromPubKey(sig, sigs[1], pubKeys[1], pubKeys)
+				require.NoError(multisig.AddSignatureFromPubKey(sig, sigs[0], pubKeys[0], pubKeys))
+				require.NoError(multisig.AddSignatureFromPubKey(sig, sigs[1], pubKeys[1], pubKeys))
 			},
 			false,
 		},
@@ -267,7 +271,7 @@ func TestMultiSigMigration(t *testing.T) {
 	require.NoError(t, multisig.AddSignatureFromPubKey(multisignature, sigs[0], pkSet[0], pkSet))
 
 	// create a StdSignature for msg, and convert it to sigV2
-	sig := legacytx.StdSignature{PubKey: pkSet[1], Signature: sigs[1].(*signing.SingleSignatureData).Signature}
+	sig := legacytx.StdSignature{PubKey: pkSet[1], Signature: sigs[1].(*signing.SingleSignatureData).Signature} //nolint:staticcheck // SA1019: legacytx.StdSignature is deprecated: use Tx.Msgs, Signatures and Memo instead.
 	sigV2, err := legacytx.StdSignatureToSignatureV2(cdc, sig)
 	require.NoError(t, multisig.AddSignatureV2(multisignature, sigV2, pkSet))
 
@@ -294,7 +298,7 @@ func TestPubKeyMultisigThresholdAminoToIface(t *testing.T) {
 
 func generatePubKeys(n int) []cryptotypes.PubKey {
 	pks := make([]cryptotypes.PubKey, n)
-	for i := 0; i < n; i++ {
+	for i := range n {
 		pks[i] = secp256k1.GenPrivKey().PubKey()
 	}
 	return pks
@@ -304,24 +308,24 @@ func generatePubKeysAndSignatures(n int, msg []byte) (pubKeys []cryptotypes.PubK
 	pubKeys = make([]cryptotypes.PubKey, n)
 	signatures = make([]signing.SignatureData, n)
 
-	for i := 0; i < n; i++ {
+	for i := range n {
 		privkey := secp256k1.GenPrivKey()
 		pubKeys[i] = privkey.PubKey()
 
 		sig, _ := privkey.Sign(msg)
 		signatures[i] = &signing.SingleSignatureData{Signature: sig}
 	}
-	return
+	return pubKeys, signatures
 }
 
 func generateNestedMultiSignature(n int, msg []byte) (multisig.PubKey, *signing.MultiSignatureData) {
 	pubKeys := make([]cryptotypes.PubKey, n)
 	signatures := make([]signing.SignatureData, n)
 	bitArray := cryptotypes.NewCompactBitArray(n)
-	for i := 0; i < n; i++ {
+	for i := range n {
 		nestedPks, nestedSigs := generatePubKeysAndSignatures(5, msg)
 		nestedBitArray := cryptotypes.NewCompactBitArray(5)
-		for j := 0; j < 5; j++ {
+		for j := range 5 {
 			nestedBitArray.SetIndex(j, true)
 		}
 		nestedSig := &signing.MultiSignatureData{
@@ -344,7 +348,7 @@ func reorderPubKey(pk *kmultisig.LegacyAminoPubKey) (other *kmultisig.LegacyAmin
 	pubkeysCpy[0] = pk.PubKeys[1]
 	pubkeysCpy[1] = pk.PubKeys[0]
 	other = &kmultisig.LegacyAminoPubKey{Threshold: 2, PubKeys: pubkeysCpy}
-	return
+	return other
 }
 
 func TestDisplay(t *testing.T) {
@@ -352,12 +356,19 @@ func TestDisplay(t *testing.T) {
 	pubKeys := generatePubKeys(3)
 	msig := kmultisig.NewLegacyAminoPubKey(2, pubKeys)
 
-	// LegacyAminoPubKey wraps PubKeys into Amino (for serialization) and Any String method doesn't work.
-	require.PanicsWithValue("reflect.Value.Interface: cannot return value obtained from unexported field or method",
-		func() { require.Empty(msig.String()) },
-	)
-	ccfg := simapp.MakeTestEncodingConfig()
-	bz, err := ccfg.Marshaler.MarshalInterfaceJSON(msig)
+	require.NotEmpty(msig.String())
+	var cdc codec.Codec
+	err := depinject.Inject(
+		depinject.Configs(
+			configurator.NewAppConfig(),
+			depinject.Supply(log.NewNopLogger(),
+				func() address.Codec { return addresscodec.NewBech32Codec("cosmos") },
+				func() runtime.ValidatorAddressCodec { return addresscodec.NewBech32Codec("cosmosvaloper") },
+				func() runtime.ConsensusAddressCodec { return addresscodec.NewBech32Codec("cosmosvalcons") },
+			),
+		), &cdc)
+	require.NoError(err)
+	bz, err := cdc.MarshalInterfaceJSON(msig)
 	require.NoError(err)
 	expectedPrefix := `{"@type":"/cosmos.crypto.multisig.LegacyAminoPubKey","threshold":2,"public_keys":[{"@type":"/cosmos.crypto.secp256k1.PubKey"`
 	require.True(strings.HasPrefix(string(bz), expectedPrefix))
@@ -433,31 +444,12 @@ func TestAminoUnmarshalJSON(t *testing.T) {
 	require.NoError(t, err)
 	lpk := pk.(*kmultisig.LegacyAminoPubKey)
 	require.Equal(t, uint32(3), lpk.Threshold)
-}
+	require.Equal(t, 5, len(pk.(*kmultisig.LegacyAminoPubKey).PubKeys))
 
-func TestProtoMarshalJSON(t *testing.T) {
-	require := require.New(t)
-	pubkeys := generatePubKeys(3)
-	msig := kmultisig.NewLegacyAminoPubKey(2, pubkeys)
-
-	registry := types.NewInterfaceRegistry()
-	cryptocodec.RegisterInterfaces(registry)
-	cdc := codec.NewProtoCodec(registry)
-
-	bz, err := cdc.MarshalInterfaceJSON(msig)
-	require.NoError(err)
-
-	var pk2 cryptotypes.PubKey
-	err = cdc.UnmarshalInterfaceJSON(bz, &pk2)
-	require.NoError(err)
-	require.True(pk2.Equals(msig))
-
-	// Test that we can correctly unmarshal key from keyring output
-
-	info, err := keyring.NewMultiInfo("my multisig", msig)
-	require.NoError(err)
-	ko, err := keyring.MkAccKeyOutput(info)
-	require.NoError(err)
-	require.Equal(ko.Address, sdk.AccAddress(pk2.Address()).String())
-	require.Equal(ko.PubKey, string(bz))
+	for _, key := range pk.(*kmultisig.LegacyAminoPubKey).PubKeys {
+		require.NotNil(t, key)
+		pk := secp256k1.PubKey{}
+		err := pk.Unmarshal(key.Value)
+		require.NoError(t, err)
+	}
 }

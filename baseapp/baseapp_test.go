@@ -1,94 +1,253 @@
-package baseapp
+package baseapp_test
 
 import (
-	"encoding/json"
-	"os"
+	"bytes"
+	"context"
+	"crypto/sha256"
+	"fmt"
+	"math/rand"
 	"testing"
+	"time"
 
+	abci "github.com/cometbft/cometbft/abci/types"
+	cmtproto "github.com/cometbft/cometbft/proto/tendermint/types"
+	dbm "github.com/cosmos/cosmos-db"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	abci "github.com/tendermint/tendermint/abci/types"
-	"github.com/tendermint/tendermint/libs/log"
-	tmproto "github.com/tendermint/tendermint/proto/tendermint/types"
-	dbm "github.com/tendermint/tm-db"
 
+	errorsmod "cosmossdk.io/errors"
+	"cosmossdk.io/log"
+	"cosmossdk.io/store/metrics"
+	pruningtypes "cosmossdk.io/store/pruning/types"
+	"cosmossdk.io/store/rootmulti"
+	"cosmossdk.io/store/snapshots"
+	snapshottypes "cosmossdk.io/store/snapshots/types"
+	storetypes "cosmossdk.io/store/types"
+
+	"github.com/cosmos/cosmos-sdk/baseapp"
+	baseapptestutil "github.com/cosmos/cosmos-sdk/baseapp/testutil"
+	"github.com/cosmos/cosmos-sdk/client"
 	"github.com/cosmos/cosmos-sdk/codec"
-	store "github.com/cosmos/cosmos-sdk/store/types"
+	codectestutil "github.com/cosmos/cosmos-sdk/codec/testutil"
+	codectypes "github.com/cosmos/cosmos-sdk/codec/types"
+	"github.com/cosmos/cosmos-sdk/testutil"
+	"github.com/cosmos/cosmos-sdk/testutil/testdata"
 	sdk "github.com/cosmos/cosmos-sdk/types"
-	"github.com/cosmos/cosmos-sdk/x/auth/legacy/legacytx"
+	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
+	authtx "github.com/cosmos/cosmos-sdk/x/auth/tx"
 )
 
 var (
-	capKey1 = sdk.NewKVStoreKey("key1")
-	capKey2 = sdk.NewKVStoreKey("key2")
+	capKey1 = storetypes.NewKVStoreKey("key1")
+	capKey2 = storetypes.NewKVStoreKey("key2")
+
+	// testTxPriority is the CheckTx priority that we set in the test
+	// AnteHandler.
+	testTxPriority = int64(42)
 )
 
-func defaultLogger() log.Logger {
-	return log.NewTMLogger(log.NewSyncWriter(os.Stdout)).With("module", "sdk/app")
-}
+type (
+	BaseAppSuite struct {
+		baseApp   *baseapp.BaseApp
+		cdc       *codec.ProtoCodec
+		txConfig  client.TxConfig
+		logBuffer *bytes.Buffer
+	}
 
-func newBaseApp(name string, options ...func(*BaseApp)) *BaseApp {
-	logger := defaultLogger()
+	SnapshotsConfig struct {
+		blocks             uint64
+		blockTxs           int
+		snapshotInterval   uint64
+		snapshotKeepRecent uint32
+		pruningOpts        pruningtypes.PruningOptions
+	}
+)
+
+func NewBaseAppSuite(t *testing.T, opts ...func(*baseapp.BaseApp)) *BaseAppSuite {
+	t.Helper()
+
+	cdc := codectestutil.CodecOptions{}.NewCodec()
+	baseapptestutil.RegisterInterfaces(cdc.InterfaceRegistry())
+
+	txConfig := authtx.NewTxConfig(cdc, authtx.DefaultSignModes)
 	db := dbm.NewMemDB()
-	codec := codec.NewLegacyAmino()
-	registerTestCodec(codec)
-	return NewBaseApp(name, logger, db, testTxDecoder(codec), options...)
-}
+	logBuffer := new(bytes.Buffer)
+	logger := log.NewLogger(logBuffer, log.ColorOption(false))
 
-func registerTestCodec(cdc *codec.LegacyAmino) {
-	// register Tx, Msg
-	sdk.RegisterLegacyAminoCodec(cdc)
-
-	// register test types
-	cdc.RegisterConcrete(&txTest{}, "cosmos-sdk/baseapp/txTest", nil)
-	cdc.RegisterConcrete(&msgCounter{}, "cosmos-sdk/baseapp/msgCounter", nil)
-	cdc.RegisterConcrete(&msgCounter2{}, "cosmos-sdk/baseapp/msgCounter2", nil)
-	cdc.RegisterConcrete(&msgKeyValue{}, "cosmos-sdk/baseapp/msgKeyValue", nil)
-	cdc.RegisterConcrete(&msgNoRoute{}, "cosmos-sdk/baseapp/msgNoRoute", nil)
-}
-
-// aminoTxEncoder creates a amino TxEncoder for testing purposes.
-func aminoTxEncoder() sdk.TxEncoder {
-	cdc := codec.NewLegacyAmino()
-	registerTestCodec(cdc)
-
-	return legacytx.StdTxConfig{Cdc: cdc}.TxEncoder()
-}
-
-// simple one store baseapp
-func setupBaseApp(t *testing.T, options ...func(*BaseApp)) *BaseApp {
-	app := newBaseApp(t.Name(), options...)
+	app := baseapp.NewBaseApp(t.Name(), logger, db, txConfig.TxDecoder(), opts...)
 	require.Equal(t, t.Name(), app.Name())
 
+	app.SetInterfaceRegistry(cdc.InterfaceRegistry())
+	app.MsgServiceRouter().SetInterfaceRegistry(cdc.InterfaceRegistry())
 	app.MountStores(capKey1, capKey2)
-	app.SetParamStore(&paramStore{db: dbm.NewMemDB()})
+	app.SetParamStore(paramStore{db: dbm.NewMemDB()})
+	app.SetTxDecoder(txConfig.TxDecoder())
+	app.SetTxEncoder(txConfig.TxEncoder())
 
-	// stores are mounted
-	err := app.LoadLatestVersion()
-	require.Nil(t, err)
+	// mount stores and seal
+	require.Nil(t, app.LoadLatestVersion())
+
+	return &BaseAppSuite{
+		baseApp:   app,
+		cdc:       cdc,
+		txConfig:  txConfig,
+		logBuffer: logBuffer,
+	}
+}
+
+func getQueryBaseapp(t *testing.T) *baseapp.BaseApp {
+	t.Helper()
+
+	db := dbm.NewMemDB()
+	name := t.Name()
+	app := baseapp.NewBaseApp(name, log.NewTestLogger(t), db, nil)
+
+	_, err := app.FinalizeBlock(&abci.RequestFinalizeBlock{Height: 1})
+	require.NoError(t, err)
+	_, err = app.Commit()
+	require.NoError(t, err)
+
+	_, err = app.FinalizeBlock(&abci.RequestFinalizeBlock{Height: 2})
+	require.NoError(t, err)
+	_, err = app.Commit()
+	require.NoError(t, err)
+
 	return app
 }
 
-func TestLoadVersionPruning(t *testing.T) {
-	logger := log.NewNopLogger()
-	pruningOptions := store.PruningOptions{
-		KeepRecent: 2,
-		KeepEvery:  3,
-		Interval:   1,
+func NewBaseAppSuiteWithSnapshots(t *testing.T, cfg SnapshotsConfig, opts ...func(*baseapp.BaseApp)) *BaseAppSuite {
+	t.Helper()
+
+	snapshotTimeout := 1 * time.Minute
+	snapshotStore, err := snapshots.NewStore(dbm.NewMemDB(), testutil.GetTempDir(t))
+	require.NoError(t, err)
+
+	suite := NewBaseAppSuite(
+		t,
+		append(
+			opts,
+			baseapp.SetSnapshot(snapshotStore, snapshottypes.NewSnapshotOptions(cfg.snapshotInterval, cfg.snapshotKeepRecent)),
+			baseapp.SetPruning(cfg.pruningOpts),
+		)...,
+	)
+
+	baseapptestutil.RegisterKeyValueServer(suite.baseApp.MsgServiceRouter(), MsgKeyValueImpl{})
+
+	_, err = suite.baseApp.InitChain(&abci.RequestInitChain{
+		ConsensusParams: &cmtproto.ConsensusParams{},
+	})
+	require.NoError(t, err)
+
+	r := rand.New(rand.NewSource(3920758213583))
+	keyCounter := 0
+
+	for height := int64(1); height <= int64(cfg.blocks); height++ {
+
+		_, _, addr := testdata.KeyTestPubAddr()
+		txs := [][]byte{}
+		for range cfg.blockTxs {
+			var msgs []sdk.Msg
+			for range 100 {
+				key := fmt.Appendf(nil, "%v", keyCounter)
+				value := make([]byte, 10000)
+
+				_, err := r.Read(value)
+				require.NoError(t, err)
+
+				msgs = append(msgs, &baseapptestutil.MsgKeyValue{Key: key, Value: value, Signer: addr.String()})
+				keyCounter++
+			}
+
+			builder := suite.txConfig.NewTxBuilder()
+			require.NoError(t, builder.SetMsgs(msgs...))
+			setTxSignature(t, builder, 0)
+
+			txBytes, err := suite.txConfig.TxEncoder()(builder.GetTx())
+			require.NoError(t, err)
+
+			txs = append(txs, txBytes)
+		}
+
+		_, err := suite.baseApp.FinalizeBlock(&abci.RequestFinalizeBlock{
+			Height: height,
+			Txs:    txs,
+		})
+		require.NoError(t, err)
+
+		_, err = suite.baseApp.Commit()
+		require.NoError(t, err)
+
+		// wait for snapshot to be taken, since it happens asynchronously
+		if cfg.snapshotInterval > 0 && uint64(height)%cfg.snapshotInterval == 0 {
+			start := time.Now()
+			for {
+				if time.Since(start) > snapshotTimeout {
+					t.Errorf("timed out waiting for snapshot after %v", snapshotTimeout)
+				}
+
+				snapshot, err := snapshotStore.Get(uint64(height), snapshottypes.CurrentFormat)
+				require.NoError(t, err)
+
+				if snapshot != nil {
+					break
+				}
+
+				time.Sleep(100 * time.Millisecond)
+			}
+		}
 	}
-	pruningOpt := SetPruning(pruningOptions)
+
+	return suite
+}
+
+func TestAnteHandlerGasMeter(t *testing.T) {
+	// run BeginBlock and assert that the gas meter passed into the first Txn is zeroed out
+	anteOpt := func(bapp *baseapp.BaseApp) {
+		bapp.SetAnteHandler(func(ctx sdk.Context, tx sdk.Tx, simulate bool) (newCtx sdk.Context, err error) {
+			gasMeter := ctx.BlockGasMeter()
+			require.NotNil(t, gasMeter)
+			require.Equal(t, storetypes.Gas(0), gasMeter.GasConsumed())
+			return ctx, nil
+		})
+	}
+	// set the beginBlocker to use some gas
+	beginBlockerOpt := func(bapp *baseapp.BaseApp) {
+		bapp.SetBeginBlocker(func(ctx sdk.Context) (sdk.BeginBlock, error) {
+			ctx.BlockGasMeter().ConsumeGas(1, "beginBlocker gas consumption")
+			return sdk.BeginBlock{}, nil
+		})
+	}
+
+	suite := NewBaseAppSuite(t, anteOpt, beginBlockerOpt)
+	_, err := suite.baseApp.InitChain(&abci.RequestInitChain{
+		ConsensusParams: &cmtproto.ConsensusParams{},
+	})
+	require.NoError(t, err)
+
+	deliverKey := []byte("deliver-key")
+	baseapptestutil.RegisterCounterServer(suite.baseApp.MsgServiceRouter(), CounterServerImpl{t, capKey1, deliverKey})
+
+	tx := newTxCounter(t, suite.txConfig, 0, 0)
+	txBytes, err := suite.txConfig.TxEncoder()(tx)
+	require.NoError(t, err)
+	_, err = suite.baseApp.FinalizeBlock(&abci.RequestFinalizeBlock{Height: 1, Txs: [][]byte{txBytes}})
+	require.NoError(t, err)
+}
+
+func TestLoadVersion(t *testing.T) {
+	logger := log.NewTestLogger(t)
+	pruningOpt := baseapp.SetPruning(pruningtypes.NewPruningOptions(pruningtypes.PruningNothing))
 	db := dbm.NewMemDB()
 	name := t.Name()
-	app := NewBaseApp(name, logger, db, nil, pruningOpt)
+	app := baseapp.NewBaseApp(name, logger, db, nil, pruningOpt)
 
 	// make a cap key and mount the store
-	capKey := sdk.NewKVStoreKey("key1")
-	app.MountStores(capKey)
-
 	err := app.LoadLatestVersion() // needed to make stores non-nil
 	require.Nil(t, err)
 
-	emptyCommitID := sdk.CommitID{}
+	emptyHash := sha256.Sum256([]byte{})
+	appHash := emptyHash[:]
+	emptyCommitID := storetypes.CommitID{Hash: appHash}
 
 	// fresh store has zero/empty last commit
 	lastHeight := app.LastBlockHeight()
@@ -96,101 +255,771 @@ func TestLoadVersionPruning(t *testing.T) {
 	require.Equal(t, int64(0), lastHeight)
 	require.Equal(t, emptyCommitID, lastID)
 
-	var lastCommitID sdk.CommitID
+	// execute a block, collect commit ID
+	res, err := app.FinalizeBlock(&abci.RequestFinalizeBlock{Height: 1})
+	require.NoError(t, err)
+	commitID1 := storetypes.CommitID{Version: 1, Hash: res.AppHash}
+	_, err = app.Commit()
+	require.NoError(t, err)
+
+	// execute a block, collect commit ID
+	res, err = app.FinalizeBlock(&abci.RequestFinalizeBlock{Height: 2})
+	require.NoError(t, err)
+	commitID2 := storetypes.CommitID{Version: 2, Hash: res.AppHash}
+	_, err = app.Commit()
+	require.NoError(t, err)
+
+	// reload with LoadLatestVersion
+	app = baseapp.NewBaseApp(name, logger, db, nil, pruningOpt)
+	app.MountStores()
+
+	err = app.LoadLatestVersion()
+	require.Nil(t, err)
+
+	testLoadVersionHelper(t, app, int64(2), commitID2)
+
+	// Reload with LoadVersion, see if you can commit the same block and get
+	// the same result.
+	app = baseapp.NewBaseApp(name, logger, db, nil, pruningOpt)
+	err = app.LoadVersion(1)
+	require.Nil(t, err)
+
+	testLoadVersionHelper(t, app, int64(1), commitID1)
+
+	_, err = app.FinalizeBlock(&abci.RequestFinalizeBlock{Height: 2})
+	require.NoError(t, err)
+	_, err = app.Commit()
+	require.NoError(t, err)
+
+	testLoadVersionHelper(t, app, int64(2), commitID2)
+}
+
+func TestSetLoader(t *testing.T) {
+	useDefaultLoader := func(app *baseapp.BaseApp) {
+		app.SetStoreLoader(baseapp.DefaultStoreLoader)
+	}
+
+	initStore := func(t *testing.T, db dbm.DB, storeKey string, k, v []byte) {
+		t.Helper()
+
+		rs := rootmulti.NewStore(db, log.NewNopLogger(), metrics.NewNoOpMetrics())
+		rs.SetPruning(pruningtypes.NewPruningOptions(pruningtypes.PruningNothing))
+
+		key := storetypes.NewKVStoreKey(storeKey)
+		rs.MountStoreWithDB(key, storetypes.StoreTypeIAVL, nil)
+
+		err := rs.LoadLatestVersion()
+		require.Nil(t, err)
+		require.Equal(t, int64(0), rs.LastCommitID().Version)
+
+		// write some data in substore
+		kv, _ := rs.GetStore(key).(storetypes.KVStore)
+		require.NotNil(t, kv)
+		kv.Set(k, v)
+
+		commitID := rs.Commit()
+		require.Equal(t, int64(1), commitID.Version)
+	}
+
+	checkStore := func(t *testing.T, db dbm.DB, ver int64, storeKey string, k, v []byte) {
+		t.Helper()
+
+		rs := rootmulti.NewStore(db, log.NewNopLogger(), metrics.NewNoOpMetrics())
+		rs.SetPruning(pruningtypes.NewPruningOptions(pruningtypes.PruningDefault))
+
+		key := storetypes.NewKVStoreKey(storeKey)
+		rs.MountStoreWithDB(key, storetypes.StoreTypeIAVL, nil)
+
+		err := rs.LoadLatestVersion()
+		require.Nil(t, err)
+		require.Equal(t, ver, rs.LastCommitID().Version)
+
+		// query data in substore
+		kv, _ := rs.GetStore(key).(storetypes.KVStore)
+		require.NotNil(t, kv)
+		require.Equal(t, v, kv.Get(k))
+	}
+
+	testCases := map[string]struct {
+		setLoader    func(*baseapp.BaseApp)
+		origStoreKey string
+		loadStoreKey string
+	}{
+		"don't set loader": {
+			origStoreKey: "foo",
+			loadStoreKey: "foo",
+		},
+		"default loader": {
+			setLoader:    useDefaultLoader,
+			origStoreKey: "foo",
+			loadStoreKey: "foo",
+		},
+	}
+
+	k := []byte("key")
+	v := []byte("value")
+
+	for name, tc := range testCases {
+		t.Run(name, func(t *testing.T) {
+			// prepare a db with some data
+			db := dbm.NewMemDB()
+			initStore(t, db, tc.origStoreKey, k, v)
+
+			// load the app with the existing db
+			opts := []func(*baseapp.BaseApp){baseapp.SetPruning(pruningtypes.NewPruningOptions(pruningtypes.PruningNothing))}
+			if tc.setLoader != nil {
+				opts = append(opts, tc.setLoader)
+			}
+			app := baseapp.NewBaseApp(t.Name(), log.NewTestLogger(t), db, nil, opts...)
+			app.MountStores(storetypes.NewKVStoreKey(tc.loadStoreKey))
+			err := app.LoadLatestVersion()
+			require.Nil(t, err)
+
+			// "execute" one block
+			res, err := app.FinalizeBlock(&abci.RequestFinalizeBlock{Height: 2})
+			require.NoError(t, err)
+			require.NotNil(t, res.AppHash)
+			_, err = app.Commit()
+			require.NoError(t, err)
+
+			// check db is properly updated
+			checkStore(t, db, 2, tc.loadStoreKey, k, v)
+			checkStore(t, db, 2, tc.loadStoreKey, []byte("foo"), nil)
+		})
+	}
+}
+
+func TestVersionSetterGetter(t *testing.T) {
+	pruningOpt := baseapp.SetPruning(pruningtypes.NewPruningOptions(pruningtypes.PruningDefault))
+	db := dbm.NewMemDB()
+	name := t.Name()
+	app := baseapp.NewBaseApp(name, log.NewTestLogger(t), db, nil, pruningOpt)
+
+	require.Equal(t, "", app.Version())
+	res, err := app.Query(context.TODO(), &abci.RequestQuery{Path: "app/version"})
+	require.NoError(t, err)
+	require.True(t, res.IsOK())
+	require.Equal(t, "", string(res.Value))
+
+	versionString := "1.0.0"
+	app.SetVersion(versionString)
+	require.Equal(t, versionString, app.Version())
+
+	res, err = app.Query(context.TODO(), &abci.RequestQuery{Path: "app/version"})
+	require.NoError(t, err)
+	require.True(t, res.IsOK())
+	require.Equal(t, versionString, string(res.Value))
+}
+
+func TestLoadVersionInvalid(t *testing.T) {
+	logger := log.NewNopLogger()
+	pruningOpt := baseapp.SetPruning(pruningtypes.NewPruningOptions(pruningtypes.PruningNothing))
+	db := dbm.NewMemDB()
+	name := t.Name()
+	app := baseapp.NewBaseApp(name, logger, db, nil, pruningOpt)
+
+	err := app.LoadLatestVersion()
+	require.Nil(t, err)
+
+	// require error when loading an invalid version
+	err = app.LoadVersion(-1)
+	require.Error(t, err)
+
+	res, err := app.FinalizeBlock(&abci.RequestFinalizeBlock{Height: 1})
+	require.NoError(t, err)
+	commitID1 := storetypes.CommitID{Version: 1, Hash: res.AppHash}
+	_, err = app.Commit()
+	require.NoError(t, err)
+
+	// create a new app with the stores mounted under the same cap key
+	app = baseapp.NewBaseApp(name, logger, db, nil, pruningOpt)
+
+	// require we can load the latest version
+	err = app.LoadVersion(1)
+	require.Nil(t, err)
+	testLoadVersionHelper(t, app, int64(1), commitID1)
+
+	// require error when loading an invalid version
+	err = app.LoadVersion(2)
+	require.Error(t, err)
+}
+
+func TestOptionFunction(t *testing.T) {
+	testChangeNameHelper := func(name string) func(*baseapp.BaseApp) {
+		return func(bap *baseapp.BaseApp) {
+			bap.SetName(name)
+		}
+	}
+
+	db := dbm.NewMemDB()
+	bap := baseapp.NewBaseApp("starting name", log.NewTestLogger(t), db, nil, testChangeNameHelper("new name"))
+	require.Equal(t, bap.Name(), "new name", "BaseApp should have had name changed via option function")
+}
+
+func TestBaseAppOptionSeal(t *testing.T) {
+	suite := NewBaseAppSuite(t)
+
+	require.Panics(t, func() {
+		suite.baseApp.SetName("")
+	})
+	require.Panics(t, func() {
+		suite.baseApp.SetVersion("")
+	})
+	require.Panics(t, func() {
+		suite.baseApp.SetDB(nil)
+	})
+	require.Panics(t, func() {
+		suite.baseApp.SetCMS(nil)
+	})
+	require.Panics(t, func() {
+		suite.baseApp.SetInitChainer(nil)
+	})
+	require.Panics(t, func() {
+		suite.baseApp.SetPreBlocker(nil)
+	})
+	require.Panics(t, func() {
+		suite.baseApp.SetBeginBlocker(nil)
+	})
+	require.Panics(t, func() {
+		suite.baseApp.SetEndBlocker(nil)
+	})
+	require.Panics(t, func() {
+		suite.baseApp.SetPrepareCheckStater(nil)
+	})
+	require.Panics(t, func() {
+		suite.baseApp.SetPrecommiter(nil)
+	})
+	require.Panics(t, func() {
+		suite.baseApp.SetAnteHandler(nil)
+	})
+	require.Panics(t, func() {
+		suite.baseApp.SetAddrPeerFilter(nil)
+	})
+	require.Panics(t, func() {
+		suite.baseApp.SetIDPeerFilter(nil)
+	})
+	require.Panics(t, func() {
+		suite.baseApp.SetFauxMerkleMode()
+	})
+}
+
+func TestTxDecoder(t *testing.T) {
+	cdc := codec.NewProtoCodec(codectypes.NewInterfaceRegistry())
+	baseapptestutil.RegisterInterfaces(cdc.InterfaceRegistry())
+
+	// patch in TxConfig instead of using an output from x/auth/tx
+	txConfig := authtx.NewTxConfig(cdc, authtx.DefaultSignModes)
+
+	tx := newTxCounter(t, txConfig, 1, 0)
+	txBytes, err := txConfig.TxEncoder()(tx)
+	require.NoError(t, err)
+
+	dTx, err := txConfig.TxDecoder()(txBytes)
+	require.NoError(t, err)
+
+	counter, _ := parseTxMemo(t, tx)
+	dTxCounter, _ := parseTxMemo(t, dTx)
+	require.Equal(t, counter, dTxCounter)
+}
+
+func TestCustomRunTxPanicHandler(t *testing.T) {
+	customPanicMsg := "test panic"
+	anteErr := errorsmod.Register("fakeModule", 100500, "fakeError")
+	anteOpt := func(bapp *baseapp.BaseApp) {
+		bapp.SetAnteHandler(func(ctx sdk.Context, tx sdk.Tx, simulate bool) (newCtx sdk.Context, err error) {
+			panic(errorsmod.Wrap(anteErr, "anteHandler"))
+		})
+	}
+
+	suite := NewBaseAppSuite(t, anteOpt)
+	baseapptestutil.RegisterCounterServer(suite.baseApp.MsgServiceRouter(), NoopCounterServerImpl{})
+
+	_, err := suite.baseApp.InitChain(&abci.RequestInitChain{
+		ConsensusParams: &cmtproto.ConsensusParams{},
+	})
+	require.NoError(t, err)
+
+	suite.baseApp.AddRunTxRecoveryHandler(func(recoveryObj any) error {
+		err, ok := recoveryObj.(error)
+		if !ok {
+			return nil
+		}
+
+		if anteErr.Is(err) {
+			panic(customPanicMsg)
+		} else {
+			return nil
+		}
+	})
+
+	// transaction should panic with custom handler above
+	{
+		tx := newTxCounter(t, suite.txConfig, 0, 0)
+
+		require.PanicsWithValue(t, customPanicMsg, func() {
+			bz, err := suite.txConfig.TxEncoder()(tx)
+			require.NoError(t, err)
+			_, err = suite.baseApp.FinalizeBlock(&abci.RequestFinalizeBlock{Height: 1, Txs: [][]byte{bz}})
+			require.Error(t, err)
+		})
+	}
+}
+
+func TestBaseAppAnteHandler(t *testing.T) {
+	anteKey := []byte("ante-key")
+	anteOpt := func(bapp *baseapp.BaseApp) {
+		bapp.SetAnteHandler(anteHandlerTxTest(t, capKey1, anteKey))
+	}
+	suite := NewBaseAppSuite(t, anteOpt)
+
+	deliverKey := []byte("deliver-key")
+	baseapptestutil.RegisterCounterServer(suite.baseApp.MsgServiceRouter(), CounterServerImpl{t, capKey1, deliverKey})
+
+	_, err := suite.baseApp.InitChain(&abci.RequestInitChain{
+		ConsensusParams: &cmtproto.ConsensusParams{},
+	})
+	require.NoError(t, err)
+
+	// execute a tx that will fail ante handler execution
+	//
+	// NOTE: State should not be mutated here. This will be implicitly checked by
+	// the next txs ante handler execution (anteHandlerTxTest).
+	tx := newTxCounter(t, suite.txConfig, 0, 0)
+	tx = setFailOnAnte(t, suite.txConfig, tx, true)
+
+	txBytes, err := suite.txConfig.TxEncoder()(tx)
+	require.NoError(t, err)
+
+	res, err := suite.baseApp.FinalizeBlock(&abci.RequestFinalizeBlock{Height: 1, Txs: [][]byte{txBytes}})
+	require.NoError(t, err)
+	require.Empty(t, res.Events)
+	require.False(t, res.TxResults[0].IsOK(), fmt.Sprintf("%v", res))
+
+	ctx := getFinalizeBlockStateCtx(suite.baseApp)
+	store := ctx.KVStore(capKey1)
+	require.Equal(t, int64(0), getIntFromStore(t, store, anteKey))
+
+	// execute at tx that will pass the ante handler (the checkTx state should
+	// mutate) but will fail the message handler
+	tx = newTxCounter(t, suite.txConfig, 0, 0)
+	tx = setFailOnHandler(suite.txConfig, tx, true)
+
+	txBytes, err = suite.txConfig.TxEncoder()(tx)
+	require.NoError(t, err)
+
+	res, err = suite.baseApp.FinalizeBlock(&abci.RequestFinalizeBlock{Height: 1, Txs: [][]byte{txBytes}})
+	require.NoError(t, err)
+	require.Empty(t, res.Events)
+	require.False(t, res.TxResults[0].IsOK(), fmt.Sprintf("%v", res))
+
+	ctx = getFinalizeBlockStateCtx(suite.baseApp)
+	store = ctx.KVStore(capKey1)
+	require.Equal(t, int64(1), getIntFromStore(t, store, anteKey))
+	require.Equal(t, int64(0), getIntFromStore(t, store, deliverKey))
+
+	// Execute a successful ante handler and message execution where state is
+	// implicitly checked by previous tx executions.
+	tx = newTxCounter(t, suite.txConfig, 1, 0)
+
+	txBytes, err = suite.txConfig.TxEncoder()(tx)
+	require.NoError(t, err)
+
+	res, err = suite.baseApp.FinalizeBlock(&abci.RequestFinalizeBlock{Height: 1, Txs: [][]byte{txBytes}})
+	require.NoError(t, err)
+	require.NotEmpty(t, res.TxResults[0].Events)
+	require.True(t, res.TxResults[0].IsOK(), fmt.Sprintf("%v", res))
+
+	ctx = getFinalizeBlockStateCtx(suite.baseApp)
+	store = ctx.KVStore(capKey1)
+	require.Equal(t, int64(2), getIntFromStore(t, store, anteKey))
+	require.Equal(t, int64(1), getIntFromStore(t, store, deliverKey))
+
+	_, err = suite.baseApp.Commit()
+	require.NoError(t, err)
+}
+
+func TestBaseAppPostHandler(t *testing.T) {
+	postHandlerRun := false
+	anteOpt := func(bapp *baseapp.BaseApp) {
+		bapp.SetPostHandler(func(ctx sdk.Context, tx sdk.Tx, simulate, success bool) (newCtx sdk.Context, err error) {
+			postHandlerRun = true
+			return ctx, nil
+		})
+	}
+
+	suite := NewBaseAppSuite(t, anteOpt)
+	baseapptestutil.RegisterCounterServer(suite.baseApp.MsgServiceRouter(), CounterServerImpl{t, capKey1, []byte("foo")})
+
+	_, err := suite.baseApp.InitChain(&abci.RequestInitChain{
+		ConsensusParams: &cmtproto.ConsensusParams{},
+	})
+	require.NoError(t, err)
+
+	// execute a tx that will fail ante handler execution
+	//
+	// NOTE: State should not be mutated here. This will be implicitly checked by
+	// the next txs ante handler execution (anteHandlerTxTest).
+	tx := newTxCounter(t, suite.txConfig, 0, 0)
+	txBytes, err := suite.txConfig.TxEncoder()(tx)
+	require.NoError(t, err)
+
+	res, err := suite.baseApp.FinalizeBlock(&abci.RequestFinalizeBlock{Height: 1, Txs: [][]byte{txBytes}})
+	require.NoError(t, err)
+	require.Empty(t, res.Events)
+	require.True(t, res.TxResults[0].IsOK(), fmt.Sprintf("%v", res))
+
+	// PostHandler runs on successful message execution
+	require.True(t, postHandlerRun)
+
+	// It should also run on failed message execution
+	postHandlerRun = false
+	tx = setFailOnHandler(suite.txConfig, tx, true)
+	txBytes, err = suite.txConfig.TxEncoder()(tx)
+	require.NoError(t, err)
+	res, err = suite.baseApp.FinalizeBlock(&abci.RequestFinalizeBlock{Height: 1, Txs: [][]byte{txBytes}})
+	require.NoError(t, err)
+	require.Empty(t, res.Events)
+	require.False(t, res.TxResults[0].IsOK(), fmt.Sprintf("%v", res))
+
+	require.True(t, postHandlerRun)
+
+	// regression test, should not panic when runMsgs fails
+	tx = wonkyMsg(t, suite.txConfig, tx)
+	txBytes, err = suite.txConfig.TxEncoder()(tx)
+	require.NoError(t, err)
+	_, err = suite.baseApp.FinalizeBlock(&abci.RequestFinalizeBlock{Height: 1, Txs: [][]byte{txBytes}})
+	require.NoError(t, err)
+	require.NotContains(t, suite.logBuffer.String(), "panic recovered in runTx")
+}
+
+func TestBaseAppPostHandlerErrorHandling(t *testing.T) {
+	specs := map[string]struct {
+		msgHandlerErr  error
+		postHandlerErr error
+		expCode        uint32
+		expLog         string
+	}{
+		"msg handler ok, post ok": {
+			expLog:  "",
+			expCode: 0,
+		},
+		"msg handler fails, post ok": {
+			msgHandlerErr: sdkerrors.ErrUnknownRequest.Wrap("my svc error"),
+			expCode:       sdkerrors.ErrUnknownRequest.ABCICode(),
+			expLog:        "failed to execute message; message index: 0: my svc error: unknown request",
+		},
+		"msg handler ok, post fails": {
+			postHandlerErr: sdkerrors.ErrInsufficientFunds.Wrap("my post handler error"),
+			expCode:        sdkerrors.ErrInsufficientFunds.ABCICode(),
+			expLog:         "my post handler error: insufficient funds",
+		},
+		"both fail": {
+			msgHandlerErr:  sdkerrors.ErrUnknownRequest.Wrap("my svc error"),
+			postHandlerErr: sdkerrors.ErrInsufficientFunds.Wrap("my post handler error"),
+			expCode:        sdkerrors.ErrUnknownRequest.ABCICode(),
+			expLog:         "postHandler: my post handler error: insufficient funds: failed to execute message; message index: 0: my svc error: unknown request",
+		},
+	}
+	for name, spec := range specs {
+		t.Run(name, func(t *testing.T) {
+			anteOpt := func(bapp *baseapp.BaseApp) {
+				bapp.SetPostHandler(func(ctx sdk.Context, tx sdk.Tx, simulate, success bool) (newCtx sdk.Context, err error) {
+					return ctx, spec.postHandlerErr
+				})
+			}
+			suite := NewBaseAppSuite(t, anteOpt)
+			csMock := mockCounterServer{
+				incrementCounterFn: func(ctx context.Context, counter *baseapptestutil.MsgCounter) (*baseapptestutil.MsgCreateCounterResponse, error) {
+					return &baseapptestutil.MsgCreateCounterResponse{}, spec.msgHandlerErr
+				},
+			}
+			baseapptestutil.RegisterCounterServer(suite.baseApp.MsgServiceRouter(), csMock)
+
+			_, err := suite.baseApp.InitChain(&abci.RequestInitChain{
+				ConsensusParams: &cmtproto.ConsensusParams{},
+			})
+			require.NoError(t, err)
+
+			txBytes, err := suite.txConfig.TxEncoder()(newTxCounter(t, suite.txConfig, 0, 0))
+			require.NoError(t, err)
+
+			// when
+			res, err := suite.baseApp.FinalizeBlock(&abci.RequestFinalizeBlock{Height: 1, Txs: [][]byte{txBytes}})
+			// then
+			require.NoError(t, err)
+			assert.Equal(t, spec.expCode, res.TxResults[0].Code)
+			assert.Equal(t, spec.expLog, res.TxResults[0].Log)
+		})
+	}
+}
+
+// Test and ensure that invalid block heights always cause errors.
+// See issues:
+// - https://github.com/cosmos/cosmos-sdk/issues/11220
+// - https://github.com/cosmos/cosmos-sdk/issues/7662
+func TestABCI_CreateQueryContext(t *testing.T) {
+	t.Parallel()
+	app := getQueryBaseapp(t)
+
+	testCases := []struct {
+		name         string
+		height       int64
+		headerHeight int64
+		prove        bool
+		expErr       bool
+	}{
+		{"valid height", 2, 2, true, false},
+		{"valid height with different initial height", 2, 1, true, true},
+		{"future height", 10, 10, true, true},
+		{"negative height, prove=true", -1, -1, true, true},
+		{"negative height, prove=false", -1, -1, false, true},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			if tc.headerHeight != tc.height {
+				_, err := app.InitChain(&abci.RequestInitChain{
+					InitialHeight: tc.headerHeight,
+				})
+				require.NoError(t, err)
+			}
+			height := tc.height
+			if tc.height > tc.headerHeight {
+				height = 0
+			}
+			ctx, err := app.CreateQueryContext(height, tc.prove)
+			if tc.expErr {
+				require.Error(t, err)
+			} else {
+				require.NoError(t, err)
+				require.Equal(t, tc.height, ctx.BlockHeight())
+			}
+		})
+	}
+}
+
+func TestABCI_CreateQueryContextWithCheckHeader(t *testing.T) {
+	t.Parallel()
+	app := getQueryBaseapp(t)
+	var height int64 = 2
+	var headerHeight int64 = 1
+
+	testCases := []struct {
+		checkHeader bool
+		expErr      bool
+	}{
+		{true, true},
+		{false, false},
+	}
+
+	for _, tc := range testCases {
+		t.Run("valid height with different initial height", func(t *testing.T) {
+			_, err := app.InitChain(&abci.RequestInitChain{
+				InitialHeight: headerHeight,
+			})
+			require.NoError(t, err)
+			ctx, err := app.CreateQueryContextWithCheckHeader(0, true, tc.checkHeader)
+			if tc.expErr {
+				require.Error(t, err)
+			} else {
+				require.NoError(t, err)
+				require.Equal(t, height, ctx.BlockHeight())
+			}
+		})
+	}
+}
+
+func TestABCI_CreateQueryContext_Before_Set_CheckState(t *testing.T) {
+	t.Parallel()
+
+	db := dbm.NewMemDB()
+	name := t.Name()
+	var height int64 = 2
+	var headerHeight int64 = 1
+
+	t.Run("valid height with different initial height", func(t *testing.T) {
+		app := baseapp.NewBaseApp(name, log.NewTestLogger(t), db, nil)
+
+		_, err := app.FinalizeBlock(&abci.RequestFinalizeBlock{Height: 1})
+		require.NoError(t, err)
+		_, err = app.Commit()
+		require.NoError(t, err)
+
+		_, err = app.FinalizeBlock(&abci.RequestFinalizeBlock{Height: 2})
+		require.NoError(t, err)
+
+		var queryCtx *sdk.Context
+		var queryCtxErr error
+		app.SetStreamingManager(storetypes.StreamingManager{
+			ABCIListeners: []storetypes.ABCIListener{
+				&mockABCIListener{
+					ListenCommitFn: func(context.Context, abci.ResponseCommit, []*storetypes.StoreKVPair) error {
+						qCtx, qErr := app.CreateQueryContext(0, true)
+						queryCtx = &qCtx
+						queryCtxErr = qErr
+						return nil
+					},
+				},
+			},
+		})
+		_, err = app.Commit()
+		require.NoError(t, err)
+		require.NoError(t, queryCtxErr)
+		require.Equal(t, height, queryCtx.BlockHeight())
+		_, err = app.InitChain(&abci.RequestInitChain{
+			InitialHeight: headerHeight,
+		})
+		require.NoError(t, err)
+	})
+}
+
+func TestSetMinGasPrices(t *testing.T) {
+	minGasPrices := sdk.DecCoins{sdk.NewInt64DecCoin("stake", 5000)}
+	suite := NewBaseAppSuite(t, baseapp.SetMinGasPrices(minGasPrices.String()))
+
+	ctx := getCheckStateCtx(suite.baseApp)
+	require.Equal(t, minGasPrices, ctx.MinGasPrices())
+}
+
+type ctxType string
+
+const (
+	QueryCtx   ctxType = "query"
+	CheckTxCtx ctxType = "checkTx"
+)
+
+var ctxTypes = []ctxType{QueryCtx, CheckTxCtx}
+
+func (c ctxType) GetCtx(t *testing.T, bapp *baseapp.BaseApp) sdk.Context {
+	t.Helper()
+	switch c {
+	case QueryCtx:
+		ctx, err := bapp.CreateQueryContext(1, false)
+		require.NoError(t, err)
+		return ctx
+	case CheckTxCtx:
+		return getCheckStateCtx(bapp)
+	}
+	// TODO: Not supported yet
+	return getFinalizeBlockStateCtx(bapp)
+}
+
+func TestQueryGasLimit(t *testing.T) {
+	testCases := []struct {
+		queryGasLimit   uint64
+		gasActuallyUsed uint64
+		shouldQueryErr  bool
+	}{
+		{queryGasLimit: 100, gasActuallyUsed: 50, shouldQueryErr: false},  // Valid case
+		{queryGasLimit: 100, gasActuallyUsed: 150, shouldQueryErr: true},  // gasActuallyUsed > queryGasLimit
+		{queryGasLimit: 0, gasActuallyUsed: 50, shouldQueryErr: false},    // fuzzing with queryGasLimit = 0
+		{queryGasLimit: 0, gasActuallyUsed: 0, shouldQueryErr: false},     // both queryGasLimit and gasActuallyUsed are 0
+		{queryGasLimit: 200, gasActuallyUsed: 200, shouldQueryErr: false}, // gasActuallyUsed == queryGasLimit
+		{queryGasLimit: 100, gasActuallyUsed: 1000, shouldQueryErr: true}, // gasActuallyUsed > queryGasLimit
+	}
+
+	for _, tc := range testCases {
+		for _, ctxType := range ctxTypes {
+			t.Run(fmt.Sprintf("%s: %d - %d", ctxType, tc.queryGasLimit, tc.gasActuallyUsed), func(t *testing.T) {
+				app := getQueryBaseapp(t)
+				baseapp.SetQueryGasLimit(tc.queryGasLimit)(app)
+				ctx := ctxType.GetCtx(t, app)
+
+				// query gas limit should have no effect when CtxType != QueryCtx
+				if tc.shouldQueryErr && ctxType == QueryCtx {
+					require.Panics(t, func() { ctx.GasMeter().ConsumeGas(tc.gasActuallyUsed, "test") })
+				} else {
+					require.NotPanics(t, func() { ctx.GasMeter().ConsumeGas(tc.gasActuallyUsed, "test") })
+				}
+			})
+		}
+	}
+}
+
+func TestGetMaximumBlockGas(t *testing.T) {
+	suite := NewBaseAppSuite(t)
+	_, err := suite.baseApp.InitChain(&abci.RequestInitChain{})
+	require.NoError(t, err)
+
+	ctx := suite.baseApp.NewContext(true)
+
+	require.NoError(t, suite.baseApp.StoreConsensusParams(ctx, cmtproto.ConsensusParams{Block: &cmtproto.BlockParams{MaxGas: 0}}))
+	require.Equal(t, uint64(0), suite.baseApp.GetMaximumBlockGas(ctx))
+
+	require.NoError(t, suite.baseApp.StoreConsensusParams(ctx, cmtproto.ConsensusParams{Block: &cmtproto.BlockParams{MaxGas: -1}}))
+	require.Equal(t, uint64(0), suite.baseApp.GetMaximumBlockGas(ctx))
+
+	require.NoError(t, suite.baseApp.StoreConsensusParams(ctx, cmtproto.ConsensusParams{Block: &cmtproto.BlockParams{MaxGas: 5000000}}))
+	require.Equal(t, uint64(5000000), suite.baseApp.GetMaximumBlockGas(ctx))
+
+	require.NoError(t, suite.baseApp.StoreConsensusParams(ctx, cmtproto.ConsensusParams{Block: &cmtproto.BlockParams{MaxGas: -5000000}}))
+	require.Panics(t, func() { suite.baseApp.GetMaximumBlockGas(ctx) })
+}
+
+func TestGetEmptyConsensusParams(t *testing.T) {
+	suite := NewBaseAppSuite(t)
+	_, err := suite.baseApp.InitChain(&abci.RequestInitChain{})
+	require.NoError(t, err)
+	ctx := suite.baseApp.NewContext(true)
+
+	cp := suite.baseApp.GetConsensusParams(ctx)
+	require.Equal(t, cmtproto.ConsensusParams{}, cp)
+	require.Equal(t, uint64(0), suite.baseApp.GetMaximumBlockGas(ctx))
+}
+
+func TestLoadVersionPruning(t *testing.T) {
+	logger := log.NewNopLogger()
+	pruningOptions := pruningtypes.NewCustomPruningOptions(10, 15)
+	pruningOpt := baseapp.SetPruning(pruningOptions)
+	db := dbm.NewMemDB()
+	name := t.Name()
+	app := baseapp.NewBaseApp(name, logger, db, nil, pruningOpt)
+
+	// make a cap key and mount the store
+	capKey := storetypes.NewKVStoreKey("key1")
+	app.MountStores(capKey)
+
+	err := app.LoadLatestVersion() // needed to make stores non-nil
+	require.Nil(t, err)
+
+	emptyHash := sha256.Sum256([]byte{})
+	emptyCommitID := storetypes.CommitID{
+		Hash: emptyHash[:],
+	}
+
+	// fresh store has zero/empty last commit
+	lastHeight := app.LastBlockHeight()
+	lastID := app.LastCommitID()
+	require.Equal(t, int64(0), lastHeight)
+	require.Equal(t, emptyCommitID, lastID)
+
+	var lastCommitID storetypes.CommitID
 
 	// Commit seven blocks, of which 7 (latest) is kept in addition to 6, 5
 	// (keep recent) and 3 (keep every).
 	for i := int64(1); i <= 7; i++ {
-		app.BeginBlock(abci.RequestBeginBlock{Header: tmproto.Header{Height: i}})
-		res := app.Commit()
-		lastCommitID = sdk.CommitID{Version: i, Hash: res.Data}
+		res, err := app.FinalizeBlock(&abci.RequestFinalizeBlock{Height: i})
+		require.NoError(t, err)
+		_, err = app.Commit()
+		require.NoError(t, err)
+		lastCommitID = storetypes.CommitID{Version: i, Hash: res.AppHash}
 	}
 
 	for _, v := range []int64{1, 2, 4} {
-		_, err = app.cms.CacheMultiStoreWithVersion(v)
+		_, err = app.CommitMultiStore().CacheMultiStoreWithVersion(v)
 		require.NoError(t, err)
 	}
 
 	for _, v := range []int64{3, 5, 6, 7} {
-		_, err = app.cms.CacheMultiStoreWithVersion(v)
+		_, err = app.CommitMultiStore().CacheMultiStoreWithVersion(v)
 		require.NoError(t, err)
 	}
 
 	// reload with LoadLatestVersion, check it loads last version
-	app = NewBaseApp(name, logger, db, nil, pruningOpt)
+	app = baseapp.NewBaseApp(name, logger, db, nil, pruningOpt)
 	app.MountStores(capKey)
 
 	err = app.LoadLatestVersion()
 	require.Nil(t, err)
 	testLoadVersionHelper(t, app, int64(7), lastCommitID)
-}
-
-func testLoadVersionHelper(t *testing.T, app *BaseApp, expectedHeight int64, expectedID sdk.CommitID) {
-	lastHeight := app.LastBlockHeight()
-	lastID := app.LastCommitID()
-	require.Equal(t, expectedHeight, lastHeight)
-	require.Equal(t, expectedID, lastID)
-}
-
-func TestSetMinGasPrices(t *testing.T) {
-	minGasPrices := sdk.DecCoins{sdk.NewInt64DecCoin("stake", 5000)}
-	app := newBaseApp(t.Name(), SetMinGasPrices(minGasPrices.String()))
-	require.Equal(t, minGasPrices, app.minGasPrices)
-}
-
-func TestGetMaximumBlockGas(t *testing.T) {
-	app := setupBaseApp(t)
-	app.InitChain(abci.RequestInitChain{})
-	ctx := app.NewContext(true, tmproto.Header{})
-
-	app.StoreConsensusParams(ctx, &abci.ConsensusParams{Block: &abci.BlockParams{MaxGas: 0}})
-	require.Equal(t, uint64(0), app.getMaximumBlockGas(ctx))
-
-	app.StoreConsensusParams(ctx, &abci.ConsensusParams{Block: &abci.BlockParams{MaxGas: -1}})
-	require.Equal(t, uint64(0), app.getMaximumBlockGas(ctx))
-
-	app.StoreConsensusParams(ctx, &abci.ConsensusParams{Block: &abci.BlockParams{MaxGas: 5000000}})
-	require.Equal(t, uint64(5000000), app.getMaximumBlockGas(ctx))
-
-	app.StoreConsensusParams(ctx, &abci.ConsensusParams{Block: &abci.BlockParams{MaxGas: -5000000}})
-	require.Panics(t, func() { app.getMaximumBlockGas(ctx) })
-}
-
-func TestListSnapshots(t *testing.T) {
-	type setupConfig struct {
-		blocks            uint64
-		blockTxs          int
-		snapshotInterval  uint64
-		snapshotKeepEvery uint32
-	}
-
-	app, _ := setupBaseAppWithSnapshots(t, 2, 5)
-
-	expected := abci.ResponseListSnapshots{Snapshots: []*abci.Snapshot{
-		{Height: 2, Format: 1, Chunks: 2},
-	}}
-
-	resp := app.ListSnapshots(abci.RequestListSnapshots{})
-	queryResponse := app.Query(abci.RequestQuery{
-		Path: "/app/snapshots",
-	})
-
-	queryListSnapshotsResp := abci.ResponseListSnapshots{}
-	err := json.Unmarshal(queryResponse.Value, &queryListSnapshotsResp)
-	require.NoError(t, err)
-
-	for i, s := range resp.Snapshots {
-		querySnapshot := queryListSnapshotsResp.Snapshots[i]
-		// we check that the query snapshot and function snapshot are equal
-		// Then we check that the hash and metadata are not empty. We atm
-		// do not have a good way to generate the expected value for these.
-		assert.Equal(t, *s, *querySnapshot)
-		assert.NotEmpty(t, s.Hash)
-		assert.NotEmpty(t, s.Metadata)
-		// Set hash and metadata to nil, so we can check the other snapshot
-		// fields against expected
-		s.Hash = nil
-		s.Metadata = nil
-	}
-	assert.Equal(t, expected, resp)
 }

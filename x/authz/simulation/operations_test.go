@@ -5,16 +5,28 @@ import (
 	"testing"
 	"time"
 
+	abci "github.com/cometbft/cometbft/abci/types"
+	"github.com/cosmos/gogoproto/proto"
+	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
 
-	abci "github.com/tendermint/tendermint/abci/types"
-	tmproto "github.com/tendermint/tendermint/proto/tendermint/types"
+	"cosmossdk.io/depinject"
+	"cosmossdk.io/log"
 
-	"github.com/cosmos/cosmos-sdk/simapp"
+	"github.com/cosmos/cosmos-sdk/client"
+	"github.com/cosmos/cosmos-sdk/codec"
+	codectypes "github.com/cosmos/cosmos-sdk/codec/types"
+	"github.com/cosmos/cosmos-sdk/runtime"
+	simtestutil "github.com/cosmos/cosmos-sdk/testutil/sims"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	simtypes "github.com/cosmos/cosmos-sdk/types/simulation"
+	authkeeper "github.com/cosmos/cosmos-sdk/x/auth/keeper"
 	"github.com/cosmos/cosmos-sdk/x/authz"
+	authzkeeper "github.com/cosmos/cosmos-sdk/x/authz/keeper"
 	"github.com/cosmos/cosmos-sdk/x/authz/simulation"
+	"github.com/cosmos/cosmos-sdk/x/authz/testutil"
+	bankkeeper "github.com/cosmos/cosmos-sdk/x/bank/keeper"
+	banktestutil "github.com/cosmos/cosmos-sdk/x/bank/testutil"
 	banktypes "github.com/cosmos/cosmos-sdk/x/bank/types"
 )
 
@@ -22,28 +34,47 @@ type SimTestSuite struct {
 	suite.Suite
 
 	ctx sdk.Context
-	app *simapp.SimApp
+
+	app               *runtime.App
+	legacyAmino       *codec.LegacyAmino
+	codec             codec.Codec
+	interfaceRegistry codectypes.InterfaceRegistry
+	txConfig          client.TxConfig
+	accountKeeper     authkeeper.AccountKeeper
+	bankKeeper        bankkeeper.Keeper
+	authzKeeper       authzkeeper.Keeper
 }
 
 func (suite *SimTestSuite) SetupTest() {
-	checkTx := false
-	app := simapp.Setup(checkTx)
+	app, err := simtestutil.Setup(
+		depinject.Configs(
+			testutil.AppConfig,
+			depinject.Supply(log.NewNopLogger()),
+		),
+		&suite.legacyAmino,
+		&suite.codec,
+		&suite.interfaceRegistry,
+		&suite.txConfig,
+		&suite.accountKeeper,
+		&suite.bankKeeper,
+		&suite.authzKeeper,
+	)
+	suite.Require().NoError(err)
 	suite.app = app
-	suite.ctx = app.BaseApp.NewContext(checkTx, tmproto.Header{})
+	suite.ctx = app.NewContext(false)
 }
 
 func (suite *SimTestSuite) TestWeightedOperations() {
-	cdc := suite.app.AppCodec()
+	cdc := suite.codec
 	appParams := make(simtypes.AppParams)
 
-	weightedOps := simulation.WeightedOperations(appParams, cdc, suite.app.AccountKeeper,
-		suite.app.BankKeeper, suite.app.AuthzKeeper, cdc,
-	)
+	weightedOps := simulation.WeightedOperations(suite.interfaceRegistry, appParams, cdc, suite.txConfig, suite.accountKeeper,
+		suite.bankKeeper, suite.authzKeeper)
 
-	// setup 3 accounts
-	s := rand.NewSource(1)
+	s := rand.NewSource(3)
 	r := rand.New(s)
-	accs := suite.getTestingAccounts(r, 3)
+	// setup 2 accounts
+	accs := suite.getTestingAccounts(r, 2)
 
 	expected := []struct {
 		weight     int
@@ -51,32 +82,35 @@ func (suite *SimTestSuite) TestWeightedOperations() {
 		opMsgName  string
 	}{
 		{simulation.WeightGrant, authz.ModuleName, simulation.TypeMsgGrant},
-		{simulation.WeightRevoke, authz.ModuleName, simulation.TypeMsgRevoke},
 		{simulation.WeightExec, authz.ModuleName, simulation.TypeMsgExec},
+		{simulation.WeightRevoke, authz.ModuleName, simulation.TypeMsgRevoke},
 	}
 
+	require := suite.Require()
 	for i, w := range weightedOps {
-		operationMsg, _, _ := w.Op()(r, suite.app.BaseApp, suite.ctx, accs, "")
+		op, _, err := w.Op()(r, suite.app.BaseApp, suite.ctx, accs, "")
+		require.NoError(err)
+
 		// the following checks are very much dependent from the ordering of the output given
 		// by WeightedOperations. if the ordering in WeightedOperations changes some tests
 		// will fail
-		suite.Require().Equal(expected[i].weight, w.Weight(), "weight should be the same")
-		suite.Require().Equal(expected[i].opMsgRoute, operationMsg.Route, "route should be the same")
-		suite.Require().Equal(expected[i].opMsgName, operationMsg.Name, "operation Msg name should be the same")
+		require.Equal(expected[i].weight, w.Weight(), "weight should be the same. %v", op.Comment)
+		require.Equal(expected[i].opMsgRoute, op.Route, "route should be the same. %v", op.Comment)
+		require.Equal(expected[i].opMsgName, op.Name, "operation Msg name should be the same %v", op.Comment)
 	}
 }
 
 func (suite *SimTestSuite) getTestingAccounts(r *rand.Rand, n int) []simtypes.Account {
 	accounts := simtypes.RandomAccounts(r, n)
 
-	initAmt := suite.app.StakingKeeper.TokensFromConsensusPower(suite.ctx, 200000)
+	initAmt := sdk.TokensFromConsensusPower(200000, sdk.DefaultPowerReduction)
 	initCoins := sdk.NewCoins(sdk.NewCoin("stake", initAmt))
 
 	// add coins to the accounts
 	for _, account := range accounts {
-		acc := suite.app.AccountKeeper.NewAccountWithAddress(suite.ctx, account.Address)
-		suite.app.AccountKeeper.SetAccount(suite.ctx, acc)
-		suite.Require().NoError(simapp.FundAccount(suite.app.BankKeeper, suite.ctx, account.Address, initCoins))
+		acc := suite.accountKeeper.NewAccountWithAddress(suite.ctx, account.Address)
+		suite.accountKeeper.SetAccount(suite.ctx, acc)
+		suite.Require().NoError(banktestutil.FundAccount(suite.ctx, suite.bankKeeper, account.Address, initCoins))
 	}
 
 	return accounts
@@ -89,24 +123,23 @@ func (suite *SimTestSuite) TestSimulateGrant() {
 	blockTime := time.Now().UTC()
 	ctx := suite.ctx.WithBlockTime(blockTime)
 
-	// begin a new block
-	suite.app.BeginBlock(abci.RequestBeginBlock{
-		Header: tmproto.Header{
-			Height:  suite.app.LastBlockHeight() + 1,
-			AppHash: suite.app.LastCommitID().Hash,
-		},
+	_, err := suite.app.FinalizeBlock(&abci.RequestFinalizeBlock{
+		Height: suite.app.LastBlockHeight() + 1,
+		Hash:   suite.app.LastCommitID().Hash,
 	})
+	suite.Require().NoError(err)
 
 	granter := accounts[0]
 	grantee := accounts[1]
 
 	// execute operation
-	op := simulation.SimulateMsgGrant(suite.app.AccountKeeper, suite.app.BankKeeper, suite.app.AuthzKeeper)
+	op := simulation.SimulateMsgGrant(codec.NewProtoCodec(suite.interfaceRegistry), suite.txConfig, suite.accountKeeper, suite.bankKeeper, suite.authzKeeper)
 	operationMsg, futureOperations, err := op(r, suite.app.BaseApp, ctx, accounts, "")
 	suite.Require().NoError(err)
 
 	var msg authz.MsgGrant
-	suite.app.AppCodec().UnmarshalJSON(operationMsg.Msg, &msg)
+	err = proto.Unmarshal(operationMsg.Msg, &msg)
+	suite.Require().NoError(err)
 	suite.Require().True(operationMsg.OK)
 	suite.Require().Equal(granter.Address.String(), msg.Granter)
 	suite.Require().Equal(grantee.Address.String(), msg.Grantee)
@@ -119,32 +152,31 @@ func (suite *SimTestSuite) TestSimulateRevoke() {
 	r := rand.New(s)
 	accounts := suite.getTestingAccounts(r, 3)
 
-	// begin a new block
-	suite.app.BeginBlock(abci.RequestBeginBlock{
-		Header: tmproto.Header{
-			Height:  suite.app.LastBlockHeight() + 1,
-			AppHash: suite.app.LastCommitID().Hash,
-		},
+	_, err := suite.app.FinalizeBlock(&abci.RequestFinalizeBlock{
+		Height: suite.app.LastBlockHeight() + 1,
+		Hash:   suite.app.LastCommitID().Hash,
 	})
+	require.NoError(suite.T(), err)
 
-	initAmt := suite.app.StakingKeeper.TokensFromConsensusPower(suite.ctx, 200000)
+	initAmt := sdk.TokensFromConsensusPower(200000, sdk.DefaultPowerReduction)
 	initCoins := sdk.NewCoins(sdk.NewCoin("stake", initAmt))
 
 	granter := accounts[0]
 	grantee := accounts[1]
-	authorization := banktypes.NewSendAuthorization(initCoins)
+	a := banktypes.NewSendAuthorization(initCoins, nil)
+	expire := time.Now().Add(30 * time.Hour)
 
-	err := suite.app.AuthzKeeper.SaveGrant(suite.ctx, grantee.Address, granter.Address, authorization, time.Now().Add(30*time.Hour))
+	err = suite.authzKeeper.SaveGrant(suite.ctx, grantee.Address, granter.Address, a, &expire)
 	suite.Require().NoError(err)
 
 	// execute operation
-	op := simulation.SimulateMsgRevoke(suite.app.AccountKeeper, suite.app.BankKeeper, suite.app.AuthzKeeper)
+	op := simulation.SimulateMsgRevoke(codec.NewProtoCodec(suite.interfaceRegistry), suite.txConfig, suite.accountKeeper, suite.bankKeeper, suite.authzKeeper)
 	operationMsg, futureOperations, err := op(r, suite.app.BaseApp, suite.ctx, accounts, "")
 	suite.Require().NoError(err)
 
 	var msg authz.MsgRevoke
-	suite.app.AppCodec().UnmarshalJSON(operationMsg.Msg, &msg)
-
+	err = proto.Unmarshal(operationMsg.Msg, &msg)
+	suite.Require().NoError(err)
 	suite.Require().True(operationMsg.OK)
 	suite.Require().Equal(granter.Address.String(), msg.Granter)
 	suite.Require().Equal(grantee.Address.String(), msg.Grantee)
@@ -158,28 +190,28 @@ func (suite *SimTestSuite) TestSimulateExec() {
 	r := rand.New(s)
 	accounts := suite.getTestingAccounts(r, 3)
 
-	// begin a new block
-	suite.app.BeginBlock(abci.RequestBeginBlock{Header: tmproto.Header{Height: suite.app.LastBlockHeight() + 1, AppHash: suite.app.LastCommitID().Hash}})
+	_, err := suite.app.FinalizeBlock(&abci.RequestFinalizeBlock{Height: suite.app.LastBlockHeight() + 1, Hash: suite.app.LastCommitID().Hash})
+	suite.Require().NoError(err)
 
-	initAmt := suite.app.StakingKeeper.TokensFromConsensusPower(suite.ctx, 200000)
+	initAmt := sdk.TokensFromConsensusPower(200000, sdk.DefaultPowerReduction)
 	initCoins := sdk.NewCoins(sdk.NewCoin("stake", initAmt))
 
 	granter := accounts[0]
 	grantee := accounts[1]
-	authorization := banktypes.NewSendAuthorization(initCoins)
+	a := banktypes.NewSendAuthorization(initCoins, nil)
+	expire := suite.ctx.BlockTime().Add(1 * time.Hour)
 
-	err := suite.app.AuthzKeeper.SaveGrant(suite.ctx, grantee.Address, granter.Address, authorization, time.Now().Add(30*time.Hour))
+	err = suite.authzKeeper.SaveGrant(suite.ctx, grantee.Address, granter.Address, a, &expire)
 	suite.Require().NoError(err)
 
 	// execute operation
-	op := simulation.SimulateMsgExec(suite.app.AccountKeeper, suite.app.BankKeeper, suite.app.AuthzKeeper, suite.app.AppCodec())
+	op := simulation.SimulateMsgExec(codec.NewProtoCodec(suite.interfaceRegistry), suite.txConfig, suite.accountKeeper, suite.bankKeeper, suite.authzKeeper, suite.codec)
 	operationMsg, futureOperations, err := op(r, suite.app.BaseApp, suite.ctx, accounts, "")
 	suite.Require().NoError(err)
 
 	var msg authz.MsgExec
-
-	suite.app.AppCodec().UnmarshalJSON(operationMsg.Msg, &msg)
-
+	err = proto.Unmarshal(operationMsg.Msg, &msg)
+	suite.Require().NoError(err)
 	suite.Require().True(operationMsg.OK)
 	suite.Require().Equal(grantee.Address.String(), msg.Grantee)
 	suite.Require().Len(futureOperations, 0)

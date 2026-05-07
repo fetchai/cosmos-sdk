@@ -1,21 +1,29 @@
 package types
 
 import (
-	"github.com/gogo/protobuf/proto"
+	"encoding/json"
+	fmt "fmt"
+	strings "strings"
+	"time"
 
+	"github.com/cosmos/gogoproto/proto"
+	protov2 "google.golang.org/protobuf/proto"
+
+	"github.com/cosmos/cosmos-sdk/codec"
+	codectypes "github.com/cosmos/cosmos-sdk/codec/types"
 	cryptotypes "github.com/cosmos/cosmos-sdk/crypto/types"
 )
 
 type (
-	// Msg defines the interface a transaction message must fulfill.
-	Msg interface {
-		proto.Message
+	// Msg defines the interface a transaction message needed to fulfill.
+	Msg = proto.Message
 
-		// ValidateBasic does a simple validation check that
-		// doesn't require access to any other information.
-		ValidateBasic() error
+	// LegacyMsg defines the interface a transaction message needed to fulfill up through
+	// v0.47.
+	LegacyMsg interface {
+		Msg
 
-		// Signers returns the addrs of signers that must sign.
+		// GetSigners returns the addrs of signers that must sign.
 		// CONTRACT: All signatures must be present to be valid.
 		// CONTRACT: Returns addrs in some deterministic order.
 		GetSigners() []AccAddress
@@ -35,14 +43,18 @@ type (
 		GetSignature() []byte
 	}
 
-	// Tx defines the interface a transaction must fulfill.
-	Tx interface {
-		// Gets the all the transaction's messages.
+	// HasMsgs defines an interface a transaction must fulfill.
+	HasMsgs interface {
+		// GetMsgs gets the all the transaction's messages.
 		GetMsgs() []Msg
+	}
 
-		// ValidateBasic does a simple and lightweight validation check that doesn't
-		// require access to any other information.
-		ValidateBasic() error
+	// Tx defines an interface a transaction must fulfill.
+	Tx interface {
+		HasMsgs
+
+		// GetMsgsV2 gets the transaction's messages as google.golang.org/protobuf/proto.Message's.
+		GetMsgsV2() ([]protov2.Message, error)
 	}
 
 	// FeeTx defines the interface to be implemented by Tx to use the FeeDecorators
@@ -50,14 +62,24 @@ type (
 		Tx
 		GetGas() uint64
 		GetFee() Coins
-		FeePayer() AccAddress
-		FeeGranter() AccAddress
+		FeePayer() []byte
+		FeeGranter() []byte
 	}
 
-	// Tx must have GetMemo() method to use ValidateMemoDecorator
+	// TxWithMemo must have GetMemo() method to use ValidateMemoDecorator
 	TxWithMemo interface {
 		Tx
 		GetMemo() string
+	}
+
+	// TxWithTimeoutTimeStamp extends the Tx interface by allowing a transaction to
+	// set a timeout timestamp.
+	TxWithTimeoutTimeStamp interface {
+		Tx
+
+		// GetTimeoutTimeStamp gets the timeout timestamp for the tx.
+		// IMPORTANT: when the uint value is needed here, you MUST use UnixNano.
+		GetTimeoutTimeStamp() time.Time
 	}
 
 	// TxWithTimeoutHeight extends the Tx interface by allowing a transaction to
@@ -66,6 +88,23 @@ type (
 		Tx
 
 		GetTimeoutHeight() uint64
+	}
+
+	// TxWithUnordered extends the Tx interface by allowing a transaction to set
+	// the unordered field, which implicitly relies on TxWithTimeoutTimeStamp.
+	TxWithUnordered interface {
+		TxWithTimeoutTimeStamp
+
+		GetUnordered() bool
+	}
+
+	// HasValidateBasic defines a type that has a ValidateBasic method.
+	// ValidateBasic is deprecated and now facultative.
+	// Prefer validating messages directly in the msg server.
+	HasValidateBasic interface {
+		// ValidateBasic does a simple validation check that
+		// doesn't require access to any other information.
+		ValidateBasic() error
 	}
 )
 
@@ -76,6 +115,35 @@ type TxDecoder func(txBytes []byte) (Tx, error)
 type TxEncoder func(tx Tx) ([]byte, error)
 
 // MsgTypeURL returns the TypeURL of a `sdk.Msg`.
-func MsgTypeURL(msg Msg) string {
-	return "/" + proto.MessageName(msg)
+var MsgTypeURL = codectypes.MsgTypeURL
+
+// GetMsgFromTypeURL returns a `sdk.Msg` message type from a type URL
+func GetMsgFromTypeURL(cdc codec.Codec, input string) (Msg, error) {
+	var msg Msg
+	bz, err := json.Marshal(struct {
+		Type string `json:"@type"`
+	}{
+		Type: input,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	if err := cdc.UnmarshalInterfaceJSON(bz, &msg); err != nil {
+		return nil, fmt.Errorf("failed to determine sdk.Msg for %s URL : %w", input, err)
+	}
+
+	return msg, nil
+}
+
+// GetModuleNameFromTypeURL assumes that module name is the second element of the msg type URL
+// e.g. "cosmos.bank.v1beta1.MsgSend" => "bank"
+// It returns an empty string if the input is not a valid type URL
+func GetModuleNameFromTypeURL(input string) string {
+	moduleName := strings.Split(input, ".")
+	if len(moduleName) > 1 {
+		return moduleName[1]
+	}
+
+	return ""
 }

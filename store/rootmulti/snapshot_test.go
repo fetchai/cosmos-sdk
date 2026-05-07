@@ -10,20 +10,21 @@ import (
 	"math/rand"
 	"testing"
 
+	dbm "github.com/cosmos/cosmos-db"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"github.com/tendermint/tendermint/libs/log"
 
-	"github.com/cosmos/cosmos-sdk/snapshots"
-	snapshottypes "github.com/cosmos/cosmos-sdk/snapshots/types"
-	"github.com/cosmos/cosmos-sdk/store/iavl"
-	"github.com/cosmos/cosmos-sdk/store/rootmulti"
-	"github.com/cosmos/cosmos-sdk/store/types"
-	dbm "github.com/tendermint/tm-db"
+	"cosmossdk.io/log"
+	"cosmossdk.io/store/iavl"
+	"cosmossdk.io/store/metrics"
+	"cosmossdk.io/store/rootmulti"
+	"cosmossdk.io/store/snapshots"
+	snapshottypes "cosmossdk.io/store/snapshots/types"
+	"cosmossdk.io/store/types"
 )
 
 func newMultiStoreWithGeneratedData(db dbm.DB, stores uint8, storeKeys uint64) *rootmulti.Store {
-	multiStore := rootmulti.NewStore(db, log.NewNopLogger())
+	multiStore := rootmulti.NewStore(db, log.NewNopLogger(), metrics.NewNoOpMetrics())
 	r := rand.New(rand.NewSource(49872768940)) // Fixed seed for deterministic tests
 
 	keys := []*types.KVStoreKey{}
@@ -32,7 +33,10 @@ func newMultiStoreWithGeneratedData(db dbm.DB, stores uint8, storeKeys uint64) *
 		multiStore.MountStoreWithDB(key, types.StoreTypeIAVL, nil)
 		keys = append(keys, key)
 	}
-	multiStore.LoadLatestVersion()
+	err := multiStore.LoadLatestVersion()
+	if err != nil {
+		panic(err)
+	}
 
 	for _, key := range keys {
 		store := multiStore.GetCommitKVStore(key).(*iavl.Store)
@@ -49,19 +53,23 @@ func newMultiStoreWithGeneratedData(db dbm.DB, stores uint8, storeKeys uint64) *
 	}
 
 	multiStore.Commit()
-	multiStore.LoadLatestVersion()
+	err = multiStore.LoadLatestVersion()
+	if err != nil {
+		panic(err)
+	}
 
 	return multiStore
 }
 
 func newMultiStoreWithMixedMounts(db dbm.DB) *rootmulti.Store {
-	store := rootmulti.NewStore(db, log.NewNopLogger())
+	store := rootmulti.NewStore(db, log.NewNopLogger(), metrics.NewNoOpMetrics())
 	store.MountStoreWithDB(types.NewKVStoreKey("iavl1"), types.StoreTypeIAVL, nil)
 	store.MountStoreWithDB(types.NewKVStoreKey("iavl2"), types.StoreTypeIAVL, nil)
 	store.MountStoreWithDB(types.NewKVStoreKey("iavl3"), types.StoreTypeIAVL, nil)
 	store.MountStoreWithDB(types.NewTransientStoreKey("trans1"), types.StoreTypeTransient, nil)
-	store.LoadLatestVersion()
-
+	if err := store.LoadLatestVersion(); err != nil {
+		panic(err)
+	}
 	return store
 }
 
@@ -92,6 +100,7 @@ func newMultiStoreWithMixedMountsAndBasicData(db dbm.DB) *rootmulti.Store {
 }
 
 func assertStoresEqual(t *testing.T, expect, actual types.CommitKVStore, msgAndArgs ...interface{}) {
+	t.Helper()
 	assert.Equal(t, expect.LastCommitID(), actual.LastCommitID())
 	expectIter := expect.Iterator(nil, nil)
 	expectMap := map[string][]byte{}
@@ -128,11 +137,10 @@ func TestMultistoreSnapshot_Checksum(t *testing.T) {
 			"aa048b4ee0f484965d7b3b06822cf0772cdcaad02f3b1b9055e69f2cb365ef3c",
 			"7921eaa3ed4921341e504d9308a9877986a879fe216a099c86e8db66fcba4c63",
 			"a4a864e6c02c9fca5837ec80dc84f650b25276ed7e4820cf7516ced9f9901b86",
-			"ca2879ac6e7205d257440131ba7e72bef784cd61642e32b847729e543c1928b9",
+			"980925390cc50f14998ecb1e87de719ca9dd7e72f5fefbe445397bf670f36c31",
 		}},
 	}
 	for _, tc := range testcases {
-		tc := tc
 		t.Run(fmt.Sprintf("Format %v", tc.format), func(t *testing.T) {
 			ch := make(chan io.ReadCloser)
 			go func() {
@@ -167,7 +175,6 @@ func TestMultistoreSnapshot_Errors(t *testing.T) {
 		"unknown height": {9, nil},
 	}
 	for name, tc := range testcases {
-		tc := tc
 		t.Run(name, func(t *testing.T) {
 			err := store.Snapshot(tc.height, nil)
 			require.Error(t, err)
@@ -211,7 +218,8 @@ func TestMultistoreSnapshotRestore(t *testing.T) {
 	require.Equal(t, *dummyExtensionItem.GetExtension(), *nextItem.GetExtension())
 
 	assert.Equal(t, source.LastCommitID(), target.LastCommitID())
-	for key, sourceStore := range source.GetStores() {
+	for _, key := range source.StoreKeysByName() {
+		sourceStore := source.GetStoreByName(key.Name()).(types.CommitKVStore)
 		targetStore := target.GetStoreByName(key.Name()).(types.CommitKVStore)
 		switch sourceStore.GetStoreType() {
 		case types.StoreTypeTransient:
@@ -224,6 +232,7 @@ func TestMultistoreSnapshotRestore(t *testing.T) {
 }
 
 func benchmarkMultistoreSnapshot(b *testing.B, stores uint8, storeKeys uint64) {
+	b.Helper()
 	b.Skip("Noisy with slow setup time, please see https://github.com/cosmos/cosmos-sdk/issues/8855.")
 
 	b.ReportAllocs()
@@ -234,8 +243,8 @@ func benchmarkMultistoreSnapshot(b *testing.B, stores uint8, storeKeys uint64) {
 	b.StartTimer()
 
 	for i := 0; i < b.N; i++ {
-		target := rootmulti.NewStore(dbm.NewMemDB(), log.NewNopLogger())
-		for key := range source.GetStores() {
+		target := rootmulti.NewStore(dbm.NewMemDB(), log.NewNopLogger(), metrics.NewNoOpMetrics())
+		for _, key := range source.StoreKeysByName() {
 			target.MountStoreWithDB(key, types.StoreTypeIAVL, nil)
 		}
 		err := target.LoadLatestVersion()
@@ -259,6 +268,7 @@ func benchmarkMultistoreSnapshot(b *testing.B, stores uint8, storeKeys uint64) {
 }
 
 func benchmarkMultistoreSnapshotRestore(b *testing.B, stores uint8, storeKeys uint64) {
+	b.Helper()
 	b.Skip("Noisy with slow setup time, please see https://github.com/cosmos/cosmos-sdk/issues/8855.")
 
 	b.ReportAllocs()
@@ -269,8 +279,8 @@ func benchmarkMultistoreSnapshotRestore(b *testing.B, stores uint8, storeKeys ui
 	b.StartTimer()
 
 	for i := 0; i < b.N; i++ {
-		target := rootmulti.NewStore(dbm.NewMemDB(), log.NewNopLogger())
-		for key := range source.GetStores() {
+		target := rootmulti.NewStore(dbm.NewMemDB(), log.NewNopLogger(), metrics.NewNoOpMetrics())
+		for _, key := range source.StoreKeysByName() {
 			target.MountStoreWithDB(key, types.StoreTypeIAVL, nil)
 		}
 		err := target.LoadLatestVersion()

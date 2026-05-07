@@ -1,10 +1,11 @@
 package transient
 
 import (
-	dbm "github.com/tendermint/tm-db"
+	dbm "github.com/cosmos/cosmos-db"
 
-	"github.com/cosmos/cosmos-sdk/store/dbadapter"
-	"github.com/cosmos/cosmos-sdk/store/types"
+	"cosmossdk.io/store/dbadapter"
+	pruningtypes "cosmossdk.io/store/pruning/types"
+	"cosmossdk.io/store/types"
 )
 
 var (
@@ -17,27 +18,34 @@ type Store struct {
 	dbadapter.Store
 }
 
-// Constructs new MemDB adapter
+// NewStore constructs new MemDB adapter
 func NewStore() *Store {
 	return &Store{Store: dbadapter.Store{DB: dbm.NewMemDB()}}
 }
 
-// Implements CommitStore
 // Commit cleans up Store.
+//
+// Implements CommitStore
 func (ts *Store) Commit() (id types.CommitID) {
 	ts.Store = dbadapter.Store{DB: dbm.NewMemDB()}
-	return
+	return id
 }
 
-func (ts *Store) SetPruning(_ types.PruningOptions) {}
+func (ts *Store) SetPruning(_ pruningtypes.PruningOptions) {}
 
 // GetPruning is a no-op as pruning options cannot be directly set on this store.
 // They must be set on the root commit multi-store.
-func (ts *Store) GetPruning() types.PruningOptions { return types.PruningOptions{} }
+func (ts *Store) GetPruning() pruningtypes.PruningOptions {
+	return pruningtypes.NewPruningOptions(pruningtypes.PruningUndefined)
+}
 
 // Implements CommitStore
-func (ts *Store) LastCommitID() (id types.CommitID) {
-	return
+func (ts *Store) LastCommitID() types.CommitID {
+	return types.CommitID{}
+}
+
+func (ts *Store) WorkingHash() []byte {
+	return []byte{}
 }
 
 // Implements Store.

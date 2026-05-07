@@ -5,44 +5,91 @@ import (
 	"testing"
 	"time"
 
+	abci "github.com/cometbft/cometbft/abci/types"
+	cmtproto "github.com/cometbft/cometbft/proto/tendermint/types"
+	"github.com/cosmos/gogoproto/proto"
 	"github.com/stretchr/testify/suite"
 
-	abci "github.com/tendermint/tendermint/abci/types"
-	tmproto "github.com/tendermint/tendermint/proto/tendermint/types"
+	"cosmossdk.io/depinject"
+	"cosmossdk.io/log"
+	"cosmossdk.io/x/feegrant"
+	"cosmossdk.io/x/feegrant/keeper"
+	_ "cosmossdk.io/x/feegrant/module"
+	"cosmossdk.io/x/feegrant/simulation"
 
-	"github.com/cosmos/cosmos-sdk/simapp"
-	simappparams "github.com/cosmos/cosmos-sdk/simapp/params"
+	"github.com/cosmos/cosmos-sdk/client"
+	"github.com/cosmos/cosmos-sdk/codec"
+	codecaddress "github.com/cosmos/cosmos-sdk/codec/address"
+	codectypes "github.com/cosmos/cosmos-sdk/codec/types"
+	"github.com/cosmos/cosmos-sdk/runtime"
+	"github.com/cosmos/cosmos-sdk/testutil/configurator"
+	simtestutil "github.com/cosmos/cosmos-sdk/testutil/sims"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	simtypes "github.com/cosmos/cosmos-sdk/types/simulation"
-	"github.com/cosmos/cosmos-sdk/x/feegrant"
-	"github.com/cosmos/cosmos-sdk/x/feegrant/simulation"
+	_ "github.com/cosmos/cosmos-sdk/x/auth"
+	authkeeper "github.com/cosmos/cosmos-sdk/x/auth/keeper"
+	_ "github.com/cosmos/cosmos-sdk/x/auth/tx/config"
+	_ "github.com/cosmos/cosmos-sdk/x/bank"
+	bankkeeper "github.com/cosmos/cosmos-sdk/x/bank/keeper"
+	banktestutil "github.com/cosmos/cosmos-sdk/x/bank/testutil"
+	_ "github.com/cosmos/cosmos-sdk/x/consensus"
+	_ "github.com/cosmos/cosmos-sdk/x/genutil"
+	_ "github.com/cosmos/cosmos-sdk/x/mint"
+	_ "github.com/cosmos/cosmos-sdk/x/params"
+	_ "github.com/cosmos/cosmos-sdk/x/staking"
 )
 
 type SimTestSuite struct {
 	suite.Suite
 
-	ctx sdk.Context
-	app *simapp.SimApp
+	app               *runtime.App
+	ctx               sdk.Context
+	feegrantKeeper    keeper.Keeper
+	interfaceRegistry codectypes.InterfaceRegistry
+	txConfig          client.TxConfig
+	accountKeeper     authkeeper.AccountKeeper
+	bankKeeper        bankkeeper.Keeper
+	cdc               codec.Codec
+	legacyAmino       *codec.LegacyAmino
 }
 
 func (suite *SimTestSuite) SetupTest() {
-	checkTx := false
-	app := simapp.Setup(checkTx)
-	suite.app = app
-	suite.ctx = app.BaseApp.NewContext(checkTx, tmproto.Header{
-		Time: time.Now(),
-	})
+	var err error
+	suite.app, err = simtestutil.Setup(
+		depinject.Configs(
+			configurator.NewAppConfig(
+				configurator.AuthModule(),
+				configurator.BankModule(),
+				configurator.StakingModule(),
+				configurator.TxModule(),
+				configurator.ConsensusModule(),
+				configurator.ParamsModule(),
+				configurator.GenutilModule(),
+				configurator.FeegrantModule(),
+			),
+			depinject.Supply(log.NewNopLogger()),
+		),
+		&suite.feegrantKeeper,
+		&suite.bankKeeper,
+		&suite.accountKeeper,
+		&suite.interfaceRegistry,
+		&suite.txConfig,
+		&suite.cdc,
+		&suite.legacyAmino,
+	)
+	suite.Require().NoError(err)
+
+	suite.ctx = suite.app.NewContextLegacy(false, cmtproto.Header{Time: time.Now()})
 }
 
 func (suite *SimTestSuite) getTestingAccounts(r *rand.Rand, n int) []simtypes.Account {
 	accounts := simtypes.RandomAccounts(r, n)
-
 	initAmt := sdk.TokensFromConsensusPower(200, sdk.DefaultPowerReduction)
 	initCoins := sdk.NewCoins(sdk.NewCoin(sdk.DefaultBondDenom, initAmt))
 
 	// add coins to the accounts
 	for _, account := range accounts {
-		err := simapp.FundAccount(suite.app.BankKeeper, suite.ctx, account.Address, initCoins)
+		err := banktestutil.FundAccount(suite.ctx, suite.bankKeeper, account.Address, initCoins)
 		suite.Require().NoError(err)
 	}
 
@@ -50,17 +97,16 @@ func (suite *SimTestSuite) getTestingAccounts(r *rand.Rand, n int) []simtypes.Ac
 }
 
 func (suite *SimTestSuite) TestWeightedOperations() {
-	app, ctx := suite.app, suite.ctx
 	require := suite.Require()
 
-	ctx.WithChainID("test-chain")
+	suite.ctx.WithChainID("test-chain")
 
-	cdc := app.AppCodec()
 	appParams := make(simtypes.AppParams)
 
 	weightedOps := simulation.WeightedOperations(
-		appParams, cdc, app.AccountKeeper,
-		app.BankKeeper, app.FeeGrantKeeper,
+		suite.interfaceRegistry,
+		appParams, suite.cdc, suite.txConfig, suite.accountKeeper,
+		suite.bankKeeper, suite.feegrantKeeper, codecaddress.NewBech32Codec("cosmos"),
 	)
 
 	s := rand.NewSource(1)
@@ -73,19 +119,21 @@ func (suite *SimTestSuite) TestWeightedOperations() {
 		opMsgName  string
 	}{
 		{
-			simappparams.DefaultWeightGrantAllowance,
+			simulation.DefaultWeightGrantAllowance,
 			feegrant.ModuleName,
-			simulation.TypeMsgGrantAllowance,
+			sdk.MsgTypeURL(&feegrant.MsgGrantAllowance{}),
 		},
 		{
-			simappparams.DefaultWeightRevokeAllowance,
+			simulation.DefaultWeightRevokeAllowance,
 			feegrant.ModuleName,
-			simulation.TypeMsgRevokeAllowance,
+			sdk.MsgTypeURL(&feegrant.MsgRevokeAllowance{}),
 		},
 	}
 
 	for i, w := range weightedOps {
-		operationMsg, _, _ := w.Op()(r, app.BaseApp, ctx, accs, ctx.ChainID())
+		operationMsg, _, err := w.Op()(r, suite.app.BaseApp, suite.ctx, accs, suite.ctx.ChainID())
+		require.NoError(err)
+
 		// the following checks are very much dependent from the ordering of the output given
 		// by WeightedOperations. if the ordering in WeightedOperations changes some tests
 		// will fail
@@ -103,17 +151,18 @@ func (suite *SimTestSuite) TestSimulateMsgGrantAllowance() {
 	r := rand.New(s)
 	accounts := suite.getTestingAccounts(r, 3)
 
-	// begin a new block
-	app.BeginBlock(abci.RequestBeginBlock{Header: tmproto.Header{Height: app.LastBlockHeight() + 1, AppHash: app.LastCommitID().Hash}})
+	//  new block
+	_, err := app.FinalizeBlock(&abci.RequestFinalizeBlock{Height: app.LastBlockHeight() + 1})
+	require.NoError(err)
 
 	// execute operation
-	op := simulation.SimulateMsgGrantAllowance(app.AccountKeeper, app.BankKeeper, app.FeeGrantKeeper)
+	op := simulation.SimulateMsgGrantAllowance(codec.NewProtoCodec(suite.interfaceRegistry), suite.txConfig, suite.accountKeeper, suite.bankKeeper, suite.feegrantKeeper)
 	operationMsg, futureOperations, err := op(r, app.BaseApp, ctx, accounts, "")
 	require.NoError(err)
 
 	var msg feegrant.MsgGrantAllowance
-	suite.app.AppCodec().UnmarshalJSON(operationMsg.Msg, &msg)
-
+	err = proto.Unmarshal(operationMsg.Msg, &msg)
+	require.NoError(err)
 	require.True(operationMsg.OK)
 	require.Equal(accounts[2].Address.String(), msg.Granter)
 	require.Equal(accounts[1].Address.String(), msg.Grantee)
@@ -129,15 +178,16 @@ func (suite *SimTestSuite) TestSimulateMsgRevokeAllowance() {
 	accounts := suite.getTestingAccounts(r, 3)
 
 	// begin a new block
-	app.BeginBlock(abci.RequestBeginBlock{Header: tmproto.Header{Height: suite.app.LastBlockHeight() + 1, AppHash: suite.app.LastCommitID().Hash}})
+	_, err := app.FinalizeBlock(&abci.RequestFinalizeBlock{Height: suite.app.LastBlockHeight() + 1, Hash: suite.app.LastCommitID().Hash})
+	suite.Require().NoError(err)
 
-	feeAmt := app.StakingKeeper.TokensFromConsensusPower(ctx, 200000)
+	feeAmt := sdk.TokensFromConsensusPower(200000, sdk.DefaultPowerReduction)
 	feeCoins := sdk.NewCoins(sdk.NewCoin("foo", feeAmt))
 
 	granter, grantee := accounts[0], accounts[1]
 
 	oneYear := ctx.BlockTime().AddDate(1, 0, 0)
-	err := app.FeeGrantKeeper.GrantAllowance(
+	err = suite.feegrantKeeper.GrantAllowance(
 		ctx,
 		granter.Address,
 		grantee.Address,
@@ -149,13 +199,13 @@ func (suite *SimTestSuite) TestSimulateMsgRevokeAllowance() {
 	require.NoError(err)
 
 	// execute operation
-	op := simulation.SimulateMsgRevokeAllowance(app.AccountKeeper, app.BankKeeper, app.FeeGrantKeeper)
+	op := simulation.SimulateMsgRevokeAllowance(codec.NewProtoCodec(suite.interfaceRegistry), suite.txConfig, suite.accountKeeper, suite.bankKeeper, suite.feegrantKeeper, codecaddress.NewBech32Codec("cosmos"))
 	operationMsg, futureOperations, err := op(r, app.BaseApp, ctx, accounts, "")
 	require.NoError(err)
 
 	var msg feegrant.MsgRevokeAllowance
-	suite.app.AppCodec().UnmarshalJSON(operationMsg.Msg, &msg)
-
+	err = proto.Unmarshal(operationMsg.Msg, &msg)
+	require.NoError(err)
 	require.True(operationMsg.OK)
 	require.Equal(granter.Address.String(), msg.Granter)
 	require.Equal(grantee.Address.String(), msg.Grantee)

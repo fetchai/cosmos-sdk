@@ -4,43 +4,65 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
-	abci "github.com/tendermint/tendermint/abci/types"
-	tmproto "github.com/tendermint/tendermint/proto/tendermint/types"
+	"go.uber.org/mock/gomock"
 
-	"github.com/cosmos/cosmos-sdk/simapp"
+	storetypes "cosmossdk.io/store/types"
+
+	addresscodec "github.com/cosmos/cosmos-sdk/codec/address"
+	"github.com/cosmos/cosmos-sdk/runtime"
+	"github.com/cosmos/cosmos-sdk/testutil"
 	sdk "github.com/cosmos/cosmos-sdk/types"
+	moduletestutil "github.com/cosmos/cosmos-sdk/types/module/testutil"
+	"github.com/cosmos/cosmos-sdk/x/crisis"
+	"github.com/cosmos/cosmos-sdk/x/crisis/keeper"
+	crisistestutil "github.com/cosmos/cosmos-sdk/x/crisis/testutil"
+	"github.com/cosmos/cosmos-sdk/x/crisis/types"
 )
 
 func TestLogger(t *testing.T) {
-	app := simapp.Setup(false)
+	ctrl := gomock.NewController(t)
+	supplyKeeper := crisistestutil.NewMockSupplyKeeper(ctrl)
 
-	ctx := app.NewContext(true, tmproto.Header{})
-	require.Equal(t, ctx.Logger(), app.CrisisKeeper.Logger(ctx))
+	key := storetypes.NewKVStoreKey(types.StoreKey)
+	storeService := runtime.NewKVStoreService(key)
+	testCtx := testutil.DefaultContextWithDB(t, key, storetypes.NewTransientStoreKey("transient_test"))
+	encCfg := moduletestutil.MakeTestEncodingConfig(crisis.AppModuleBasic{})
+	keeper := keeper.NewKeeper(encCfg.Codec, storeService, 5, supplyKeeper, "", "", addresscodec.NewBech32Codec("cosmos"))
+
+	require.Equal(t,
+		testCtx.Ctx.Logger().With("module", "x/"+types.ModuleName),
+		keeper.Logger(testCtx.Ctx))
 }
 
 func TestInvariants(t *testing.T) {
-	app := simapp.Setup(false)
-	app.Commit()
-	app.BeginBlock(abci.RequestBeginBlock{Header: tmproto.Header{Height: app.LastBlockHeight() + 1}})
+	ctrl := gomock.NewController(t)
+	supplyKeeper := crisistestutil.NewMockSupplyKeeper(ctrl)
 
-	require.Equal(t, app.CrisisKeeper.InvCheckPeriod(), uint(5))
+	key := storetypes.NewKVStoreKey(types.StoreKey)
+	storeService := runtime.NewKVStoreService(key)
+	encCfg := moduletestutil.MakeTestEncodingConfig(crisis.AppModuleBasic{})
+	keeper := keeper.NewKeeper(encCfg.Codec, storeService, 5, supplyKeeper, "", "", addresscodec.NewBech32Codec("cosmos"))
+	require.Equal(t, keeper.InvCheckPeriod(), uint(5))
 
-	// SimApp has 11 registered invariants
-	orgInvRoutes := app.CrisisKeeper.Routes()
-	app.CrisisKeeper.RegisterRoute("testModule", "testRoute", func(sdk.Context) (string, bool) { return "", false })
-	require.Equal(t, len(app.CrisisKeeper.Routes()), len(orgInvRoutes)+1)
+	orgInvRoutes := keeper.Routes()
+	keeper.RegisterRoute("testModule", "testRoute", func(sdk.Context) (string, bool) { return "", false })
+	invar := keeper.Invariants()
+	require.Equal(t, len(invar), len(orgInvRoutes)+1)
 }
 
 func TestAssertInvariants(t *testing.T) {
-	app := simapp.Setup(false)
-	app.Commit()
-	app.BeginBlock(abci.RequestBeginBlock{Header: tmproto.Header{Height: app.LastBlockHeight() + 1}})
+	ctrl := gomock.NewController(t)
+	supplyKeeper := crisistestutil.NewMockSupplyKeeper(ctrl)
 
-	ctx := app.NewContext(true, tmproto.Header{})
+	key := storetypes.NewKVStoreKey(types.StoreKey)
+	storeService := runtime.NewKVStoreService(key)
+	testCtx := testutil.DefaultContextWithDB(t, key, storetypes.NewTransientStoreKey("transient_test"))
+	encCfg := moduletestutil.MakeTestEncodingConfig(crisis.AppModuleBasic{})
+	keeper := keeper.NewKeeper(encCfg.Codec, storeService, 5, supplyKeeper, "", "", addresscodec.NewBech32Codec("cosmos"))
 
-	app.CrisisKeeper.RegisterRoute("testModule", "testRoute1", func(sdk.Context) (string, bool) { return "", false })
-	require.NotPanics(t, func() { app.CrisisKeeper.AssertInvariants(ctx) })
+	keeper.RegisterRoute("testModule", "testRoute1", func(sdk.Context) (string, bool) { return "", false })
+	require.NotPanics(t, func() { keeper.AssertInvariants(testCtx.Ctx) })
 
-	app.CrisisKeeper.RegisterRoute("testModule", "testRoute2", func(sdk.Context) (string, bool) { return "", true })
-	require.Panics(t, func() { app.CrisisKeeper.AssertInvariants(ctx) })
+	keeper.RegisterRoute("testModule", "testRoute2", func(sdk.Context) (string, bool) { return "", true })
+	require.Panics(t, func() { keeper.AssertInvariants(testCtx.Ctx) })
 }

@@ -1,28 +1,34 @@
 package ledger
 
 import (
+	"errors"
 	"fmt"
+	"math/big"
 	"os"
 
-	"github.com/btcsuite/btcd/btcec"
-	"github.com/pkg/errors"
-
-	tmbtcec "github.com/tendermint/btcd/btcec"
+	secp "github.com/decred/dcrd/dcrec/secp256k1/v4"
+	"github.com/decred/dcrd/dcrec/secp256k1/v4/ecdsa"
 
 	"github.com/cosmos/cosmos-sdk/crypto/hd"
 	"github.com/cosmos/cosmos-sdk/crypto/keys/secp256k1"
 	"github.com/cosmos/cosmos-sdk/crypto/types"
 )
 
-// discoverLedger defines a function to be invoked at runtime for discovering
-// a connected Ledger device.
-var discoverLedger discoverLedgerFn
+// options stores the Ledger Options that can be used to customize Ledger usage
+var options Options
+
+// AppName defines the Ledger app used for signing. Cosmos SDK uses the Cosmos app
+const AppName = "Cosmos"
 
 type (
 	// discoverLedgerFn defines a Ledger discovery function that returns a
 	// connected device or an error upon failure. Its allows a method to avoid CGO
 	// dependencies when Ledger support is potentially not enabled.
 	discoverLedgerFn func() (SECP256K1, error)
+
+	// createPubkeyFn supports returning different public key types that implement
+	// types.PubKey
+	createPubkeyFn func([]byte) types.PubKey
 
 	// SECP256K1 reflects an interface a Ledger API must implement for SECP256K1
 	SECP256K1 interface {
@@ -32,7 +38,19 @@ type (
 		// Returns a compressed pubkey and bech32 address (requires user confirmation)
 		GetAddressPubKeySECP256K1([]uint32, string) ([]byte, string, error)
 		// Signs a message (requires user confirmation)
-		SignSECP256K1([]uint32, []byte) ([]byte, error)
+		// The last byte denotes the SIGN_MODE to be used by Ledger: 0 for
+		// LEGACY_AMINO_JSON, 1 for TEXTUAL. It corresponds to the P2 value
+		// in https://github.com/cosmos/ledger-cosmos/blob/main/docs/APDUSPEC.md
+		SignSECP256K1([]uint32, []byte, byte) ([]byte, error)
+	}
+
+	// Options hosts customization options to account for differences in Ledger
+	// signing and usage across chains.
+	Options struct {
+		discoverLedger    discoverLedgerFn
+		createPubkey      createPubkeyFn
+		appName           string
+		skipDERConversion bool
 	}
 
 	// PrivKeyLedgerSecp256k1 implements PrivKey, calling the ledger nano we
@@ -46,12 +64,86 @@ type (
 	}
 )
 
+// Initialize the default options values for the Cosmos Ledger
+func initOptionsDefault() {
+	options.createPubkey = func(key []byte) types.PubKey {
+		return &secp256k1.PubKey{Key: key}
+	}
+	options.appName = AppName
+	options.skipDERConversion = false
+}
+
+// Set the discoverLedger function to use a different Ledger derivation
+func SetDiscoverLedger(fn discoverLedgerFn) {
+	options.discoverLedger = fn
+}
+
+// Set the createPubkey function to use a different public key
+func SetCreatePubkey(fn createPubkeyFn) {
+	options.createPubkey = fn
+}
+
+// Set the Ledger app name to use a different app name
+func SetAppName(appName string) {
+	options.appName = appName
+}
+
+// Set the DER Conversion requirement to true (false by default)
+func SetSkipDERConversion() {
+	options.skipDERConversion = true
+}
+
+// SetDERConversion configures whether DER signature conversion should be enabled.
+// When enabled (true), signatures returned from the Ledger device are converted
+// from DER format to BER format, which is the standard behavior for Cosmos SDK chains.
+// When disabled (false), raw signatures are used without conversion, which is
+// typically required for Ethereum/EVM-compatible chains.
+//
+// Parameters:
+//   - enabled: true to enable DER conversion (Cosmos chains), false to disable (Ethereum chains)
+//
+// Example usage for different coin types in a key management CLI:
+//
+//	switch coinType {
+//	case 60:
+//	    // Ethereum/EVM chains - disable DER conversion for raw signatures
+//	    cosmosLedger.SetDiscoverLedger(func() (cosmosLedger.SECP256K1, error) {
+//	        return evmkeyring.LedgerDerivation()
+//	    })
+//	    cosmosLedger.SetCreatePubkey(func(key []byte) cryptotypes.PubKey {
+//	        return evmkeyring.CreatePubkey(key)
+//	    })
+//	    cosmosLedger.SetAppName(evmkeyring.AppName)
+//	    cosmosLedger.SetDERConversion(false) // Disable DER conversion for Ethereum
+//	case 118:
+//	    // Cosmos SDK chains - enable DER conversion for signature compatibility
+//	    cosmosLedger.SetDiscoverLedger(func() (cosmosLedger.SECP256K1, error) {
+//	        device, err := ledger.FindLedgerCosmosUserApp()
+//	        if err != nil {
+//	            return nil, err
+//	        }
+//	        return device, nil
+//	    })
+//	    cosmosLedger.SetCreatePubkey(func(key []byte) cryptotypes.PubKey {
+//	        return &secp256k1.PubKey{Key: key}
+//	    })
+//	    cosmosLedger.SetAppName(cosmosLedger.AppName)
+//	    cosmosLedger.SetDERConversion(true) // Enable DER conversion for Cosmos
+//	default:
+//	    return fmt.Errorf(
+//	        "unsupported coin type %d for Ledger. Supported coin types: 60 (Ethereum app), 118 (Cosmos app)", coinType,
+//	    )
+//	}
+func SetDERConversion(enabled bool) {
+	options.skipDERConversion = !enabled
+}
+
 // NewPrivKeySecp256k1Unsafe will generate a new key and store the public key for later use.
 //
 // This function is marked as unsafe as it will retrieve a pubkey without user verification.
 // It can only be used to verify a pubkey but never to create new accounts/keys. In that case,
 // please refer to NewPrivKeySecp256k1
-func NewPrivKeySecp256k1Unsafe(path hd.BIP44Params) (types.LedgerPrivKey, error) {
+func NewPrivKeySecp256k1Unsafe(path hd.BIP44Params) (types.LedgerPrivKeyAminoJSON, error) {
 	device, err := getDevice()
 	if err != nil {
 		return nil, err
@@ -88,7 +180,8 @@ func (pkl PrivKeyLedgerSecp256k1) PubKey() types.PubKey {
 	return pkl.CachedPubKey
 }
 
-// Sign returns a secp256k1 signature for the corresponding message
+// Sign returns a secp256k1 signature for the corresponding message using
+// SIGN_MODE_TEXTUAL.
 func (pkl PrivKeyLedgerSecp256k1) Sign(message []byte) ([]byte, error) {
 	device, err := getDevice()
 	if err != nil {
@@ -96,13 +189,23 @@ func (pkl PrivKeyLedgerSecp256k1) Sign(message []byte) ([]byte, error) {
 	}
 	defer warnIfErrors(device.Close)
 
-	return sign(device, pkl, message)
+	return sign(device, pkl, message, 1)
+}
+
+// SignLedgerAminoJSON returns a secp256k1 signature for the corresponding message using
+// SIGN_MODE_LEGACY_AMINO_JSON.
+func (pkl PrivKeyLedgerSecp256k1) SignLedgerAminoJSON(message []byte) ([]byte, error) {
+	device, err := getDevice()
+	if err != nil {
+		return nil, err
+	}
+	defer warnIfErrors(device.Close)
+
+	return sign(device, pkl, message, 0)
 }
 
 // ShowAddress triggers a ledger device to show the corresponding address.
-func ShowAddress(path hd.BIP44Params, expectedPubKey types.PubKey,
-	accountAddressPrefix string,
-) error {
+func ShowAddress(path hd.BIP44Params, expectedPubKey types.PubKey, accountAddressPrefix string) error {
 	device, err := getDevice()
 	if err != nil {
 		return err
@@ -171,22 +274,41 @@ func warnIfErrors(f func() error) {
 }
 
 func convertDERtoBER(signatureDER []byte) ([]byte, error) {
-	sigDER, err := btcec.ParseDERSignature(signatureDER, btcec.S256())
+	sigDER, err := ecdsa.ParseDERSignature(signatureDER)
 	if err != nil {
 		return nil, err
 	}
-	sigBER := tmbtcec.Signature{R: sigDER.R, S: sigDER.S}
-	return sigBER.Serialize(), nil
+
+	sigStr := sigDER.Serialize()
+	// The format of a DER encoded signature is as follows:
+	// 0x30 <total length> 0x02 <length of R> <R> 0x02 <length of S> <S>
+	r, s := new(big.Int), new(big.Int)
+	r.SetBytes(sigStr[4 : 4+sigStr[3]])
+	s.SetBytes(sigStr[4+sigStr[3]+2:])
+
+	sModNScalar := new(secp.ModNScalar)
+	sModNScalar.SetByteSlice(s.Bytes())
+	// based on https://github.com/tendermint/btcd/blob/ec996c5/btcec/signature.go#L33-L50
+	if sModNScalar.IsOverHalfOrder() {
+		s = new(big.Int).Sub(secp.S256().N, s)
+	}
+
+	sigBytes := make([]byte, 64)
+	// 0 pad the byte arrays from the left if they aren't big enough.
+	copy(sigBytes[32-len(r.Bytes()):32], r.Bytes())
+	copy(sigBytes[64-len(s.Bytes()):64], s.Bytes())
+
+	return sigBytes, nil
 }
 
 func getDevice() (SECP256K1, error) {
-	if discoverLedger == nil {
+	if options.discoverLedger == nil {
 		return nil, errors.New("no Ledger discovery function defined")
 	}
 
-	device, err := discoverLedger()
+	device, err := options.discoverLedger()
 	if err != nil {
-		return nil, errors.Wrap(err, "ledger nano S")
+		return nil, fmt.Errorf("ledger nano S: %w", err)
 	}
 
 	return device, nil
@@ -211,15 +333,21 @@ func validateKey(device SECP256K1, pkl PrivKeyLedgerSecp256k1) error {
 // Communication is checked on NewPrivKeyLedger and PrivKeyFromBytes, returning
 // an error, so this should only trigger if the private key is held in memory
 // for a while before use.
-func sign(device SECP256K1, pkl PrivKeyLedgerSecp256k1, msg []byte) ([]byte, error) {
+//
+// Last byte P2 is 0 for LEGACY_AMINO_JSON, and 1 for TEXTUAL.
+func sign(device SECP256K1, pkl PrivKeyLedgerSecp256k1, msg []byte, p2 byte) ([]byte, error) {
 	err := validateKey(device, pkl)
 	if err != nil {
 		return nil, err
 	}
 
-	sig, err := device.SignSECP256K1(pkl.Path.DerivationPath(), msg)
+	sig, err := device.SignSECP256K1(pkl.Path.DerivationPath(), msg, p2)
 	if err != nil {
 		return nil, err
+	}
+
+	if options.skipDERConversion {
+		return sig, nil
 	}
 
 	return convertDERtoBER(sig)
@@ -236,22 +364,22 @@ func sign(device SECP256K1, pkl PrivKeyLedgerSecp256k1, msg []byte) ([]byte, err
 func getPubKeyUnsafe(device SECP256K1, path hd.BIP44Params) (types.PubKey, error) {
 	publicKey, err := device.GetPublicKeySECP256K1(path.DerivationPath())
 	if err != nil {
-		return nil, fmt.Errorf("please open Cosmos app on the Ledger device - error: %v", err)
+		return nil, fmt.Errorf("please open the %v app on the Ledger device - error: %w", options.appName, err)
 	}
 
 	// re-serialize in the 33-byte compressed format
-	cmp, err := btcec.ParsePubKey(publicKey, btcec.S256())
+	cmp, err := secp.ParsePubKey(publicKey)
 	if err != nil {
-		return nil, fmt.Errorf("error parsing public key: %v", err)
+		return nil, fmt.Errorf("error parsing public key: %w", err)
 	}
 
 	compressedPublicKey := make([]byte, secp256k1.PubKeySize)
 	copy(compressedPublicKey, cmp.SerializeCompressed())
 
-	return &secp256k1.PubKey{Key: compressedPublicKey}, nil
+	return options.createPubkey(compressedPublicKey), nil
 }
 
-// getPubKeyAddr reads the pubkey and the address from a ledger device.
+// getPubKeyAddrSafe reads the pubkey and the address from a ledger device.
 // This function is marked as Safe as it will require user confirmation and
 // account and index will be shown in the device.
 //
@@ -260,17 +388,23 @@ func getPubKeyUnsafe(device SECP256K1, path hd.BIP44Params) (types.PubKey, error
 func getPubKeyAddrSafe(device SECP256K1, path hd.BIP44Params, hrp string) (types.PubKey, string, error) {
 	publicKey, addr, err := device.GetAddressPubKeySECP256K1(path.DerivationPath(), hrp)
 	if err != nil {
-		return nil, "", fmt.Errorf("%w: address rejected for path %s", err, path.String())
+		// Check special case if user is trying to use an index > 100
+		if path.AddressIndex > 100 {
+			return nil, "", fmt.Errorf("%w: cannot derive paths where index > 100: %s "+
+				"This is a security measure to avoid very hard to find derivation paths introduced by a possible attacker. "+
+				"You can disable this by setting expert mode in your ledger device. Do this at your own risk", err, path)
+		}
+		return nil, "", fmt.Errorf("%w: address rejected for path %s", err, path)
 	}
 
 	// re-serialize in the 33-byte compressed format
-	cmp, err := btcec.ParsePubKey(publicKey, btcec.S256())
+	cmp, err := secp.ParsePubKey(publicKey)
 	if err != nil {
-		return nil, "", fmt.Errorf("error parsing public key: %v", err)
+		return nil, "", fmt.Errorf("error parsing public key: %w", err)
 	}
 
 	compressedPublicKey := make([]byte, secp256k1.PubKeySize)
 	copy(compressedPublicKey, cmp.SerializeCompressed())
 
-	return &secp256k1.PubKey{Key: compressedPublicKey}, addr, nil
+	return options.createPubkey(compressedPublicKey), addr, nil
 }

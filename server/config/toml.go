@@ -2,10 +2,11 @@ package config
 
 import (
 	"bytes"
+	"fmt"
+	"os"
 	"text/template"
 
 	"github.com/spf13/viper"
-	tmos "github.com/tendermint/tendermint/libs/os"
 )
 
 const DefaultConfigTemplate = `# This is a TOML config file.
@@ -17,18 +18,21 @@ const DefaultConfigTemplate = `# This is a TOML config file.
 
 # The minimum gas prices a validator is willing to accept for processing a
 # transaction. A transaction's fees must meet the minimum of any denomination
-# specified in this config (e.g. 0.25token1;0.0001token2).
+# specified in this config (e.g. 0.25token1,0.0001token2).
 minimum-gas-prices = "{{ .BaseConfig.MinGasPrices }}"
 
-# default: the last 100 states are kept in addition to every 500th state; pruning at 10 block intervals
+# The maximum gas a query coming over rest/grpc may consume.
+# If this is set to zero, the query can consume an unbounded amount of gas.
+query-gas-limit = "{{ .BaseConfig.QueryGasLimit }}"
+
+# default: the last 362880 states are kept, pruning at 10 block intervals
 # nothing: all historic states will be saved, nothing will be deleted (i.e. archiving node)
-# everything: all saved states will be deleted, storing only the current and previous state; pruning at 10 block intervals
-# custom: allow pruning options to be manually specified through 'pruning-keep-recent', 'pruning-keep-every', and 'pruning-interval'
+# everything: 2 latest states will be kept; pruning at 10 block intervals.
+# custom: allow pruning options to be manually specified through 'pruning-keep-recent', and 'pruning-interval'
 pruning = "{{ .BaseConfig.Pruning }}"
 
 # These are applied if and only if the pruning strategy is custom.
 pruning-keep-recent = "{{ .BaseConfig.PruningKeepRecent }}"
-pruning-keep-every = "{{ .BaseConfig.PruningKeepEvery }}"
 pruning-interval = "{{ .BaseConfig.PruningInterval }}"
 
 # HaltHeight contains a non-zero block height at which a node will gracefully
@@ -46,15 +50,15 @@ halt-time = {{ .BaseConfig.HaltTime }}
 
 # MinRetainBlocks defines the minimum block height offset from the current
 # block being committed, such that all blocks past this offset are pruned
-# from Tendermint. It is used as part of the process of determining the
+# from CometBFT. It is used as part of the process of determining the
 # ResponseCommit.RetainHeight value during ABCI Commit. A value of 0 indicates
 # that no blocks should be pruned.
 #
-# This configuration value is only responsible for pruning Tendermint blocks.
+# This configuration value is only responsible for pruning CometBFT blocks.
 # It has no bearing on application state pruning which is determined by the
 # "pruning-*" configurations.
 #
-# Note: Tendermint block pruning is dependant on this parameter in conunction
+# Note: CometBFT block pruning is dependant on this parameter in conjunction
 # with the unbonding (safety threshold) period, state pruning and state sync
 # snapshot parameters to determine the correct minimum value of
 # ResponseCommit.RetainHeight.
@@ -64,19 +68,23 @@ min-retain-blocks = {{ .BaseConfig.MinRetainBlocks }}
 inter-block-cache = {{ .BaseConfig.InterBlockCache }}
 
 # IndexEvents defines the set of events in the form {eventType}.{attributeKey},
-# which informs Tendermint what to index. If empty, all events will be indexed.
+# which informs CometBFT what to index. If empty, all events will be indexed.
 #
 # Example:
 # ["message.sender", "message.recipient"]
-index-events = {{ .BaseConfig.IndexEvents }}
+index-events = [{{ range .BaseConfig.IndexEvents }}{{ printf "%q, " . }}{{end}}]
 
-# IavlCacheSize set the size of the iavl tree cache.
-# Default cache size is 50mb.
+# IavlCacheSize set the size of the iavl tree cache (in number of nodes).
 iavl-cache-size = {{ .BaseConfig.IAVLCacheSize }}
 
 # IAVLDisableFastNode enables or disables the fast node feature of IAVL. 
-# Default is true.
+# Default is false.
 iavl-disable-fastnode = {{ .BaseConfig.IAVLDisableFastNode }}
+
+# AppDBBackend defines the database backend type to use for the application and snapshots DBs.
+# An empty string indicates that a fallback will be used.
+# The fallback is the db_backend value set in CometBFT's config.toml.
+app-db-backend = "{{ .BaseConfig.AppDBBackend }}"
 
 ###############################################################################
 ###                         Telemetry Configuration                         ###
@@ -113,6 +121,17 @@ global-labels = [{{ range $k, $v := .Telemetry.GlobalLabels }}
   ["{{index $v 0 }}", "{{ index $v 1}}"],{{ end }}
 ]
 
+# MetricsSink defines the type of metrics sink to use.
+metrics-sink = "{{ .Telemetry.MetricsSink }}"
+
+# StatsdAddr defines the address of a statsd server to send metrics to.
+# Only utilized if MetricsSink is set to "statsd" or "dogstatsd".
+statsd-addr = "{{ .Telemetry.StatsdAddr }}"
+
+# DatadogHostname defines the hostname to use when emitting metrics to
+# Datadog. Only utilized if MetricsSink is set to "dogstatsd".
+datadog-hostname = "{{ .Telemetry.DatadogHostname }}"
+
 ###############################################################################
 ###                           API Configuration                             ###
 ###############################################################################
@@ -131,41 +150,17 @@ address = "{{ .API.Address }}"
 # MaxOpenConnections defines the number of maximum open connections.
 max-open-connections = {{ .API.MaxOpenConnections }}
 
-# RPCReadTimeout defines the Tendermint RPC read timeout (in seconds).
+# RPCReadTimeout defines the CometBFT RPC read timeout (in seconds).
 rpc-read-timeout = {{ .API.RPCReadTimeout }}
 
-# RPCWriteTimeout defines the Tendermint RPC write timeout (in seconds).
+# RPCWriteTimeout defines the CometBFT RPC write timeout (in seconds).
 rpc-write-timeout = {{ .API.RPCWriteTimeout }}
 
-# RPCMaxBodyBytes defines the Tendermint maximum response body (in bytes).
+# RPCMaxBodyBytes defines the CometBFT maximum request body (in bytes).
 rpc-max-body-bytes = {{ .API.RPCMaxBodyBytes }}
 
 # EnableUnsafeCORS defines if CORS should be enabled (unsafe - use it at your own risk).
 enabled-unsafe-cors = {{ .API.EnableUnsafeCORS }}
-
-###############################################################################
-###                           Rosetta Configuration                         ###
-###############################################################################
-
-[rosetta]
-
-# Enable defines if the Rosetta API server should be enabled.
-enable = {{ .Rosetta.Enable }}
-
-# Address defines the Rosetta API server to listen on.
-address = "{{ .Rosetta.Address }}"
-
-# Network defines the name of the blockchain that will be returned by Rosetta.
-blockchain = "{{ .Rosetta.Blockchain }}"
-
-# Network defines the name of the network that will be returned by Rosetta.
-network = "{{ .Rosetta.Network }}"
-
-# Retries defines the number of retries when connecting to the node before failing.
-retries = {{ .Rosetta.Retries }}
-
-# Offline defines if Rosetta server should run in offline mode.
-offline = {{ .Rosetta.Offline }}
 
 ###############################################################################
 ###                           gRPC Configuration                            ###
@@ -179,6 +174,21 @@ enable = {{ .GRPC.Enable }}
 # Address defines the gRPC server address to bind to.
 address = "{{ .GRPC.Address }}"
 
+# MaxRecvMsgSize defines the max message size in bytes the server can receive.
+# The default value is 10MB.
+max-recv-msg-size = "{{ .GRPC.MaxRecvMsgSize }}"
+
+# MaxSendMsgSize defines the max message size in bytes the server can send.
+# The default value is math.MaxInt32.
+max-send-msg-size = "{{ .GRPC.MaxSendMsgSize }}"
+
+# Historical gRPC addresses with block ranges for historical query routing.
+# This should be a JSON string mapping gRPC addresses to block ranges.
+# Format: '{"address1": [start_block, end_block], "address2": [start_block, end_block]}'
+# Example: '{"0.0.0.0:26113": [0, 1000], "0.0.0.0:26114": [1001, 2000]}'
+# Leave empty to disable historical gRPC routing.
+historical-grpc-address-block-range = "{{ printf "{" }}{{ range $k, $v := .GRPC.HistoricalGRPCAddressBlockRange }}\"{{ $v }}\": [{{index $k 0 }}, {{ index $k 1}}]{{ end }}{{ printf "}" }}"
+
 ###############################################################################
 ###                        gRPC Web Configuration                           ###
 ###############################################################################
@@ -187,13 +197,8 @@ address = "{{ .GRPC.Address }}"
 
 # GRPCWebEnable defines if the gRPC-web should be enabled.
 # NOTE: gRPC must also be enabled, otherwise, this configuration is a no-op.
+# NOTE: gRPC-Web uses the same address as the API server.
 enable = {{ .GRPCWeb.Enable }}
-
-# Address defines the gRPC-web server address to bind to.
-address = "{{ .GRPCWeb.Address }}"
-
-# EnableUnsafeCORS defines if CORS should be enabled (unsafe - use it at your own risk).
-enable-unsafe-cors = {{ .GRPCWeb.EnableUnsafeCORS }}
 
 ###############################################################################
 ###                        State Sync Configuration                         ###
@@ -204,11 +209,50 @@ enable-unsafe-cors = {{ .GRPCWeb.EnableUnsafeCORS }}
 [state-sync]
 
 # snapshot-interval specifies the block interval at which local state sync snapshots are
-# taken (0 to disable). Must be a multiple of pruning-keep-every.
+# taken (0 to disable).
 snapshot-interval = {{ .StateSync.SnapshotInterval }}
 
 # snapshot-keep-recent specifies the number of recent snapshots to keep and serve (0 to keep all).
 snapshot-keep-recent = {{ .StateSync.SnapshotKeepRecent }}
+
+###############################################################################
+###                              State Streaming                            ###
+###############################################################################
+
+# Streaming allows nodes to stream state to external systems.
+[streaming]
+
+# streaming.abci specifies the configuration for the ABCI Listener streaming service.
+[streaming.abci]
+
+# List of kv store keys to stream out via gRPC.
+# The store key names MUST match the module's StoreKey name.
+#
+# Example:
+# ["acc", "bank", "gov", "staking", "mint"[,...]]
+# ["*"] to expose all keys.
+keys = [{{ range .Streaming.ABCI.Keys }}{{ printf "%q, " . }}{{end}}]
+
+# The plugin name used for streaming via gRPC.
+# Streaming is only enabled if this is set.
+# Supported plugins: abci
+plugin = "{{ .Streaming.ABCI.Plugin }}"
+
+# stop-node-on-err specifies whether to stop the node on message delivery error.
+stop-node-on-err = {{ .Streaming.ABCI.StopNodeOnErr }}
+
+###############################################################################
+###                         Mempool                                         ###
+###############################################################################
+
+[mempool]
+# Setting max-txs to 0 will allow for a unbounded amount of transactions in the mempool.
+# Setting max_txs to negative 1 (-1) will disable transactions from being inserted into the mempool (no-op mempool).
+# Setting max_txs to a positive number (> 0) will limit the number of transactions in the mempool, by the specified amount.
+#
+# Note, this configuration only applies to SDK built-in app-side mempool
+# implementations.
+max-txs = {{ .Mempool.MaxTxs }}
 `
 
 var configTemplate *template.Template
@@ -246,12 +290,18 @@ func SetConfigTemplate(customTemplate string) {
 
 // WriteConfigFile renders config using the template and writes it to
 // configFilePath.
-func WriteConfigFile(configFilePath string, config interface{}) {
+func WriteConfigFile(configFilePath string, config any) {
 	var buffer bytes.Buffer
 
 	if err := configTemplate.Execute(&buffer, config); err != nil {
 		panic(err)
 	}
 
-	tmos.MustWriteFile(configFilePath, buffer.Bytes(), 0o644)
+	mustWriteFile(configFilePath, buffer.Bytes(), 0o644)
+}
+
+func mustWriteFile(filePath string, contents []byte, mode os.FileMode) {
+	if err := os.WriteFile(filePath, contents, mode); err != nil {
+		panic(fmt.Errorf("failed to write file: %w", err))
+	}
 }

@@ -4,13 +4,14 @@ import (
 	"testing"
 	"time"
 
+	"github.com/cometbft/cometbft/crypto"
+	"github.com/stretchr/testify/require"
+
+	"cosmossdk.io/simapp"
+
 	"github.com/cosmos/cosmos-sdk/crypto/keys/secp256k1"
-	"github.com/cosmos/cosmos-sdk/simapp"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	authtypes "github.com/cosmos/cosmos-sdk/x/auth/types"
-
-	"github.com/stretchr/testify/require"
-	"github.com/tendermint/tendermint/crypto"
 )
 
 func TestSimGenesisAccountValidate(t *testing.T) {
@@ -80,7 +81,6 @@ func TestSimGenesisAccountValidate(t *testing.T) {
 	}
 
 	for _, tc := range testCases {
-		tc := tc
 		t.Run(tc.name, func(t *testing.T) {
 			require.Equal(t, tc.wantErr, tc.sga.Validate() != nil)
 		})

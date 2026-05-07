@@ -1,202 +1,354 @@
 package server_test
 
 import (
-	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
 	"io"
 	"os"
-	"path"
+	"path/filepath"
 	"testing"
+	"time"
 
-	"github.com/spf13/cobra"
+	cmtcfg "github.com/cometbft/cometbft/config"
+	cmtproto "github.com/cometbft/cometbft/proto/tendermint/types"
+	cmttypes "github.com/cometbft/cometbft/types"
+	dbm "github.com/cosmos/cosmos-db"
+	"github.com/rs/zerolog"
+	"github.com/spf13/viper"
 	"github.com/stretchr/testify/require"
 
-	abci "github.com/tendermint/tendermint/abci/types"
-	tmjson "github.com/tendermint/tendermint/libs/json"
-	"github.com/tendermint/tendermint/libs/log"
-	tmproto "github.com/tendermint/tendermint/proto/tendermint/types"
-	tmtypes "github.com/tendermint/tendermint/types"
-	dbm "github.com/tendermint/tm-db"
+	"cosmossdk.io/log"
 
 	"github.com/cosmos/cosmos-sdk/client"
-	"github.com/cosmos/cosmos-sdk/client/flags"
-	"github.com/cosmos/cosmos-sdk/codec"
 	"github.com/cosmos/cosmos-sdk/server"
 	"github.com/cosmos/cosmos-sdk/server/types"
-	"github.com/cosmos/cosmos-sdk/simapp"
-	"github.com/cosmos/cosmos-sdk/types/errors"
-	"github.com/cosmos/cosmos-sdk/x/genutil"
+	"github.com/cosmos/cosmos-sdk/testutil/cmdtest"
+	"github.com/cosmos/cosmos-sdk/types/module"
+	genutilcli "github.com/cosmos/cosmos-sdk/x/genutil/client/cli"
+	genutiltypes "github.com/cosmos/cosmos-sdk/x/genutil/types"
 )
 
-func TestExportCmd_ConsensusParams(t *testing.T) {
-	tempDir := t.TempDir()
+// ExportSystem wraps a (*cmdtest).System
+// and sets up appropriate client and server contexts,
+// to simplify testing the export CLI.
+type ExportSystem struct {
+	sys *cmdtest.System
 
-	_, ctx, genDoc, cmd := setupApp(t, tempDir)
+	Ctx context.Context
 
-	output := &bytes.Buffer{}
-	cmd.SetOut(output)
-	cmd.SetArgs([]string{fmt.Sprintf("--%s=%s", flags.FlagHome, tempDir)})
-	require.NoError(t, cmd.ExecuteContext(ctx))
+	Sctx *server.Context
+	Cctx client.Context
 
-	var exportedGenDoc tmtypes.GenesisDoc
-	err := tmjson.Unmarshal(output.Bytes(), &exportedGenDoc)
-	if err != nil {
-		t.Fatalf("error unmarshaling exported genesis doc: %s", err)
-	}
-
-	require.Equal(t, genDoc.ConsensusParams.Block.TimeIotaMs, exportedGenDoc.ConsensusParams.Block.TimeIotaMs)
-	require.Equal(t, simapp.DefaultConsensusParams.Block.MaxBytes, exportedGenDoc.ConsensusParams.Block.MaxBytes)
-	require.Equal(t, simapp.DefaultConsensusParams.Block.MaxGas, exportedGenDoc.ConsensusParams.Block.MaxGas)
-
-	require.Equal(t, simapp.DefaultConsensusParams.Evidence.MaxAgeDuration, exportedGenDoc.ConsensusParams.Evidence.MaxAgeDuration)
-	require.Equal(t, simapp.DefaultConsensusParams.Evidence.MaxAgeNumBlocks, exportedGenDoc.ConsensusParams.Evidence.MaxAgeNumBlocks)
-
-	require.Equal(t, simapp.DefaultConsensusParams.Validator.PubKeyTypes, exportedGenDoc.ConsensusParams.Validator.PubKeyTypes)
+	HomeDir string
 }
 
-func TestExportCmd_HomeDir(t *testing.T) {
-	_, ctx, _, cmd := setupApp(t, t.TempDir())
+// newExportSystem returns a cmdtest.System with export as a child command,
+// and it returns a context.Background with an associated *server.Context value.
+func NewExportSystem(t *testing.T, exporter types.AppExporter) *ExportSystem {
+	t.Helper()
 
-	cmd.SetArgs([]string{fmt.Sprintf("--%s=%s", flags.FlagHome, "foobar")})
+	homeDir := t.TempDir()
 
-	err := cmd.ExecuteContext(ctx)
-	require.EqualError(t, err, "stat foobar/config/genesis.json: no such file or directory")
-}
-
-func TestExportCmd_Height(t *testing.T) {
-	testCases := []struct {
-		name        string
-		flags       []string
-		fastForward int64
-		expHeight   int64
-	}{
-		{
-			"should export correct height",
-			[]string{},
-			5, 6,
-		},
-		{
-			"should export correct height with --height",
-			[]string{
-				fmt.Sprintf("--%s=%d", server.FlagHeight, 3),
-			},
-			5, 4,
-		},
-		{
-			"should export height 0 with --for-zero-height",
-			[]string{
-				fmt.Sprintf("--%s=%s", server.FlagForZeroHeight, "true"),
-			},
-			2, 0,
-		},
+	// Unclear why we have to create the config directory ourselves,
+	// but tests fail without this.
+	if err := os.MkdirAll(filepath.Join(homeDir, "config"), 0o700); err != nil {
+		t.Fatal(err)
 	}
 
-	for _, tc := range testCases {
-		t.Run(tc.name, func(t *testing.T) {
-			tempDir := t.TempDir()
-			app, ctx, _, cmd := setupApp(t, tempDir)
-
-			// Fast forward to block `tc.fastForward`.
-			for i := int64(2); i <= tc.fastForward; i++ {
-				app.BeginBlock(abci.RequestBeginBlock{Header: tmproto.Header{Height: i}})
-				app.Commit()
-			}
-
-			output := &bytes.Buffer{}
-			cmd.SetOut(output)
-			args := append(tc.flags, fmt.Sprintf("--%s=%s", flags.FlagHome, tempDir))
-			cmd.SetArgs(args)
-			require.NoError(t, cmd.ExecuteContext(ctx))
-
-			var exportedGenDoc tmtypes.GenesisDoc
-			err := tmjson.Unmarshal(output.Bytes(), &exportedGenDoc)
-			if err != nil {
-				t.Fatalf("error unmarshaling exported genesis doc: %s", err)
-			}
-
-			require.Equal(t, tc.expHeight, exportedGenDoc.InitialHeight)
-		})
-	}
-}
-
-func setupApp(t *testing.T, tempDir string) (*simapp.SimApp, context.Context, *tmtypes.GenesisDoc, *cobra.Command) {
-	if err := createConfigFolder(tempDir); err != nil {
-		t.Fatalf("error creating config folder: %s", err)
-	}
-
-	logger := log.NewTMLogger(log.NewSyncWriter(os.Stdout))
-	db := dbm.NewMemDB()
-	encCfg := simapp.MakeTestEncodingConfig()
-	app := simapp.NewSimApp(logger, db, nil, true, map[int64]bool{}, tempDir, 0, encCfg, simapp.EmptyAppOptions{})
-
-	serverCtx := server.NewDefaultContext()
-	serverCtx.Config.RootDir = tempDir
-
-	clientCtx := client.Context{}.WithCodec(app.AppCodec())
-	genDoc := newDefaultGenesisDoc(encCfg.Marshaler)
-
-	require.NoError(t, saveGenesisFile(genDoc, serverCtx.Config.GenesisFile()))
-	app.InitChain(
-		abci.RequestInitChain{
-			Validators:      []abci.ValidatorUpdate{},
-			ConsensusParams: simapp.DefaultConsensusParams,
-			AppStateBytes:   genDoc.AppState,
-		},
+	sys := cmdtest.NewSystem()
+	sys.AddCommands(
+		server.ExportCmd(exporter, homeDir),
+		genutilcli.InitCmd(module.NewBasicManager(), homeDir),
 	)
-	app.Commit()
 
-	cmd := server.ExportCmd(
-		func(_ log.Logger, _ dbm.DB, _ io.Writer, height int64, forZeroHeight bool, jailAllowedAddrs []string, appOptons types.AppOptions) (types.ExportedApp, error) {
-			encCfg := simapp.MakeTestEncodingConfig()
+	tw := zerolog.NewTestWriter(t)
+	tw.Frame = 5 // Seems to be the magic number to get source location to match logger calls.
 
-			var simApp *simapp.SimApp
-			if height != -1 {
-				simApp = simapp.NewSimApp(logger, db, nil, false, map[int64]bool{}, "", 0, encCfg, appOptons)
+	sCtx := server.NewContext(
+		viper.New(),
+		cmtcfg.DefaultConfig(),
+		log.NewCustomLogger(zerolog.New(tw)),
+	)
+	sCtx.Config.SetRoot(homeDir)
 
-				if err := simApp.LoadHeight(height); err != nil {
-					return types.ExportedApp{}, err
-				}
-			} else {
-				simApp = simapp.NewSimApp(logger, db, nil, true, map[int64]bool{}, "", 0, encCfg, appOptons)
-			}
+	cCtx := (client.Context{}).WithHomeDir(homeDir)
 
-			return simApp.ExportAppStateAndValidators(forZeroHeight, jailAllowedAddrs)
-		}, tempDir)
+	ctx := context.WithValue(context.Background(), server.ServerContextKey, sCtx)
+	ctx = context.WithValue(ctx, client.ClientContextKey, &cCtx)
 
-	ctx := context.Background()
-	ctx = context.WithValue(ctx, client.ClientContextKey, &clientCtx)
-	ctx = context.WithValue(ctx, server.ServerContextKey, serverCtx)
-
-	return app, ctx, genDoc, cmd
-}
-
-func createConfigFolder(dir string) error {
-	return os.Mkdir(path.Join(dir, "config"), 0o700)
-}
-
-func newDefaultGenesisDoc(cdc codec.Codec) *tmtypes.GenesisDoc {
-	genesisState := simapp.NewDefaultGenesisState(cdc)
-
-	stateBytes, err := json.MarshalIndent(genesisState, "", "  ")
-	if err != nil {
-		panic(err)
+	return &ExportSystem{
+		sys:     sys,
+		Ctx:     ctx,
+		Sctx:    sCtx,
+		Cctx:    cCtx,
+		HomeDir: homeDir,
 	}
-
-	genDoc := &tmtypes.GenesisDoc{}
-	genDoc.ChainID = "theChainId"
-	genDoc.Validators = nil
-	genDoc.AppState = stateBytes
-
-	return genDoc
 }
 
-func saveGenesisFile(genDoc *tmtypes.GenesisDoc, dir string) error {
-	err := genutil.ExportGenesisFile(genDoc, dir)
-	if err != nil {
-		return errors.Wrap(err, "error creating file")
-	}
+// Run wraps (*cmdtest.System).RunC, providing e's context.
+func (s *ExportSystem) Run(args ...string) cmdtest.RunResult {
+	return s.sys.RunC(s.Ctx, args...)
+}
 
-	return nil
+// MustRun wraps (*cmdtest.System).MustRunC, providing e's context.
+func (s *ExportSystem) MustRun(t *testing.T, args ...string) cmdtest.RunResult {
+	t.Helper()
+
+	return s.sys.MustRunC(t, s.Ctx, args...)
+}
+
+// isZeroExportedApp reports whether all fields of a are unset.
+//
+// This is for the mockExporter to check if a return value was ever set.
+func isZeroExportedApp(a types.ExportedApp) bool {
+	return a.AppState == nil &&
+		len(a.Validators) == 0 &&
+		a.Height == 0 &&
+		a.ConsensusParams == cmtproto.ConsensusParams{}
+}
+
+// mockExporter provides an Export method matching server/types.AppExporter,
+// and it tracks relevant arguments when that method is called.
+type mockExporter struct {
+	// The values to return from Export().
+	ExportApp types.ExportedApp
+	Err       error
+
+	// Whether Export was called at all.
+	WasCalled bool
+
+	// Called tracks the interesting arguments passed to Export().
+	Called struct {
+		Height           int64
+		ForZeroHeight    bool
+		JailAllowedAddrs []string
+		ModulesToExport  []string
+	}
+}
+
+// SetDefaultExportApp sets a valid ExportedApp to be returned
+// when e.Export is called.
+func (e *mockExporter) SetDefaultExportApp() {
+	e.ExportApp = types.ExportedApp{
+		ConsensusParams: cmtproto.ConsensusParams{
+			Block: &cmtproto.BlockParams{
+				MaxBytes: 5 * 1024 * 1024,
+				MaxGas:   -1,
+			},
+			Evidence: &cmtproto.EvidenceParams{
+				MaxAgeNumBlocks: 100,
+				MaxAgeDuration:  time.Hour,
+				MaxBytes:        1024 * 1024,
+			},
+			Validator: &cmtproto.ValidatorParams{
+				PubKeyTypes: []string{cmttypes.ABCIPubKeyTypeEd25519},
+			},
+		},
+	}
+}
+
+// Export satisfies the server/types.AppExporter function type.
+//
+// e tracks relevant arguments under the e.Called struct.
+//
+// Export panics if neither e.ExportApp nor e.Err have been set.
+func (e *mockExporter) Export(
+	logger log.Logger,
+	db dbm.DB,
+	traceWriter io.Writer,
+	height int64,
+	forZeroHeight bool,
+	jailAllowedAddrs []string,
+	opts types.AppOptions,
+	modulesToExport []string,
+) (types.ExportedApp, error) {
+	if e.Err == nil && isZeroExportedApp(e.ExportApp) {
+		panic(fmt.Errorf("(*mockExporter).Export called without setting e.ExportApp or e.Err"))
+	}
+	e.WasCalled = true
+
+	e.Called.Height = height
+	e.Called.ForZeroHeight = forZeroHeight
+	e.Called.JailAllowedAddrs = jailAllowedAddrs
+	e.Called.ModulesToExport = modulesToExport
+
+	return e.ExportApp, e.Err
+}
+
+func TestExportCLI(t *testing.T) {
+	// Use t.Parallel in all of the subtests,
+	// because they all read from disk and risk blocking on io.
+
+	t.Run("fail on missing genesis file", func(t *testing.T) {
+		t.Parallel()
+
+		e := new(mockExporter)
+		sys := NewExportSystem(t, e.Export)
+
+		res := sys.Run("export")
+		require.Error(t, res.Err)
+		require.Truef(t, os.IsNotExist(res.Err), "expected resulting error to be os.IsNotExist, got %T (%v)", res.Err, res.Err)
+
+		require.False(t, e.WasCalled)
+	})
+
+	t.Run("prints to stdout by default", func(t *testing.T) {
+		t.Parallel()
+
+		e := new(mockExporter)
+		e.SetDefaultExportApp()
+
+		sys := NewExportSystem(t, e.Export)
+		_ = sys.MustRun(t, "init", "some_moniker")
+		res := sys.MustRun(t, "export")
+
+		require.Empty(t, res.Stderr.String())
+
+		CheckExportedGenesis(t, res.Stdout.Bytes())
+	})
+
+	t.Run("passes expected default values to the AppExporter", func(t *testing.T) {
+		t.Parallel()
+
+		e := new(mockExporter)
+		e.SetDefaultExportApp()
+
+		sys := NewExportSystem(t, e.Export)
+		_ = sys.MustRun(t, "init", "some_moniker")
+		_ = sys.MustRun(t, "export")
+
+		require.True(t, e.WasCalled)
+
+		require.Equal(t, int64(-1), e.Called.Height)
+		require.False(t, e.Called.ForZeroHeight)
+		require.Empty(t, e.Called.JailAllowedAddrs)
+		require.Empty(t, e.Called.ModulesToExport)
+	})
+
+	t.Run("passes flag values to the AppExporter", func(t *testing.T) {
+		t.Parallel()
+
+		e := new(mockExporter)
+		e.SetDefaultExportApp()
+
+		sys := NewExportSystem(t, e.Export)
+		_ = sys.MustRun(t, "init", "some_moniker")
+		_ = sys.MustRun(t, "export",
+			"--height=100",
+			"--jail-allowed-addrs", "addr1,addr2",
+			"--modules-to-export", "foo,bar",
+		)
+
+		require.True(t, e.WasCalled)
+
+		require.Equal(t, int64(100), e.Called.Height)
+		require.False(t, e.Called.ForZeroHeight)
+		require.Equal(t, []string{"addr1", "addr2"}, e.Called.JailAllowedAddrs)
+		require.Equal(t, []string{"foo", "bar"}, e.Called.ModulesToExport)
+	})
+
+	t.Run("passes --for-zero-height to the AppExporter", func(t *testing.T) {
+		t.Parallel()
+
+		e := new(mockExporter)
+		e.SetDefaultExportApp()
+
+		sys := NewExportSystem(t, e.Export)
+		_ = sys.MustRun(t, "init", "some_moniker")
+		_ = sys.MustRun(t, "export", "--for-zero-height")
+
+		require.True(t, e.WasCalled)
+
+		require.Equal(t, int64(-1), e.Called.Height)
+		require.True(t, e.Called.ForZeroHeight)
+		require.Empty(t, e.Called.JailAllowedAddrs)
+		require.Empty(t, e.Called.ModulesToExport)
+	})
+
+	t.Run("prints to a given file with --output-document", func(t *testing.T) {
+		t.Parallel()
+
+		e := new(mockExporter)
+		e.SetDefaultExportApp()
+
+		sys := NewExportSystem(t, e.Export)
+		_ = sys.MustRun(t, "init", "some_moniker")
+
+		outDir := t.TempDir()
+		outFile := filepath.Join(outDir, "export.json")
+
+		res := sys.MustRun(t, "export", "--output-document", outFile)
+
+		require.Empty(t, res.Stderr.String())
+		require.Empty(t, res.Stdout.String())
+
+		j, err := os.ReadFile(outFile)
+		require.NoError(t, err)
+
+		CheckExportedGenesis(t, j)
+	})
+
+	t.Run("prints genesis to stdout when no app exporter defined", func(t *testing.T) {
+		t.Parallel()
+
+		sys := NewExportSystem(t, nil)
+		_ = sys.MustRun(t, "init", "some_moniker")
+
+		res := sys.MustRun(t, "export")
+
+		require.Contains(t, res.Stderr.String(), "WARNING: App exporter not defined.")
+
+		origGenesis, err := os.ReadFile(filepath.Join(sys.HomeDir, "config", "genesis.json"))
+		require.NoError(t, err)
+
+		out := res.Stdout.Bytes()
+
+		require.Equal(t, origGenesis, out)
+	})
+
+	t.Run("returns app exporter error", func(t *testing.T) {
+		t.Parallel()
+
+		e := new(mockExporter)
+		e.Err = fmt.Errorf("whoopsie")
+
+		sys := NewExportSystem(t, e.Export)
+		_ = sys.MustRun(t, "init", "some_moniker")
+
+		res := sys.Run("export")
+
+		require.ErrorIs(t, res.Err, e.Err)
+	})
+
+	t.Run("rejects positional arguments", func(t *testing.T) {
+		t.Parallel()
+
+		e := new(mockExporter)
+		e.SetDefaultExportApp()
+
+		sys := NewExportSystem(t, e.Export)
+		_ = sys.MustRun(t, "init", "some_moniker")
+
+		outDir := t.TempDir()
+		outFile := filepath.Join(outDir, "export.json")
+
+		res := sys.Run("export", outFile)
+		require.Error(t, res.Err)
+
+		require.NoFileExists(t, outFile)
+	})
+}
+
+// CheckExportedGenesis fails t if j cannot be unmarshaled into a valid AppGenesis.
+func CheckExportedGenesis(t *testing.T, j []byte) {
+	t.Helper()
+
+	var ag genutiltypes.AppGenesis
+	require.NoError(t, json.Unmarshal(j, &ag))
+
+	require.NotEmpty(t, ag.AppName)
+	require.NotZero(t, ag.GenesisTime)
+	require.NotEmpty(t, ag.ChainID)
+	require.NotNil(t, ag.Consensus)
 }

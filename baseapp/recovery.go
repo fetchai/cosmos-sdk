@@ -4,6 +4,9 @@ import (
 	"fmt"
 	"runtime/debug"
 
+	errorsmod "cosmossdk.io/errors"
+	storetypes "cosmossdk.io/store/types"
+
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
 )
@@ -11,16 +14,16 @@ import (
 // RecoveryHandler handles recovery() object.
 // Return a non-nil error if recoveryObj was processed.
 // Return nil if recoveryObj was not processed.
-type RecoveryHandler func(recoveryObj interface{}) error
+type RecoveryHandler func(recoveryObj any) error
 
 // recoveryMiddleware is wrapper for RecoveryHandler to create chained recovery handling.
 // returns (recoveryMiddleware, nil) if recoveryObj was not processed and should be passed to the next middleware in chain.
 // returns (nil, error) if recoveryObj was processed and middleware chain processing should be stopped.
-type recoveryMiddleware func(recoveryObj interface{}) (recoveryMiddleware, error)
+type recoveryMiddleware func(recoveryObj any) (recoveryMiddleware, error)
 
 // processRecovery processes recoveryMiddleware chain for recovery() object.
 // Chain processing stops on non-nil error or when chain is processed.
-func processRecovery(recoveryObj interface{}, middleware recoveryMiddleware) error {
+func processRecovery(recoveryObj any, middleware recoveryMiddleware) error {
 	if middleware == nil {
 		return nil
 	}
@@ -35,7 +38,7 @@ func processRecovery(recoveryObj interface{}, middleware recoveryMiddleware) err
 
 // newRecoveryMiddleware creates a RecoveryHandler middleware.
 func newRecoveryMiddleware(handler RecoveryHandler, next recoveryMiddleware) recoveryMiddleware {
-	return func(recoveryObj interface{}) (recoveryMiddleware, error) {
+	return func(recoveryObj any) (recoveryMiddleware, error) {
 		if err := handler(recoveryObj); err != nil {
 			return nil, err
 		}
@@ -46,13 +49,13 @@ func newRecoveryMiddleware(handler RecoveryHandler, next recoveryMiddleware) rec
 
 // newOutOfGasRecoveryMiddleware creates a standard OutOfGas recovery middleware for app.runTx method.
 func newOutOfGasRecoveryMiddleware(gasWanted uint64, ctx sdk.Context, next recoveryMiddleware) recoveryMiddleware {
-	handler := func(recoveryObj interface{}) error {
-		err, ok := recoveryObj.(sdk.ErrorOutOfGas)
+	handler := func(recoveryObj any) error {
+		err, ok := recoveryObj.(storetypes.ErrorOutOfGas)
 		if !ok {
 			return nil
 		}
 
-		return sdkerrors.Wrap(
+		return errorsmod.Wrap(
 			sdkerrors.ErrOutOfGas, fmt.Sprintf(
 				"out of gas in location: %v; gasWanted: %d, gasUsed: %d",
 				err.Descriptor, gasWanted, ctx.GasMeter().GasConsumed(),
@@ -65,8 +68,8 @@ func newOutOfGasRecoveryMiddleware(gasWanted uint64, ctx sdk.Context, next recov
 
 // newDefaultRecoveryMiddleware creates a default (last in chain) recovery middleware for app.runTx method.
 func newDefaultRecoveryMiddleware() recoveryMiddleware {
-	handler := func(recoveryObj interface{}) error {
-		return sdkerrors.Wrap(
+	handler := func(recoveryObj any) error {
+		return errorsmod.Wrap(
 			sdkerrors.ErrPanic, fmt.Sprintf(
 				"recovered: %v\nstack:\n%v", recoveryObj, string(debug.Stack()),
 			),
