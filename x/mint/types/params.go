@@ -44,38 +44,53 @@ func (p Params) Validate() error {
 	return nil
 }
 
-func validateMintDenom(denom string) error {
-	if strings.TrimSpace(denom) == "" {
+func validateMintDenom(i any) error {
+	v, ok := i.(string)
+	if !ok {
+		return fmt.Errorf("invalid parameter type: %T", i)
+	}
+
+	if strings.TrimSpace(v) == "" {
 		return errors.New("mint denom cannot be blank")
 	}
-	if err := sdk.ValidateDenom(denom); err != nil {
+	if err := sdk.ValidateDenom(v); err != nil {
 		return err
 	}
 
 	return nil
 }
 
-func validateInflationRate(inflationRate sdkmath.LegacyDec) error {
-	if inflationRate.IsNil() {
-		return fmt.Errorf("inflation rate cannot be nil: %s", inflationRate)
+func validateInflationRate(i any) error {
+	v, ok := i.(sdkmath.LegacyDec)
+	if !ok {
+		return fmt.Errorf("invalid parameter type: %T", i)
 	}
-	if inflationRate.IsNegative() {
-		return fmt.Errorf("inflation rate cannot be negative: %s", inflationRate)
+
+	if v.IsNil() {
+		return fmt.Errorf("inflation rate cannot be nil: %s", v)
 	}
-	if inflationRate.GT(sdkmath.LegacyOneDec()) {
-		return fmt.Errorf("inflation rate too large: %s", inflationRate)
+	if v.IsNegative() {
+		return fmt.Errorf("inflation rate cannot be negative: %s", v)
+	}
+	if v.GT(sdkmath.LegacyOneDec()) {
+		return fmt.Errorf("inflation rate too large: %s", v)
 	}
 
 	return nil
 }
 
-func validateBlocksPerYear(blocksPerYear uint64) error {
-	if blocksPerYear == 0 {
-		return fmt.Errorf("blocks per year must be positive: %d", blocksPerYear)
+func validateBlocksPerYear(i any) error {
+	v, ok := i.(uint64)
+	if !ok {
+		return fmt.Errorf("invalid parameter type: %T", i)
 	}
 
-	if blocksPerYear > math.MaxInt64 {
-		return fmt.Errorf("blocks per year too large: %d, maximum value is: %d", blocksPerYear, math.MaxInt64)
+	if v == 0 {
+		return fmt.Errorf("blocks per year must be positive: %d", v)
+	}
+
+	if v > math.MaxInt64 {
+		return fmt.Errorf("blocks per year too large: %d, maximum value is: %d", v, math.MaxInt64)
 	}
 
 	return nil
