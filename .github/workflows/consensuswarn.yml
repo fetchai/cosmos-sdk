@@ -14,6 +14,6 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
-      - uses: orijtech/consensuswarn@main
+      - uses: fetchai/consensuswarn@feat/golang_1.24
         with:
           roots: "github.com/cosmos/cosmos-sdk/baseapp.BaseApp.PrepareProposal,github.com/cosmos/cosmos-sdk/baseapp.BaseApp.ProcessProposal,github.com/cosmos/cosmos-sdk/baseapp.BaseApp.FinalizeBlock,github.com/cosmos/cosmos-sdk/baseapp.BaseApp.Commit,github.com/cosmos/cosmos-sdk/baseapp.BaseApp.VerifyVoteExtension"
