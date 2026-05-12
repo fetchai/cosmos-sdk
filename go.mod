@@ -60,7 +60,7 @@ require (
 	google.golang.org/grpc v1.75.1
 	google.golang.org/protobuf v1.36.10
 	gotest.tools/v3 v3.5.2
-	pgregory.net/rapid v1.2.0
+	pgregory.net/rapid v1.3.0
 	sigs.k8s.io/yaml v1.6.0
 )
 
