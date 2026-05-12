@@ -45,7 +45,7 @@ require (
 	github.com/mattn/go-isatty v0.0.20
 	github.com/mdp/qrterminal/v3 v3.2.1
 	github.com/prometheus/client_golang v1.23.0
-	github.com/prometheus/common v0.65.0
+	github.com/prometheus/common v0.67.5
 	github.com/rs/zerolog v1.34.0
 	github.com/spf13/cast v1.10.0
 	github.com/spf13/cobra v1.10.1
@@ -58,7 +58,7 @@ require (
 	golang.org/x/sync v0.19.0
 	google.golang.org/genproto/googleapis/api v0.0.0-20251202230838-ff82c1b0f217
 	google.golang.org/grpc v1.75.1
-	google.golang.org/protobuf v1.36.10
+	google.golang.org/protobuf v1.36.11
 	gotest.tools/v3 v3.5.2
 	pgregory.net/rapid v1.2.0
 	sigs.k8s.io/yaml v1.6.0
@@ -157,7 +157,7 @@ require (
 	go.opencensus.io v0.24.0 // indirect
 	go.uber.org/multierr v1.11.0 // indirect
 	go.uber.org/zap v1.27.0 // indirect
-	go.yaml.in/yaml/v2 v2.4.2 // indirect
+	go.yaml.in/yaml/v2 v2.4.3 // indirect
 	go.yaml.in/yaml/v3 v3.0.4 // indirect
 	golang.org/x/arch v0.17.0 // indirect
 	golang.org/x/exp v0.0.0-20250305212735-054e65f0b394 // indirect
