@@ -17,7 +17,7 @@ require (
 	github.com/cosmos/gogoproto v1.7.2
 	github.com/golang/protobuf v1.5.4
 	github.com/grpc-ecosystem/grpc-gateway v1.16.0
-	github.com/spf13/cobra v1.10.1
+	github.com/spf13/cobra v1.10.2
 	github.com/stretchr/testify v1.11.1
 	go.uber.org/mock v0.6.0
 	google.golang.org/genproto/googleapis/api v0.0.0-20251202230838-ff82c1b0f217
